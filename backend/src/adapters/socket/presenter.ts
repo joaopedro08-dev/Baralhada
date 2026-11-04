@@ -18,16 +18,21 @@ const presentGame = (
   return { ...view, history }
 }
 
-export const createRoomStatePresenter = (room: Room): ((viewerId: PlayerId) => RoomStateDto) => {
+export const createRoomStatePresenter = (
+  room: Room,
+  serverNow: number
+): ((viewerId: PlayerId) => RoomStateDto) => {
   const history = room.game ? describeHistory(room.game, HISTORY_LIMIT) : []
   const shared = {
     code: room.code,
     version: room.version,
+    serverNow,
     status: statusOf(room),
     hostId: hostIdOf(room),
     canStart: canStart(room),
     players: room.players.map(({ id, nickname, connected }) => ({ id, nickname, connected })),
     turnDeadlineAt: room.turnDeadlineAt,
+    matchStartsAt: room.matchStartsAt,
   }
   return (viewerId) => ({ ...shared, viewerId, game: presentGame(room, viewerId, history) })
 }

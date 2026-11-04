@@ -210,13 +210,33 @@ const commit = (game: Game, kind: TurnActionKind, mutation: Mutation): Game => {
   }
 }
 
+export const closesPurchase = (ownMelds: readonly Meld[], action: TurnAction): boolean => {
+  switch (action.type) {
+    case "draw":
+      return false
+    case "discard":
+    case "takeFromTable":
+      return true
+    case "steal":
+      return action.handCards.length > 0
+    case "layDown": {
+      const [card] = action.cards
+      return (
+        card !== undefined &&
+        ownMelds.some((meld) => meld.rank === rankOf(card) && !isComplete(meld))
+      )
+    }
+  }
+}
+
 const refusalForPlayMade = (
   usedActions: readonly TurnActionKind[],
+  ownMelds: readonly Meld[],
   action: TurnAction
 ): GameErrorCode | null => {
   if (usedActions.length === 0) return null
   if (usedActions.length > 1 || usedActions[0] !== "draw") return "ACTION_ALREADY_USED"
-  return action.type === "discard" || action.type === "takeFromTable" ? null : "MUST_DISCARD"
+  return closesPurchase(ownMelds, action) ? null : "MUST_DISCARD"
 }
 
 export const applyTurnAction = (
@@ -226,8 +246,9 @@ export const applyTurnAction = (
 ): Result<Game, GameErrorCode> => {
   if (isFinished(game)) return err("GAME_FINISHED")
   if (game.turn.playerId !== playerId) return err("NOT_YOUR_TURN")
-  const refusal = refusalForPlayMade(game.turn.usedActions, action)
+  const actor = getPlayer(game, playerId)
+  const refusal = refusalForPlayMade(game.turn.usedActions, actor.melds, action)
   if (refusal) return err(refusal)
-  const mutation = execute(game, getPlayer(game, playerId), action)
+  const mutation = execute(game, actor, action)
   return mutation.ok ? ok(commit(game, action.type, mutation.value)) : mutation
 }

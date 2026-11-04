@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 import { BookOpen, DoorOpen, Plus } from "lucide-react"
@@ -31,6 +31,8 @@ import { gameSession } from "@/lib/game/session"
 
 type EntryMode = "criar" | "entrar"
 
+const LONG_WAIT_MS = 8000
+
 const ROOM_CODE_SLOTS = Array.from(
   { length: ROOM_CODE_LENGTH },
   (_, slot) => slot
@@ -55,13 +57,32 @@ function CardFan() {
   )
 }
 
+const describeConnection = (
+  connection: string,
+  waitedLong: boolean
+): string => {
+  if (waitedLong) {
+    return "Ainda conectando. Se o servidor estava parado, isso pode levar cerca de 1 minuto."
+  }
+  return connection === "connecting"
+    ? "Conectando ao servidor..."
+    : "Sem conexão com o servidor. Tentando de novo..."
+}
+
 function ConnectionHint({ connection }: { connection: string }) {
-  if (connection === "online") return null
+  const online = connection === "online"
+  const [waitedLong, setWaitedLong] = useState(false)
+
+  useEffect(() => {
+    if (online) return
+    const timer = setTimeout(() => setWaitedLong(true), LONG_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [online])
+
+  if (online) return null
   return (
     <p role="status" className="text-center text-sm text-muted-foreground">
-      {connection === "connecting"
-        ? "Conectando ao servidor..."
-        : "Sem conexão com o servidor. Tentando de novo..."}
+      {describeConnection(connection, waitedLong)}
     </p>
   )
 }
@@ -107,7 +128,7 @@ function RoomCodeField({
 
 export function HomeScreen() {
   const { connection, inviteCode, notice } = useGame()
-  const [nickname, setNickname] = useState("")
+  const nicknameInput = useRef<HTMLInputElement>(null)
   const [typedCode, setTypedCode] = useState<string | null>(null)
   const [chosenMode, setChosenMode] = useState<EntryMode | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
@@ -121,7 +142,7 @@ export function HomeScreen() {
   const message = problem ?? notice
 
   const enter = async (run: (name: string) => Promise<Refusal>) => {
-    const name = nickname.trim()
+    const name = nicknameInput.current?.value.trim() ?? ""
     const invalid = nicknameProblem(name)
     setProblem(invalid)
     gameSession.dismissNotice()
@@ -176,8 +197,7 @@ export function HomeScreen() {
                 </Label>
                 <Input
                   id="apelido"
-                  value={nickname}
-                  onChange={(event) => setNickname(event.target.value)}
+                  ref={nicknameInput}
                   maxLength={NICKNAME_MAX_LENGTH}
                   autoComplete="nickname"
                   enterKeyHint="go"

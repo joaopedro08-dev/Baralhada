@@ -26,7 +26,7 @@ export class PlayTurn {
     actor: Actor,
     change: (game: Game) => Result<Game, GameErrorCode>
   ): Result<null, ApplicationErrorCode> {
-    const running = this.session.loadRunningGame(actor)
+    const running = this.session.loadPlayableGame(actor)
     if (!running.ok) return running
     const next = change(running.value.game)
     if (!next.ok) return next

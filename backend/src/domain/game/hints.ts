@@ -1,7 +1,8 @@
 import { QUAD_SIZE, RANKS, rankOf } from "../cards/card.js"
 import type { Card, Rank } from "../cards/card.js"
-import type { PlayerId, TurnActionKind } from "./model.js"
+import type { PlayerId } from "./model.js"
 import type { PlayerView } from "./player-view.js"
+import { closesPurchase } from "./turn-actions.js"
 import type { TurnAction } from "./turn-actions.js"
 
 export type PlayKind = "complete" | "steal" | "advance" | "open" | "draw" | "discard"
@@ -152,24 +153,24 @@ const discardPlays = (view: PlayerView, visible: ReadonlyMap<Rank, number>): rea
     }
   })
 
-const isPlayAvailable = (kind: TurnActionKind, usedActions: readonly TurnActionKind[]): boolean => {
+const isPlayAvailable = (play: Play, view: PlayerView): boolean => {
+  const { usedActions } = view
   if (usedActions.length === 0) return true
-  const closesPurchase = kind === "discard" || kind === "takeFromTable"
-  return closesPurchase && usedActions.length === 1 && usedActions[0] === "draw"
+  if (usedActions.length > 1 || usedActions[0] !== "draw") return false
+  const ownMelds = view.players.find((player) => player.id === view.viewerId)?.melds ?? []
+  return closesPurchase(ownMelds, play.action)
 }
 
 const availablePlays = (view: PlayerView, visible: ReadonlyMap<Rank, number>): readonly Play[] => {
   if (view.currentPlayerId !== view.viewerId || view.endReason !== null) return []
-  const generators: readonly (readonly [TurnActionKind, () => readonly Play[]])[] = [
-    ["layDown", () => layDownPlays(view)],
-    ["takeFromTable", () => takeFromTablePlays(view)],
-    ["steal", () => stealPlays(view)],
-    ["draw", () => drawPlays(view)],
-    ["discard", () => discardPlays(view, visible)],
+  return [
+    ...layDownPlays(view),
+    ...takeFromTablePlays(view),
+    ...stealPlays(view),
+    ...drawPlays(view),
+    ...discardPlays(view, visible),
   ]
-  return generators
-    .filter(([kind]) => isPlayAvailable(kind, view.usedActions))
-    .flatMap(([, generate]) => generate())
+    .filter((play) => isPlayAvailable(play, view))
     .toSorted((first, second) => second.score - first.score)
 }
 

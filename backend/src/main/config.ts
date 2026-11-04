@@ -10,6 +10,7 @@ const envSchema = z.object({
   FRONTEND_DIR: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).default("info"),
   TURN_SECONDS: z.coerce.number().positive().default(60),
+  MATCH_COUNTDOWN_SECONDS: z.coerce.number().min(0).default(3),
   RECONNECT_GRACE_SECONDS: z.coerce.number().positive().default(120),
   EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(600),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().positive().default(5),
@@ -18,6 +19,7 @@ const envSchema = z.object({
   CLIENT_IP_HEADER: z.string().min(1).default("x-forwarded-for"),
   MAX_CONNECTIONS_PER_IP: z.coerce.number().int().positive().default(30),
   ROOM_CREATIONS_PER_MINUTE: z.coerce.number().int().positive().default(10),
+  ROOM_JOINS_PER_MINUTE: z.coerce.number().int().positive().default(30),
 })
 
 export interface AppConfig {
@@ -34,8 +36,10 @@ export interface AppConfig {
   readonly clientIpHeader: string
   readonly maxConnectionsPerAddress: number
   readonly roomCreationsPerMinute: number
+  readonly roomJoinsPerMinute: number
   readonly game: {
     readonly turnDurationMs: number
+    readonly matchCountdownMs: number
     readonly reconnectGraceMs: number
     readonly emptyRoomTtlMs: number
     readonly maxRooms: number
@@ -65,8 +69,10 @@ export const loadConfig = (env: NodeJS.ProcessEnv): AppConfig => {
     clientIpHeader: parsed.CLIENT_IP_HEADER.toLowerCase(),
     maxConnectionsPerAddress: parsed.MAX_CONNECTIONS_PER_IP,
     roomCreationsPerMinute: parsed.ROOM_CREATIONS_PER_MINUTE,
+    roomJoinsPerMinute: parsed.ROOM_JOINS_PER_MINUTE,
     game: {
       turnDurationMs: parsed.TURN_SECONDS * 1000,
+      matchCountdownMs: parsed.MATCH_COUNTDOWN_SECONDS * 1000,
       reconnectGraceMs: parsed.RECONNECT_GRACE_SECONDS * 1000,
       emptyRoomTtlMs: parsed.EMPTY_ROOM_TTL_SECONDS * 1000,
       maxRooms: parsed.MAX_ROOMS,

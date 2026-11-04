@@ -23,7 +23,8 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   CANNOT_STEAL_FROM_SELF: "Você não pode roubar de si mesmo.",
   TARGET_NOT_FOUND: "Esse jogador não está na partida.",
   MELD_NOT_STEALABLE: "Só quadras incompletas podem ser roubadas.",
-  MUST_DISCARD: "Descarte 1 carta ou pegue da mesa para fechar o turno.",
+  MUST_DISCARD:
+    "Depois de comprar, descarte 1 carta, pegue da mesa, avance uma quadra sua ou roube com carta da mão.",
   ROOM_FULL: "A sala está cheia.",
   GAME_ALREADY_STARTED: "A partida está em andamento. Entre quando ela terminar.",
   NICKNAME_TAKEN: "Esse apelido já está em uso na sala.",
@@ -36,6 +37,7 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   ROOM_CODE_UNAVAILABLE: "Não foi possível criar a sala. Tente de novo.",
   INVALID_RECONNECT: "Não foi possível voltar para a sala.",
   GAME_NOT_RUNNING: "Não há partida em andamento.",
+  MATCH_STARTING: "A partida está começando.",
   INVALID_PAYLOAD: "Dados inválidos.",
   NOT_IN_ROOM: "Você não está em uma sala.",
   ALREADY_IN_ROOM: "Você já está em uma sala.",

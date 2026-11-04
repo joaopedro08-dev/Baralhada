@@ -9,3 +9,4 @@ export type ApplicationErrorCode =
   | "ROOM_CODE_UNAVAILABLE"
   | "INVALID_RECONNECT"
   | "GAME_NOT_RUNNING"
+  | "MATCH_STARTING"

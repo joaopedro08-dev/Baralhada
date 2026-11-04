@@ -51,7 +51,7 @@ A tela abre em `http://localhost:3000` e o servidor fica em `http://localhost:40
 
 - O serviço adormece depois de 15 minutos sem tráfego, e a primeira conexão leva cerca de 1 minuto para acordá-lo. A tela fica em "Conectando ao servidor" e tenta de novo sozinha.
 - As salas ficam só na memória, então reinício, nova publicação ou adormecer encerra as partidas em andamento. Partidas com jogadores conectados mantêm o serviço acordado.
-- O plano tem 0,1 CPU, menos que os 0,5 CPU usados nas medições de [performance](performance.md). Para jogar com mais salas ao mesmo tempo, troque `plan` no `render.yaml`.
+- O plano tem 0,1 CPU. Nas [medições](performance.md), a meta de 1 s valeu até 10 salas com bots agressivos, com travadas curtas ocasionais. Para jogar com mais salas ao mesmo tempo, troque `plan` no `render.yaml`.
 - Previews da Vercel têm endereços próprios e são recusados pelo servidor, a menos que entrem em `CORS_ORIGIN`.
 
 ## Serviço único

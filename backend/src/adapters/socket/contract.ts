@@ -52,6 +52,8 @@ export interface RoomStateDto {
   readonly canStart: boolean
   readonly players: readonly RoomPlayerDto[]
   readonly turnDeadlineAt: number | null
+  readonly matchStartsAt: number | null
+  readonly serverNow: number
   readonly game: GameStateDto | null
 }
 

@@ -96,7 +96,8 @@ O contrato HTTP tem só esses três caminhos sem regra de negócio, então não 
 | Regra | Como funciona |
 | --- | --- |
 | Uma jogada por turno (RN-04) | Baixar, pegar da mesa, roubar ou descartar fecha o turno na hora, e a mão volta a ter 4 cartas |
-| Comprar (RN-05) | A compra e o que vem depois contam como uma jogada só: com 5 cartas, o jogador descarta 1 ou pega da mesa, e o turno fecha. Se a compra esgotar o monte, fecha na hora (RN-14) |
+| Comprar (RN-05) | A compra e o que vem depois contam como uma jogada só: com 5 cartas, o jogador descarta 1, pega da mesa, avança uma quadra incompleta dele ou rouba com carta da mão, e o turno fecha. Abrir quadra nova depois de comprar é recusado. Se a compra esgotar o monte, fecha na hora (RN-14) |
+| Contagem regressiva | A partida começa depois de 3 segundos, contados pelo servidor. O relógio do turno só começa depois dela, e jogadas enviadas antes são recusadas |
 | Passar a vez (RF-10) | O jogador pode passar sem jogar, menos depois de comprar |
 | Desfazer (RF-12) | Removido: não sobra ação para desfazer, porque a jogada fecha o turno |
 | Entrar na sala (RF-02) | Vale na sala de espera e entre uma partida e outra. Só a partida em andamento recusa a entrada |

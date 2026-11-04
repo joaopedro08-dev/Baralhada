@@ -7,4 +7,5 @@ export const gameSession = createGameSession({
   gateway: createSocketGateway(),
   seats: createLocalSeatStore(),
   address: createBrowserAddressBar(),
+  now: () => Date.now(),
 })

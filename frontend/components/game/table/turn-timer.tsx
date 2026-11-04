@@ -18,7 +18,7 @@ const subscribeToClock = (listener: () => void): (() => void) => {
 
 const noSeconds = (): null => null
 
-const useSecondsLeft = (deadlineAt: number | null): number | null => {
+export const useSecondsLeft = (deadlineAt: number | null): number | null => {
   const readSeconds = useCallback(
     () =>
       deadlineAt === null

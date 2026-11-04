@@ -70,7 +70,9 @@ beforeAll(async () => {
     NODE_ENV: "test",
     PUBLIC_URL: "https://roubamonte.test",
     ROOM_CREATIONS_PER_MINUTE: "100000",
+    ROOM_JOINS_PER_MINUTE: "100000",
     MAX_CONNECTIONS_PER_IP: "100000",
+    MATCH_COUNTDOWN_SECONDS: "0",
   })
   app = await startApp(config, silentLogger)
   url = `http://127.0.0.1:${app.port}`
@@ -360,6 +362,81 @@ describe("partida pela rede", () => {
     expect(polling.headers.get("access-control-allow-origin")).toBe("https://jogo.test")
 
     await separated.stop()
+  })
+
+  it("limita tentativas de entrar em salas por IP", async () => {
+    const limited = await startApp(
+      loadConfig({
+        PORT: "0",
+        METRICS_PORT: "0",
+        LOG_LEVEL: "silent",
+        NODE_ENV: "test",
+        ROOM_JOINS_PER_MINUTE: "2",
+      }),
+      silentLogger
+    )
+    const guesser = io(`http://127.0.0.1:${limited.port}`, {
+      transports: ["websocket"],
+      forceNew: true,
+      reconnection: false,
+    })
+    opened.push(guesser)
+    await new Promise((resolve) => guesser.once("connect", () => resolve(null)))
+    const tryCode = () =>
+      expectErrorCode(request(guesser, "room:join", { code: "ZZZZZZ", nickname: "Eva" }))
+
+    expect(await tryCode()).toBe("ROOM_NOT_FOUND")
+    expect(await tryCode()).toBe("ROOM_NOT_FOUND")
+    expect(await tryCode()).toBe("RATE_LIMITED")
+
+    await limited.stop()
+  })
+
+  it("sobrevive a mensagens inválidas em todos os comandos", async () => {
+    const attacker = io(url, { transports: ["websocket"], forceNew: true, reconnection: false })
+    opened.push(attacker)
+    await new Promise((resolve) => attacker.once("connect", () => resolve(null)))
+    const garbage: readonly unknown[] = [
+      null,
+      42,
+      "texto",
+      [],
+      {},
+      { nickname: 7 },
+      { nickname: "<script>" },
+      { code: "../../etc", nickname: "Eva" },
+      { type: "takeFromTable", tableCards: ["5H", "5H", "5H", "5H", "5H"], handCards: [] },
+      { type: "draw", extra: true },
+      { __proto__: { admin: true }, nickname: "" },
+    ]
+    const commands = [
+      "room:create",
+      "room:join",
+      "room:reconnect",
+      "room:kick",
+      "game:action",
+    ] as const
+    for (const command of commands) {
+      for (const payload of garbage) {
+        const answer = await attacker.timeout(5000).emitWithAck(command, payload)
+        expect(answer.ok).toBe(false)
+      }
+      attacker.emit(command, { sem: "resposta" })
+    }
+
+    expect(attacker.connected).toBe(true)
+    expect((await fetch(`${url}/readyz`)).status).toBe(200)
+  })
+
+  it("derruba só quem manda mensagem grande demais", async () => {
+    const flooder = io(url, { transports: ["websocket"], forceNew: true, reconnection: false })
+    opened.push(flooder)
+    await new Promise((resolve) => flooder.once("connect", () => resolve(null)))
+    const dropped = new Promise((resolve) => flooder.once("disconnect", () => resolve(true)))
+    flooder.emit("room:create", { nickname: "x".repeat(10_000) })
+
+    expect(await dropped).toBe(true)
+    expect((await fetch(`${url}/readyz`)).status).toBe(200)
   })
 
   it("atrás de proxy, o limite por IP não cai com X-Forwarded-For falsificado", async () => {

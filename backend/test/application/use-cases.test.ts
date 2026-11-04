@@ -25,6 +25,7 @@ import { seededRandom } from "../support/game-builder.js"
 
 const settings: GameSettings = {
   turnDurationMs: 60_000,
+  matchCountdownMs: 0,
   reconnectGraceMs: 120_000,
   emptyRoomTtlMs: 600_000,
   maxRooms: 2,
@@ -35,7 +36,7 @@ const unwrap = <T>(result: Result<T, string>): T => {
   return result.value
 }
 
-const setup = () => {
+const setup = (custom: Partial<GameSettings> = {}) => {
   const rooms = new InMemoryRoomRepository()
   const clock = {
     current: 1000,
@@ -61,7 +62,10 @@ const setup = () => {
     reconnectToken: () => `token-${++sequence}`,
   }
   const random = seededRandom(42)
-  const session = new RoomSession(rooms, notifier, scheduler, clock, random, settings)
+  const session = new RoomSession(rooms, notifier, scheduler, clock, random, {
+    ...settings,
+    ...custom,
+  })
   return {
     rooms,
     clock,
@@ -270,6 +274,29 @@ describe("casos de uso", () => {
       const { host } = lobby(app)
       expect(() => app.expire.execute({ roomCode: "NOPE", turnNumber: 1 })).not.toThrow()
       expect(() => app.expire.execute({ roomCode: host.roomCode, turnNumber: 1 })).not.toThrow()
+    })
+  })
+
+  describe("contagem regressiva", () => {
+    const COUNTDOWN_MS = 3000
+
+    it("recusa jogadas e segura o relógio do turno até o fim da contagem", () => {
+      const counting = setup({ matchCountdownMs: COUNTDOWN_MS })
+      const { host, hostActor, guestActor } = lobby(counting)
+      unwrap(counting.start.execute(hostActor))
+
+      const room = counting.rooms.find(host.roomCode)
+      expect(room?.matchStartsAt).toBe(counting.clock.current + COUNTDOWN_MS)
+      expect(room?.turnDeadlineAt).toBe(counting.clock.current + COUNTDOWN_MS + 60_000)
+      expect(counting.timers.get(host.roomCode)?.delayMs).toBe(COUNTDOWN_MS + 60_000)
+
+      const currentActor = room?.game?.turn.playerId === host.playerId ? hostActor : guestActor
+      expect(counting.play.finish(currentActor)).toEqual({ ok: false, error: "MATCH_STARTING" })
+
+      counting.clock.current += COUNTDOWN_MS
+      expect(counting.play.finish(currentActor).ok).toBe(true)
+      const next = counting.rooms.find(host.roomCode)
+      expect(next?.turnDeadlineAt).toBe(counting.clock.current + 60_000)
     })
   })
 

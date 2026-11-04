@@ -43,6 +43,22 @@ Cada etapa teve 45 s de medição, depois de 10 s de estabilização.
 - **Escala vertical:** com 1 CPU a vazão chegou a 1.746 mensagens por segundo, contra o teto de cerca de 740 com 0,5 CPU.
 - **Sob sobrecarga:** o serviço fica lento, mas nenhuma etapa de capacidade teve recusa nem timeout de ack.
 
+## Plano gratuito do Render (0,1 CPU)
+
+Medido em 2026-11-04 com a mesma imagem, limitada a 0,1 CPU, em etapas de 45 s. A meta de 1 s no p95 vale até 10 salas com estes bots.
+
+| Salas | Jogadores | Comandos/s | Broadcast p95 | Broadcast p99 | Meta de 1 s |
+| --- | --- | --- | --- | --- | --- |
+| 5 | 30 | 8,3 | 696 ms | 2.698 ms | Atende |
+| 10 | 60 | 14,7 | 591 ms | 1.897 ms | Atende |
+| 20 | 120 | 22,9 | 1.309 ms | 2.504 ms | Falha |
+| 40 | 240 | 11,5 | 6.056 ms | 9.385 ms | Falha |
+
+- **Picos:** mesmo com poucas salas, o p99 passa de 1 s. Com 0,1 CPU, o processo fica pausado boa parte do tempo, então espere travadas curtas ocasionais.
+- **Bots contra pessoas:** cada sala de bots gerou de 1 a 2 comandos por segundo. Pessoas jogam bem mais devagar, então o limite real deve ser maior, mas isso é estimativa, não medição.
+- **Limite no Render:** o `render.yaml` usa `MAX_ROOMS=50`. O número é uma estimativa a partir dessa diferença de ritmo. Se o jogo ficar lento com menos salas do que isso, reduza o limite ou troque de plano.
+- **Medição conservadora:** a imagem inclui o Next.js no mesmo processo, e no Render o servidor roda sem ele.
+
 ## Partidas completas pela rede
 
 Em 10 salas com 6 jogadores e 25 ms entre ações, 58 partidas terminaram em 75 s, sem erro interno nem timeout. O p95 de broadcast foi de 153 ms, com pico de 1,12 s.
@@ -87,18 +103,14 @@ Uma rodada de partidas às 20:39 teve 10 timeouts de ack e paradas de 5,8 s e 8,
 
 ## Frontend
 
-O frontend ainda é o template, então este número é só a linha de base.
+Medido em 2026-11-04 com a tela do jogo pronta.
 
 | Métrica | Resultado |
 | --- | --- |
-| Primeiro byte, com o servidor recém-iniciado | 300 ms |
-| Transferência total | 274 KB em 12 requisições |
-| JavaScript | 172 KB |
-| CSS | 29 KB |
-| Fontes | 70 KB |
-| Estimativa em 4G (1,6 Mbps, 150 ms de RTT) | 2,0 s, meta de 3 s |
+| Transferência total | 348 KB |
+| Estimativa em 4G (1,6 Mbps, 150 ms de RTT) | 2,38 s, meta de 3 s |
 
-A estimativa é um cálculo a partir do tamanho transferido, não uma medição em rede 4G real. Repita com a tela do jogo pronta.
+A estimativa é um cálculo a partir do tamanho transferido, não uma medição em rede 4G real. As animações ficam em um arquivo de cerca de 137 KB, baixado em segundo plano depois que a página abre.
 
 ## Imagem Docker
 
@@ -121,15 +133,15 @@ A divisão entre instâncias não foi construída porque o escopo é de amigos e
 Desative a suspensão do computador antes de rodar.
 
 ```bash
-ROOM_STEPS=10 STEP_SECONDS=60 LABEL=rnf06 docker compose --profile perf run --rm loadtest
+ROOM_STEPS=10 STEP_SECONDS=60 LABEL=rnf06 docker compose --profile perf run --rm --no-deps loadtest
 ```
 
 ```bash
-ROOM_STEPS=50,100,200,400 STEP_SECONDS=45 LABEL=capacidade docker compose --profile perf run --rm loadtest
+ROOM_STEPS=50,100,200,400 STEP_SECONDS=45 LABEL=capacidade docker compose --profile perf run --rm --no-deps loadtest
 ```
 
 ```bash
-APP_CPUS=1 docker compose up -d app
+APP_CPUS=1 MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
 ```
 
 Os resultados ficam em `backend/perf/results`. Para acompanhar ao vivo, suba o perfil `observability` e abra o painel em `localhost:3001`.

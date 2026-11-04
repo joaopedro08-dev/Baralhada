@@ -1,0 +1,152 @@
+{
+  "label": "capacidade-01cpu",
+  "target": "http://app:3000",
+  "results": [
+    {
+      "rooms": 5,
+      "players": 30,
+      "thinkMs": 1000,
+      "connectSeconds": 6.7,
+      "commandsPerSecond": 8.3,
+      "stateMessagesPerSecond": 24.8,
+      "ackMs": {
+        "count": 378,
+        "p50": 10.39,
+        "p95": 795.82,
+        "p99": 2998.46,
+        "max": 4108.8
+      },
+      "broadcastMs": {
+        "count": 940,
+        "p50": 9.42,
+        "p95": 696.11,
+        "p99": 2698.04,
+        "max": 3499.75
+      },
+      "sloBroadcastP95Ok": true,
+      "gamesFinished": 5,
+      "rejected": {},
+      "server": {
+        "cpuPercent": 6,
+        "rssMb": 137.6,
+        "heapUsedMb": 34.7,
+        "idleRssMb": 136.1,
+        "eventLoopLagP99Ms": 199.88,
+        "connections": 31
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 16.79
+      }
+    },
+    {
+      "rooms": 10,
+      "players": 60,
+      "thinkMs": 1000,
+      "connectSeconds": 5.2,
+      "commandsPerSecond": 14.7,
+      "stateMessagesPerSecond": 44.6,
+      "ackMs": {
+        "count": 666,
+        "p50": 10.2,
+        "p95": 695.59,
+        "p99": 2301.4,
+        "max": 4499.67
+      },
+      "broadcastMs": {
+        "count": 1640,
+        "p50": 7,
+        "p95": 590.97,
+        "p99": 1896.89,
+        "max": 2902.91
+      },
+      "sloBroadcastP95Ok": true,
+      "gamesFinished": 9,
+      "rejected": {},
+      "server": {
+        "cpuPercent": 7.5,
+        "rssMb": 140.3,
+        "heapUsedMb": 35.2,
+        "idleRssMb": 138.9,
+        "eventLoopLagP99Ms": 300.15,
+        "connections": 61
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 16.78
+      }
+    },
+    {
+      "rooms": 20,
+      "players": 120,
+      "thinkMs": 1000,
+      "connectSeconds": 10.3,
+      "commandsPerSecond": 22.9,
+      "stateMessagesPerSecond": 68.2,
+      "ackMs": {
+        "count": 1041,
+        "p50": 194.1,
+        "p95": 1498.37,
+        "p99": 3602.69,
+        "max": 4314.44
+      },
+      "broadcastMs": {
+        "count": 2582,
+        "p50": 104.56,
+        "p95": 1308.68,
+        "p99": 2503.92,
+        "max": 4314.87
+      },
+      "sloBroadcastP95Ok": false,
+      "gamesFinished": 1,
+      "rejected": {},
+      "server": {
+        "cpuPercent": 8.9,
+        "rssMb": 147.2,
+        "heapUsedMb": 42,
+        "idleRssMb": 141.8,
+        "eventLoopLagP99Ms": 810.02,
+        "connections": 121
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 18.46
+      }
+    },
+    {
+      "rooms": 40,
+      "players": 240,
+      "thinkMs": 1000,
+      "connectSeconds": 23.9,
+      "commandsPerSecond": 11.5,
+      "stateMessagesPerSecond": 33.9,
+      "ackMs": {
+        "count": 516,
+        "p50": 1698.84,
+        "p95": 10001.16,
+        "p99": 10183.33,
+        "max": 10382.42
+      },
+      "broadcastMs": {
+        "count": 1171,
+        "p50": 1003.73,
+        "p95": 6055.67,
+        "p99": 9385.08,
+        "max": 18923.69
+      },
+      "sloBroadcastP95Ok": false,
+      "gamesFinished": 0,
+      "rejected": {
+        "ACK_TIMEOUT": 84
+      },
+      "server": {
+        "cpuPercent": 8.2,
+        "rssMb": 149.3,
+        "heapUsedMb": 35.3,
+        "idleRssMb": 149.1,
+        "eventLoopLagP99Ms": 1498.42,
+        "connections": 140
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 26.26
+      }
+    }
+  ]
+}

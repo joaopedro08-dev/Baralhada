@@ -17,7 +17,12 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+
 export const metadata: Metadata = {
+  metadataBase: productionHost
+    ? new URL(`https://${productionHost}`)
+    : undefined,
   title: "Rouba Monte",
   description:
     "Jogue Rouba Monte online com 2 a 6 amigos, no PC ou no celular.",
@@ -27,6 +32,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
   },
+  twitter: { card: "summary_large_image" },
 }
 
 export const viewport: Viewport = {

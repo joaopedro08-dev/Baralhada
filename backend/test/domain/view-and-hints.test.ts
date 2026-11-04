@@ -123,7 +123,7 @@ describe("RF-16 e RF-17 jogadas possíveis", () => {
     expect(kinds).not.toContain("draw")
   })
 
-  it("depois de comprar, sugere pegar da mesa quando a carta combina", () => {
+  it("depois de comprar, só sugere o que fecha a compra", () => {
     const drew = {
       ...scene,
       turn: { ...scene.turn, usedActions: ["draw"] as const },
@@ -131,8 +131,20 @@ describe("RF-16 e RF-17 jogadas possíveis", () => {
     const { plays } = computeHints(toPlayerView(drew, "a"))
     const kinds = new Set(plays.map((play) => play.action.type))
 
-    expect(kinds).toEqual(new Set(["takeFromTable", "discard"]))
-    expect(plays[0]?.action.type).toBe("takeFromTable")
+    expect(kinds).toEqual(new Set(["takeFromTable", "steal", "discard"]))
+    expect(plays[0]?.action.type).toBe("steal")
+  })
+
+  it("depois de comprar, sugere baixar a carta em quadra incompleta", () => {
+    const game = buildGame({
+      players: { a: { hand: ["5C", "2D", "3D", "4D", "KS"], melds: [meldOf("5H", "5S")] }, b: {} },
+      table: ["9C", "9D", "2C"],
+      turn: { usedActions: ["draw"] },
+    })
+    expect(computeHints(toPlayerView(game, "a")).plays[0]?.action).toEqual({
+      type: "layDown",
+      cards: ["5C"],
+    })
   })
 
   it("não sugere abrir quadra com uma carta só", () => {

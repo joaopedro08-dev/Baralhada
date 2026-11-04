@@ -29,6 +29,7 @@ export class StartMatch {
       ...room,
       game: game.value,
       lastStarterId: starterId,
+      matchStartsAt: this.session.countdownEnd(),
       timedTurnNumber: null,
     })
     return ok(null)

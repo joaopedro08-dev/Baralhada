@@ -42,6 +42,18 @@ export class RoomSession {
       : err("GAME_NOT_RUNNING")
   }
 
+  loadPlayableGame(actor: Actor): Result<{ room: Room; game: Game }, ApplicationErrorCode> {
+    const running = this.loadRunningGame(actor)
+    if (!running.ok) return running
+    return (running.value.room.matchStartsAt ?? 0) > this.clock.now()
+      ? err("MATCH_STARTING")
+      : running
+  }
+
+  countdownEnd(): number {
+    return this.clock.now() + this.settings.matchCountdownMs
+  }
+
   commit(room: Room): Room {
     const saved = { ...this.syncTurnTimer(room), version: room.version + 1 }
     this.rooms.save(saved)
@@ -66,11 +78,14 @@ export class RoomSession {
     }
     const turnNumber = room.game.turn.number
     if (room.timedTurnNumber === turnNumber) return room
-    this.scheduler.schedule(room.code, turnNumber, this.settings.turnDurationMs)
+    const now = this.clock.now()
+    const countdownLeft = Math.max(0, (room.matchStartsAt ?? 0) - now)
+    const delay = countdownLeft + this.settings.turnDurationMs
+    this.scheduler.schedule(room.code, turnNumber, delay)
     return {
       ...room,
       timedTurnNumber: turnNumber,
-      turnDeadlineAt: this.clock.now() + this.settings.turnDurationMs,
+      turnDeadlineAt: now + delay,
     }
   }
 }

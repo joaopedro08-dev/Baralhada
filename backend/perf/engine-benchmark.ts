@@ -86,7 +86,9 @@ const measure = (name: string, task: () => void) => {
   }
 }
 
-const payloadBytes = Buffer.byteLength(JSON.stringify(createRoomStatePresenter(room)("p0")))
+const payloadBytes = Buffer.byteLength(
+  JSON.stringify(createRoomStatePresenter(room, Date.now())("p0"))
+)
 
 console.table([
   measure("embaralhar e distribuir (6 jogadores)", () => void freshGame()),
@@ -94,7 +96,7 @@ console.table([
   measure("visão de um jogador", () => void toPlayerView(midGame, "p1")),
   measure("calcular dicas", () => void computeHints(toPlayerView(midGame, "p0"))),
   measure("montar e serializar estado para 6 jogadores", () => {
-    const present = createRoomStatePresenter(room)
+    const present = createRoomStatePresenter(room, Date.now())
     for (const seat of seats) JSON.stringify(present(seat.id))
   }),
   measure("partida inteira", playWholeGame),

@@ -31,7 +31,7 @@ const ACTIONS: readonly {
     kind: "draw",
     label: "Comprar",
     explanation:
-      "Compra 1 carta do monte. Depois, descarte 1 ou pegue da mesa para fechar.",
+      "Compra 1 carta do monte. Depois, use a carta em uma jogada ou descarte 1 para fechar.",
     Icon: Layers,
   },
   {

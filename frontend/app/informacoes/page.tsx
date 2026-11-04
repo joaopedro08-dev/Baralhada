@@ -78,7 +78,7 @@ function InfoSection({
 export default function InformationPage() {
   return (
     <div className="flex min-h-svh flex-col">
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-full flex-1 flex-col gap-6 px-4 py-6">
         <header className="flex flex-col items-start gap-3">
           <GameButton asChild>
             <Link href="/">

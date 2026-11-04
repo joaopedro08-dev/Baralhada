@@ -6,10 +6,12 @@ import { CardFlights } from "@/components/game/table/card-flights"
 import { GameHeader } from "@/components/game/table/game-header"
 import { HandDock } from "@/components/game/table/hand-dock"
 import { HistoryList } from "@/components/game/table/history-list"
+import { MatchCountdown } from "@/components/game/table/match-countdown"
 import { OpponentPanels } from "@/components/game/table/opponent-panels"
 import { OwnArea } from "@/components/game/table/own-area"
 import { TableZone } from "@/components/game/table/table-zone"
 import { TurnBanner } from "@/components/game/table/turn-banner"
+import { useSecondsLeft } from "@/components/game/table/turn-timer"
 import { useHints } from "@/components/game/table/use-hints"
 import { useTableEffects } from "@/components/game/table/use-table-effects"
 import { useTurnControls } from "@/components/game/table/use-turn-controls"
@@ -34,7 +36,8 @@ export function GameScreen({
     room.viewerId,
     hints?.plays[0]?.action.type ?? null
   )
-  useTableEffects(game, room.viewerId)
+  useTableEffects(game, room.viewerId, room.matchStartsAt)
+  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
 
   const { selection } = controls
   const focus = focusOfHints(hints)
@@ -111,8 +114,11 @@ export function GameScreen({
         </aside>
       </div>
 
-      {isMyTurn && <TurnBanner turnNumber={game.turnNumber} />}
+      {isMyTurn && secondsToStart === 0 && (
+        <TurnBanner turnNumber={game.turnNumber} />
+      )}
       <CardFlights />
+      {secondsToStart > 0 && <MatchCountdown seconds={secondsToStart} />}
     </div>
   )
 }

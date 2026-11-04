@@ -38,6 +38,7 @@ export interface Logger {
 
 export interface GameSettings {
   readonly turnDurationMs: number
+  readonly matchCountdownMs: number
   readonly reconnectGraceMs: number
   readonly emptyRoomTtlMs: number
   readonly maxRooms: number

@@ -83,6 +83,8 @@ export interface RoomState {
   readonly canStart: boolean
   readonly players: readonly RoomPlayer[]
   readonly turnDeadlineAt: number | null
+  readonly matchStartsAt: number | null
+  readonly serverNow: number
   readonly game: GameState | null
 }
 

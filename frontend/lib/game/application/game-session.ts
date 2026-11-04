@@ -5,6 +5,7 @@ import type {
   GrantedSeat,
   SeatStore,
 } from "@/lib/game/application/ports"
+import { withLocalDeadline } from "@/lib/game/domain/turn-clock"
 import type {
   Hints,
   PlayerId,
@@ -16,6 +17,8 @@ import type {
 export const RESTORE_RETRY_MS = 2000
 
 const REMOVED_NOTICE = "O anfitrião removeu você da sala."
+const ROOM_CLOSED_NOTICE =
+  "Essa sala foi encerrada. Crie uma nova para jogar de novo."
 
 export type ConnectionStatus = "connecting" | "online" | "offline" | "replaced"
 
@@ -46,10 +49,12 @@ export const createGameSession = ({
   gateway,
   seats,
   address,
+  now,
 }: {
   gateway: GameGateway
   seats: SeatStore
   address: AddressBar
+  now: () => number
 }) => {
   let state = initialGameSessionState
   let started = false
@@ -97,7 +102,7 @@ export const createGameSession = ({
       return update({ restoring: false })
     }
     if (result.error.code === "ROOM_NOT_FOUND") {
-      return dropSeat(result.error.message)
+      return dropSeat(ROOM_CLOSED_NOTICE)
     }
     if (result.error.code === "INVALID_RECONNECT") {
       return dropSeat(result.error.message, code)
@@ -110,7 +115,7 @@ export const createGameSession = ({
   const applyRoomState = (next: RoomState): void => {
     const current = state.room
     if (current?.code === next.code && next.version < current.version) return
-    update({ room: next })
+    update({ room: withLocalDeadline(next, now()) })
   }
 
   const enterRoom = async (

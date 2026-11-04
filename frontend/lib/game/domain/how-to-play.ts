@@ -5,7 +5,7 @@ export const RULE_SECTIONS = [
   },
   {
     title: "Seu turno",
-    text: "Você faz 1 jogada por turno: baixar, pegar da mesa, roubar ou descartar. A jogada fecha o turno e a mão volta a ter 4 cartas. Quem compra do monte descarta 1 carta ou, se a compra combinar com a mesa, pega da mesa para fechar. Se não quiser jogar, passe a vez.",
+    text: "Você faz 1 jogada por turno: baixar, pegar da mesa, roubar ou descartar. A jogada fecha o turno e a mão volta a ter 4 cartas. Quem compra do monte fecha o turno descartando 1 carta, pegando da mesa, avançando uma quadra incompleta sua ou roubando com carta da mão. Se não quiser jogar, passe a vez.",
   },
   {
     title: "Baixar e pegar da mesa",
@@ -13,7 +13,7 @@ export const RULE_SECTIONS = [
   },
   {
     title: "Roubar",
-    text: "Quadras incompletas podem ser roubadas. Toque na quadra de um adversário e em Roubar: com ao menos 1 carta igual na mão, ela vem inteira para a sua área. Se você e o adversário tiverem cada um um par do mesmo valor, quem jogar primeiro pega o par do outro e fecha a quadra.",
+    text: "Quadras incompletas podem ser roubadas. Toque na quadra de um adversário e em Roubar: com ao menos 1 carta igual na mão, ela vem inteira para a sua área. Quadras completas não podem ser roubadas e, se o adversário tiver mais de uma incompleta, você leva só a que escolheu. Se você e o adversário tiverem cada um um par do mesmo valor, quem jogar primeiro pega o par do outro e fecha a quadra.",
   },
   {
     title: "Tempo e monte vazio",

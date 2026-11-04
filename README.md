@@ -1,6 +1,6 @@
 # Rouba Monte
 
-Jogo de cartas online para 2 a 6 amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala e manda o código ou o link para os outros.
+Jogo de cartas online para 2 a 6 amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala e manda o código ou o link para os outros. Jogue em [rouba-monte.vercel.app](https://rouba-monte.vercel.app).
 
 O objetivo é fechar quadras, 4 cartas do mesmo valor. Vence quem tiver mais quando as 13 quadras estiverem fechadas. Cada turno tem 1 jogada e 60 segundos, e as regras completas ficam na página `/informacoes` do jogo.
 
@@ -74,6 +74,8 @@ O backend vai para o Render (`render.yaml`) e o frontend para a Vercel (`fronten
 - [Arquitetura do backend](docs/arquitetura-backend.md), com o contrato do Socket.io e as regras confirmadas
 - [Desempenho](docs/performance.md)
 - [Implantação](docs/implantacao.md)
+
+Para relatar uma falha, veja [SECURITY.md](SECURITY.md).
 
 ## Licença
 

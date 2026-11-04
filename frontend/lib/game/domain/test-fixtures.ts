@@ -35,6 +35,8 @@ export const buildRoom = (changes: Partial<RoomState> = {}): RoomState => ({
   canStart: false,
   players: [],
   turnDeadlineAt: null,
+  matchStartsAt: null,
+  serverNow: 0,
   game: null,
   ...changes,
 })

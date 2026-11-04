@@ -33,7 +33,7 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
   const rooms = new InMemoryRoomRepository()
   const metrics = new PrometheusMetrics(rooms)
   const registry = new SessionRegistry()
-  const notifier = new SocketNotifier(registry, metrics)
+  const notifier = new SocketNotifier(registry, metrics, systemClock)
   const random = cryptoRandomSource
   const scheduler = new NodeTurnScheduler((input) => {
     try {
@@ -62,7 +62,11 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
     metrics,
     logger,
     systemClock,
-    { publicUrl: config.publicUrl, roomCreationsPerMinute: config.roomCreationsPerMinute }
+    {
+      publicUrl: config.publicUrl,
+      roomCreationsPerMinute: config.roomCreationsPerMinute,
+      roomJoinsPerMinute: config.roomJoinsPerMinute,
+    }
   )
 
   return {

@@ -190,6 +190,29 @@ describe("ação sugerida", () => {
     expect(suggestAction(game, emptySelection(3), "eu")).toBe("discard")
   })
 
+  it("depois de comprar, sugere baixar a carta que avança uma quadra sua", () => {
+    const game = buildGame({
+      canEndTurn: false,
+      usedActions: ["draw"],
+      players: [
+        buildPlayer("eu", { melds: [{ rank: "5", cards: ["5H", "5S"] }] }),
+        buildPlayer("ana"),
+      ],
+    })
+    const selection = { ...emptySelection(3), hand: ["5C"] as const }
+    expect(suggestAction(game, selection, "eu")).toBe("layDown")
+  })
+
+  it("depois de comprar, sugere roubar a quadra escolhida", () => {
+    const game = buildGame({ canEndTurn: false, usedActions: ["draw"] })
+    const selection = {
+      ...emptySelection(3),
+      hand: ["3C"] as const,
+      meld: { playerId: "ana", rank: "3" as const },
+    }
+    expect(suggestAction(game, selection, "eu")).toBe("steal")
+  })
+
   it("sugere pegar da mesa quando a carta comprada combina", () => {
     const game = buildGame({ canEndTurn: false, usedActions: ["draw"] })
     const selection = {
@@ -287,12 +310,12 @@ describe("jogada do turno", () => {
     expect(isActionOpen(buildGame(), "draw")).toBe(true)
   })
 
-  it("depois de comprar, só descartar e pegar da mesa continuam abertos", () => {
+  it("depois de comprar, só comprar de novo fica fechado", () => {
     const game = buildGame({ usedActions: ["draw"] })
     expect(isActionOpen(game, "discard")).toBe(true)
     expect(isActionOpen(game, "takeFromTable")).toBe(true)
-    expect(isActionOpen(game, "layDown")).toBe(false)
-    expect(isActionOpen(game, "steal")).toBe(false)
+    expect(isActionOpen(game, "layDown")).toBe(true)
+    expect(isActionOpen(game, "steal")).toBe(true)
     expect(isActionOpen(game, "draw")).toBe(false)
   })
 })

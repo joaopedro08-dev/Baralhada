@@ -60,11 +60,6 @@ function FlyingCard({ flight }: { flight: Flight }) {
           if (hidesDestination) {
             gsap.set(destination, { clearProps: "opacity,visibility" })
           }
-          gsap.fromTo(
-            destination,
-            { filter: "brightness(1.5)" },
-            { filter: "brightness(1)", duration: 0.35, clearProps: "filter" }
-          )
           flightBoard.land(flight.id)
         },
       })

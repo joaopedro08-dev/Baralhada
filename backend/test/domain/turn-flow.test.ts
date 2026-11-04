@@ -341,17 +341,77 @@ describe("RN-04 uma jogada por turno", () => {
     expect(closed.turn.playerId).toBe("b")
   })
 
-  it("comprar não libera baixar nem roubar", () => {
+  it("comprar e baixar em quadra incompleta fecha o turno sem descarte", () => {
     const scene = buildGame({
       players: {
-        a: { hand: ["2C", "3C", "4C", "6C"] },
-        b: { melds: [meldOf("5H", "5S")] },
+        a: { hand: ["2C", "3C", "4C", "6C"], melds: [meldOf("5H", "5S")] },
+        b: { hand: ["7D"] },
       },
       deck: ["5C", "QC", "QD"],
     })
     const drew = play(scene, { type: "draw" })
+    const closed = play(drew, { type: "layDown", cards: ["5C"] })
+
+    expect(closed.turn.playerId).toBe("b")
+    expect(getPlayer(closed, "a").hand).toEqual(["2C", "3C", "4C", "6C"])
+    expect(getPlayer(closed, "a").melds[0]?.cards).toHaveLength(3)
+  })
+
+  it("comprar não libera abrir quadra nova", () => {
+    const scene = buildGame({
+      players: { a: { hand: ["2C", "3C", "4C", "5D"] }, b: { hand: ["7D"] } },
+      deck: ["5C", "QC", "QD"],
+    })
+    const drew = play(scene, { type: "draw" })
+    expect(playTurn(drew, "a", { type: "layDown", cards: ["5C", "5D"] }, random)).toEqual({
+      ok: false,
+      error: "MUST_DISCARD",
+    })
+  })
+
+  it("comprar não libera avançar quadra de outro valor", () => {
+    const scene = buildGame({
+      players: {
+        a: { hand: ["2C", "3C", "4C", "5D"], melds: [meldOf("8H", "8S")] },
+        b: { hand: ["7D"] },
+      },
+      deck: ["5C", "QC", "QD"],
+    })
+    const drew = play(scene, { type: "draw" })
+    expect(playTurn(drew, "a", { type: "layDown", cards: ["5C", "5D"] }, random)).toEqual({
+      ok: false,
+      error: "MUST_DISCARD",
+    })
+  })
+
+  it("comprar e roubar leva só a quadra escolhida e deixa a completa", () => {
+    const scene = buildGame({
+      players: {
+        a: { hand: ["2C", "3C", "4C", "6C"] },
+        b: { hand: ["7D"], melds: [quadOf("10"), meldOf("5H", "5S"), meldOf("JH", "JS")] },
+      },
+      deck: ["5C", "QC", "QD"],
+    })
+    const drew = play(scene, { type: "draw" })
+    const closed = play(drew, { type: "steal", targetId: "b", rank: "5", handCards: ["5C"] })
+
+    expect(closed.turn.playerId).toBe("b")
+    expect(getPlayer(closed, "a").hand).toHaveLength(4)
+    expect(getPlayer(closed, "a").melds).toEqual([{ rank: "5", cards: ["5H", "5S", "5C"] }])
+    expect(getPlayer(closed, "b").melds).toEqual([quadOf("10"), meldOf("JH", "JS")])
+  })
+
+  it("comprar não libera pegar o par do outro sem carta da mão", () => {
+    const scene = buildGame({
+      players: {
+        a: { hand: ["2C", "3C", "4C", "6C"], melds: [meldOf("5C", "5D")] },
+        b: { hand: ["7D"], melds: [meldOf("5H", "5S")] },
+      },
+      deck: ["QC", "QD", "QH"],
+    })
+    const drew = play(scene, { type: "draw" })
     expect(
-      playTurn(drew, "a", { type: "steal", targetId: "b", rank: "5", handCards: ["5C"] }, random)
+      playTurn(drew, "a", { type: "steal", targetId: "b", rank: "5", handCards: [] }, random)
     ).toEqual({ ok: false, error: "MUST_DISCARD" })
   })
 

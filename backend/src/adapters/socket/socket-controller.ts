@@ -48,12 +48,14 @@ export interface SocketUseCases {
 export interface SocketControllerOptions {
   readonly publicUrl: string
   readonly roomCreationsPerMinute: number
+  readonly roomJoinsPerMinute: number
 }
 
 type Outcome<C extends ClientCommand> = Result<ClientCommands[C]["output"], ErrorCode>
 
 export class SocketController {
   private readonly roomCreations: AddressRateLimiter
+  private readonly roomJoins: AddressRateLimiter
 
   constructor(
     private readonly useCases: SocketUseCases,
@@ -63,8 +65,10 @@ export class SocketController {
     private readonly clock: Clock,
     private readonly options: SocketControllerOptions
   ) {
-    const perMinute = options.roomCreationsPerMinute
-    this.roomCreations = new AddressRateLimiter(perMinute, perMinute / 60, clock)
+    const limiterOf = (perMinute: number) =>
+      new AddressRateLimiter(perMinute, perMinute / 60, clock)
+    this.roomCreations = limiterOf(options.roomCreationsPerMinute)
+    this.roomJoins = limiterOf(options.roomJoinsPerMinute)
   }
 
   attach(connection: ClientConnection): void {
@@ -101,7 +105,9 @@ export class SocketController {
         : err("RATE_LIMITED")
     )
     seated("room:join", joinRoomSchema, (input: { code: string; nickname: string }) =>
-      joinRoom.execute(input)
+      this.roomJoins.tryConsume(connection.clientAddress)
+        ? joinRoom.execute(input)
+        : err("RATE_LIMITED")
     )
     seated(
       "room:reconnect",
@@ -144,7 +150,8 @@ export class SocketController {
 
   private grantSeat(session: ClientSession, grant: SeatGrant): SeatDto {
     this.registry.bind(session, { roomCode: grant.roomCode, playerId: grant.playerId })
-    session.connection.emit("room:state", createRoomStatePresenter(grant.room)(grant.playerId))
+    const present = createRoomStatePresenter(grant.room, this.clock.now())
+    session.connection.emit("room:state", present(grant.playerId))
     return {
       code: grant.roomCode,
       playerId: grant.playerId,

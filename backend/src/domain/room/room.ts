@@ -17,6 +17,7 @@ export interface Room {
   readonly players: readonly RoomPlayer[]
   readonly game: Game | null
   readonly lastStarterId: PlayerId | null
+  readonly matchStartsAt: number | null
   readonly version: number
   readonly timedTurnNumber: number | null
   readonly turnDeadlineAt: number | null
@@ -49,6 +50,7 @@ export const createRoom = (code: string, host: RoomPlayer): Room => ({
   players: [host],
   game: null,
   lastStarterId: null,
+  matchStartsAt: null,
   version: 0,
   timedTurnNumber: null,
   turnDeadlineAt: null,

@@ -21,7 +21,7 @@ export const describeNextStep = ({
 }: TurnGuideInput): string => {
   if (!isMyTurn) return `Aguarde: é a vez de ${currentName}.`
   if (game.usedActions.includes("draw") && !game.canEndTurn) {
-    return "Você comprou: pegue da mesa se combinar ou descarte 1 carta para fechar o turno."
+    return "Você comprou: use a carta em uma jogada ou descarte 1 para fechar o turno."
   }
   if (hasPick(selection)) {
     return "Agora escolha a jogada abaixo. Ela fecha o seu turno."

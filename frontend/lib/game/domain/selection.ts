@@ -161,9 +161,7 @@ export const isActionOpen = (
 ): boolean => {
   if (usedActions.length === 0) return true
   return (
-    (kind === "discard" || kind === "takeFromTable") &&
-    usedActions.length === 1 &&
-    usedActions[0] === "draw"
+    kind !== "draw" && usedActions.length === 1 && usedActions[0] === "draw"
   )
 }
 
@@ -185,19 +183,23 @@ export const suggestAction = (
   bestAction: TurnActionKind | null = null
 ): TurnActionKind | null => {
   const { hand, meld, tableCards } = selection
+  const [first] = hand
   if (game.usedActions.includes("draw")) {
-    if (tableCards.length > 0 && hand.length > 0) return "takeFromTable"
-    return hand.length === 0 && bestAction === "takeFromTable"
-      ? "takeFromTable"
-      : "discard"
+    if (meld && first) return "steal"
+    if (tableCards.length > 0 && first) return "takeFromTable"
+    if (first) {
+      return holdsOpenMeld(game, viewerId, rankOf(first))
+        ? "layDown"
+        : "discard"
+    }
+    return bestAction ?? "discard"
   }
   if (meld && hand.length > 0) return "steal"
   if (meld && holdsOpenMeld(game, viewerId, meld.rank)) return "steal"
   if (tableCards.length > 0 && hand.length > 0) return "takeFromTable"
   if (hand.length >= 2) return "layDown"
-  const [single] = hand
-  if (single) {
-    return holdsOpenMeld(game, viewerId, rankOf(single)) ? "layDown" : "discard"
+  if (first) {
+    return holdsOpenMeld(game, viewerId, rankOf(first)) ? "layDown" : "discard"
   }
   if (tableCards.length > 0 || meld) return null
   if (bestAction) return bestAction

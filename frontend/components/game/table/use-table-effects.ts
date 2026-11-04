@@ -79,10 +79,11 @@ interface PendingChange {
   readonly events: readonly TableEvent[]
 }
 
-const dealCards = () => {
+const dealCards = (delaySeconds: number) => {
   const deck = rectOfAnchor(DECK_ANCHOR)
   if (!deck) return
   gsap.from("[data-deal]", {
+    delay: delaySeconds,
     x: (_: number, element: Element) =>
       deck.left - element.getBoundingClientRect().left,
     y: (_: number, element: Element) =>
@@ -99,8 +100,13 @@ const dealCards = () => {
 const isFreshDeal = (game: GameState): boolean =>
   game.turnNumber === 1 && game.usedActions.length === 0
 
-export const useTableEffects = (game: GameState, viewerId: PlayerId) => {
+export const useTableEffects = (
+  game: GameState,
+  viewerId: PlayerId,
+  matchStartsAt: number | null
+) => {
   const shown = useRef(game)
+  const startsAt = useRef(matchStartsAt)
   const pending = useRef<PendingChange | null>(null)
 
   useEffect(
@@ -136,6 +142,7 @@ export const useTableEffects = (game: GameState, viewerId: PlayerId) => {
   useLayoutEffect(() => {
     if (!dealtOnMount.current || prefersReducedMotion()) return
     dealtOnMount.current = false
-    dealCards()
+    const waitMs = (startsAt.current ?? 0) - Date.now()
+    dealCards(Math.max(0, waitMs) / 1000)
   }, [])
 }

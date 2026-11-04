@@ -60,7 +60,12 @@ const setup = ({
     showRoom: vi.fn(),
     inviteLink: (code) => `http://localhost/?sala=${code}`,
   }
-  const session = createGameSession({ gateway, seats, address })
+  const session = createGameSession({
+    gateway,
+    seats,
+    address,
+    now: () => 0,
+  })
   return {
     session,
     seats,
@@ -113,7 +118,7 @@ describe("sessão do jogo", () => {
       room: null,
       restoring: false,
       inviteCode: null,
-      notice: "Sala não encontrada.",
+      notice: "Essa sala foi encerrada. Crie uma nova para jogar de novo.",
     })
   })
 
