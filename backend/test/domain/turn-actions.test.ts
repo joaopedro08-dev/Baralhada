@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { Card } from "../../src/domain/cards/card.js"
-import type { Game } from "../../src/domain/game/model.js"
-import { getPlayer } from "../../src/domain/game/model.js"
-import { applyTurnAction } from "../../src/domain/game/turn-actions.js"
-import type { TurnAction } from "../../src/domain/game/turn-actions.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import { getPlayer } from "../../src/domain/games/rouba-monte/model.js"
+import { applyTurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
 import { buildGame, meldOf, quadOf } from "../support/game-builder.js"
 
 const act = (game: Game, action: TurnAction, playerId = game.turn.playerId): Game => {

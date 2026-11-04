@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest"
-import type { Game } from "../../src/domain/game/model.js"
-import { getPlayer } from "../../src/domain/game/model.js"
-import { applyTurnAction } from "../../src/domain/game/turn-actions.js"
-import type { TurnAction } from "../../src/domain/game/turn-actions.js"
-import { endTurn, expireTurn, removePlayer, playTurn } from "../../src/domain/game/turn-flow.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import { getPlayer } from "../../src/domain/games/rouba-monte/model.js"
+import { applyTurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import {
+  endTurn,
+  expireTurn,
+  removePlayer,
+  playTurn,
+} from "../../src/domain/games/rouba-monte/turn-flow.js"
 import { allCardsOf, buildGame, meldOf, quadOf, seededRandom } from "../support/game-builder.js"
 
 const random = seededRandom(11)
@@ -89,12 +94,31 @@ describe("RN-14 monte vazio", () => {
 
   it("não repõe a mão e pula quem já esvaziou", () => {
     const game = buildGame({
-      players: { a: { hand: ["2C"] }, b: {}, c: { hand: ["4C"] } },
+      players: { a: { hand: ["2C", "5C"] }, b: {}, c: { hand: ["4C"] } },
       deck: [],
     })
-    const next = close(game)
-    expect(getPlayer(next, "a").hand).toEqual(["2C"])
+    const next = unwrap(playTurn(game, "a", { type: "discard", card: "2C" }, random))
+    expect(getPlayer(next, "a").hand).toEqual(["5C"])
     expect(next.turn.playerId).toBe("c")
+  })
+
+  it("recusa passar a vez sem jogar quando o jogador ainda tem cartas", () => {
+    const game = buildGame({
+      players: { a: { hand: ["2C"] }, b: { hand: ["4C"] } },
+      deck: [],
+    })
+    expect(endTurn(game, "a", random)).toEqual({ ok: false, error: "MUST_PLAY" })
+  })
+
+  it("com o tempo estourado descarta 1 carta e a partida anda", () => {
+    const game = buildGame({
+      players: { a: { hand: ["2C", "5C"] }, b: { hand: ["4C"] } },
+      deck: [],
+    })
+    const next = expireTurn(game, random)
+    expect(getPlayer(next, "a").hand).toHaveLength(1)
+    expect(next.table).toHaveLength(game.table.length + 1)
+    expect(next.turn.playerId).toBe("b")
   })
 })
 

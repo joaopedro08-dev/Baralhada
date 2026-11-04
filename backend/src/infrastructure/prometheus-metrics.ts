@@ -2,10 +2,11 @@ import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry } from "prom
 import type { RoomRepository } from "../application/ports.js"
 import type { CommandMetrics } from "../adapters/socket/connection.js"
 import { statusOf } from "../domain/room/room.js"
+import type { RoomRules } from "../domain/room/room.js"
 
 const LATENCY_BUCKETS = [0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.5]
 
-export class PrometheusMetrics implements CommandMetrics {
+export class PrometheusMetrics<State> implements CommandMetrics {
   readonly registry = new Registry()
   private readonly commandDuration: Histogram<"command" | "outcome">
   private readonly commands: Counter<"command" | "outcome">
@@ -13,7 +14,7 @@ export class PrometheusMetrics implements CommandMetrics {
   private readonly stateMessages: Counter
   private readonly connections: Gauge
 
-  constructor(rooms: RoomRepository) {
+  constructor(rooms: RoomRepository<State>, rules: RoomRules<State>) {
     collectDefaultMetrics({ register: this.registry })
     const registers = [this.registry]
 
@@ -53,7 +54,7 @@ export class PrometheusMetrics implements CommandMetrics {
       registers,
       collect() {
         const totals = { lobby: 0, playing: 0, finished: 0 }
-        for (const room of rooms.all()) totals[statusOf(room)]++
+        for (const room of rooms.all()) totals[statusOf(room, rules)]++
         for (const [status, total] of Object.entries(totals)) this.set({ status }, total)
       },
     })

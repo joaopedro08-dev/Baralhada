@@ -1,5 +1,5 @@
-import { QUAD_SIZE, RANKS, rankOf } from "../cards/card.js"
-import type { Card, Rank } from "../cards/card.js"
+import { QUAD_SIZE, RANKS, rankOf } from "../../cards/card.js"
+import type { Card, Rank } from "../../cards/card.js"
 import type { PlayerId } from "./model.js"
 import type { PlayerView } from "./player-view.js"
 import { closesPurchase } from "./turn-actions.js"

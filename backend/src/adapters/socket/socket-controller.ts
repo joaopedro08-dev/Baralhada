@@ -4,18 +4,18 @@ import type { Actor } from "../../application/room-session.js"
 import type { SeatGrant } from "../../application/use-cases/create-room.js"
 import type { CreateRoom } from "../../application/use-cases/create-room.js"
 import type { DisconnectPlayer } from "../../application/use-cases/disconnect-player.js"
-import type { GetHints } from "../../application/use-cases/get-hints.js"
 import type { JoinRoom } from "../../application/use-cases/join-room.js"
 import type { KickPlayer } from "../../application/use-cases/kick-player.js"
 import type { LeaveRoom } from "../../application/use-cases/leave-room.js"
 import type { PlayTurn } from "../../application/use-cases/play-turn.js"
 import type { ReconnectPlayer } from "../../application/use-cases/reconnect-player.js"
+import type { GetHints } from "../../application/use-cases/rouba-monte/get-hints.js"
 import type { StartMatch } from "../../application/use-cases/start-match.js"
-import type { TurnAction } from "../../domain/game/turn-actions.js"
 import { err, ok } from "../../domain/shared/result.js"
 import type { Result } from "../../domain/shared/result.js"
 import type { ClientConnection, CommandMetrics, RawAck } from "./connection.js"
 import type { Ack, ClientCommand, ClientCommands, SeatDto } from "./contract.js"
+import type { Game, GameErrorCode, TurnAction } from "./game.js"
 import { errorMessage } from "./messages.js"
 import type { ErrorCode } from "./messages.js"
 import { createRoomStatePresenter, presentHints } from "./presenter.js"
@@ -34,14 +34,14 @@ const RATE_LIMIT_BURST = 40
 const RATE_LIMIT_PER_SECOND = 20
 
 export interface SocketUseCases {
-  readonly createRoom: CreateRoom
-  readonly joinRoom: JoinRoom
-  readonly reconnectPlayer: ReconnectPlayer
-  readonly leaveRoom: LeaveRoom
-  readonly kickPlayer: KickPlayer
-  readonly disconnectPlayer: DisconnectPlayer
-  readonly startMatch: StartMatch
-  readonly playTurn: PlayTurn
+  readonly createRoom: CreateRoom<Game, TurnAction, GameErrorCode>
+  readonly joinRoom: JoinRoom<Game, TurnAction, GameErrorCode>
+  readonly reconnectPlayer: ReconnectPlayer<Game, TurnAction, GameErrorCode>
+  readonly leaveRoom: LeaveRoom<Game, TurnAction, GameErrorCode>
+  readonly kickPlayer: KickPlayer<Game, TurnAction, GameErrorCode>
+  readonly disconnectPlayer: DisconnectPlayer<Game, TurnAction, GameErrorCode>
+  readonly startMatch: StartMatch<Game, TurnAction, GameErrorCode>
+  readonly playTurn: PlayTurn<Game, TurnAction, GameErrorCode>
   readonly getHints: GetHints
 }
 
@@ -82,7 +82,7 @@ export class SocketController {
     const seated = <C extends ClientCommand>(
       command: C,
       schema: z.ZodType,
-      run: (input: never) => Result<SeatGrant, ErrorCode>
+      run: (input: never) => Result<SeatGrant<Game>, ErrorCode>
     ) =>
       this.register(connection, bucket, command, schema, (input) => {
         if (session.actor) return err("ALREADY_IN_ROOM")
@@ -148,7 +148,7 @@ export class SocketController {
     }
   }
 
-  private grantSeat(session: ClientSession, grant: SeatGrant): SeatDto {
+  private grantSeat(session: ClientSession, grant: SeatGrant<Game>): SeatDto {
     this.registry.bind(session, { roomCode: grant.roomCode, playerId: grant.playerId })
     const present = createRoomStatePresenter(grant.room, this.clock.now())
     session.connection.emit("room:state", present(grant.playerId))

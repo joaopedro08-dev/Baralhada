@@ -1,13 +1,14 @@
 import type { ApplicationErrorCode } from "../../application/errors.js"
 import { rankOf } from "../../domain/cards/card.js"
 import type { Card, Rank, Suit } from "../../domain/cards/card.js"
-import type { Play, RiskAlert } from "../../domain/game/hints.js"
-import type { Game, GameEvent, PlayerId } from "../../domain/game/model.js"
+import type { GameErrorCode } from "../../domain/games/rouba-monte/errors.js"
+import type { Play, RiskAlert } from "../../domain/games/rouba-monte/hints.js"
+import type { Game, GameEvent, PlayerId } from "../../domain/games/rouba-monte/model.js"
 
 export type TransportErrorCode =
   "INVALID_PAYLOAD" | "NOT_IN_ROOM" | "ALREADY_IN_ROOM" | "RATE_LIMITED" | "INTERNAL_ERROR"
 
-export type ErrorCode = ApplicationErrorCode | TransportErrorCode
+export type ErrorCode = ApplicationErrorCode<GameErrorCode> | TransportErrorCode
 
 const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   INVALID_PLAYER_COUNT: "A partida precisa de 2 a 6 jogadores.",
@@ -25,6 +26,7 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   MELD_NOT_STEALABLE: "Só quadras incompletas podem ser roubadas.",
   MUST_DISCARD:
     "Depois de comprar, descarte 1 carta, pegue da mesa, avance uma quadra sua ou roube com carta da mão.",
+  MUST_PLAY: "Com o monte vazio, não dá para passar a vez: faça uma jogada ou descarte 1 carta.",
   ROOM_FULL: "A sala está cheia.",
   GAME_ALREADY_STARTED: "A partida está em andamento. Entre quando ela terminar.",
   NICKNAME_TAKEN: "Esse apelido já está em uso na sala.",

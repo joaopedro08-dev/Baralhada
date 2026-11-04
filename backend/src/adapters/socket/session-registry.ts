@@ -1,5 +1,5 @@
 import type { Actor } from "../../application/room-session.js"
-import type { PlayerId } from "../../domain/game/model.js"
+import type { PlayerId } from "../../domain/games/rouba-monte/model.js"
 import type { ClientConnection } from "./connection.js"
 
 export interface ClientSession {

@@ -1,18 +1,18 @@
 import type { Clock, RemovalReason, RoomNotifier } from "../../application/ports.js"
-import type { PlayerId } from "../../domain/game/model.js"
-import type { Room } from "../../domain/room/room.js"
+import type { PlayerId } from "../../domain/shared/seat.js"
 import type { CommandMetrics } from "./connection.js"
+import type { Game, GameRoom } from "./game.js"
 import { createRoomStatePresenter } from "./presenter.js"
 import type { SessionRegistry } from "./session-registry.js"
 
-export class SocketNotifier implements RoomNotifier {
+export class SocketNotifier implements RoomNotifier<Game> {
   constructor(
     private readonly registry: SessionRegistry,
     private readonly metrics: CommandMetrics,
     private readonly clock: Clock
   ) {}
 
-  publish(room: Room): void {
+  publish(room: GameRoom): void {
     const startedAt = performance.now()
     const present = createRoomStatePresenter(room, this.clock.now())
     let recipients = 0

@@ -1,7 +1,7 @@
-import { QUAD_SIZE, rankOf, shareRank } from "../cards/card.js"
-import type { Card, Rank } from "../cards/card.js"
-import { err, ok } from "../shared/result.js"
-import type { Result } from "../shared/result.js"
+import { QUAD_SIZE, rankOf, shareRank } from "../../cards/card.js"
+import type { Card, Rank } from "../../cards/card.js"
+import { err, ok } from "../../shared/result.js"
+import type { Result } from "../../shared/result.js"
 import type { GameErrorCode } from "./errors.js"
 import {
   appendEvents,

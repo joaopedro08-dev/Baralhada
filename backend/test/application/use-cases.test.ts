@@ -10,7 +10,7 @@ import { RoomSession } from "../../src/application/room-session.js"
 import { CreateRoom } from "../../src/application/use-cases/create-room.js"
 import { DisconnectPlayer } from "../../src/application/use-cases/disconnect-player.js"
 import { ExpireTurn } from "../../src/application/use-cases/expire-turn.js"
-import { GetHints } from "../../src/application/use-cases/get-hints.js"
+import { GetHints } from "../../src/application/use-cases/rouba-monte/get-hints.js"
 import { JoinRoom } from "../../src/application/use-cases/join-room.js"
 import { KickPlayer } from "../../src/application/use-cases/kick-player.js"
 import { LeaveRoom } from "../../src/application/use-cases/leave-room.js"
@@ -19,6 +19,8 @@ import { ReconnectPlayer } from "../../src/application/use-cases/reconnect-playe
 import { StartMatch } from "../../src/application/use-cases/start-match.js"
 import { SweepRooms } from "../../src/application/use-cases/sweep-rooms.js"
 import type { Card } from "../../src/domain/cards/card.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import { roubaMonteRules } from "../../src/domain/games/rouba-monte/rules.js"
 import type { Result } from "../../src/domain/shared/result.js"
 import { InMemoryRoomRepository } from "../../src/infrastructure/in-memory-room-repository.js"
 import { seededRandom } from "../support/game-builder.js"
@@ -37,7 +39,7 @@ const unwrap = <T>(result: Result<T, string>): T => {
 }
 
 const setup = (custom: Partial<GameSettings> = {}) => {
-  const rooms = new InMemoryRoomRepository()
+  const rooms = new InMemoryRoomRepository<Game>()
   const clock = {
     current: 1000,
     now() {
@@ -46,7 +48,7 @@ const setup = (custom: Partial<GameSettings> = {}) => {
   } satisfies Clock & { current: number }
   const published: number[] = []
   const removed: string[] = []
-  const notifier: RoomNotifier = {
+  const notifier: RoomNotifier<Game> = {
     publish: (room) => published.push(room.version),
     notifyRemoved: (playerId) => removed.push(playerId),
   }
@@ -62,10 +64,11 @@ const setup = (custom: Partial<GameSettings> = {}) => {
     reconnectToken: () => `token-${++sequence}`,
   }
   const random = seededRandom(42)
-  const session = new RoomSession(rooms, notifier, scheduler, clock, random, {
-    ...settings,
-    ...custom,
-  })
+  const session = new RoomSession(
+    roubaMonteRules,
+    { rooms, notifier, scheduler, clock, random },
+    { ...settings, ...custom }
+  )
   return {
     rooms,
     clock,

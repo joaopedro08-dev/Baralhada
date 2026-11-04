@@ -1,11 +1,11 @@
 import { createRoomStatePresenter } from "../src/adapters/socket/presenter.js"
-import { computeHints } from "../src/domain/game/hints.js"
-import { getPlayer, isFinished } from "../src/domain/game/model.js"
-import type { Game } from "../src/domain/game/model.js"
-import { toPlayerView } from "../src/domain/game/player-view.js"
-import { startGame } from "../src/domain/game/setup.js"
-import { applyTurnAction } from "../src/domain/game/turn-actions.js"
-import { endTurn, playTurn as playAction } from "../src/domain/game/turn-flow.js"
+import { computeHints } from "../src/domain/games/rouba-monte/hints.js"
+import { getPlayer, isFinished } from "../src/domain/games/rouba-monte/model.js"
+import type { Game } from "../src/domain/games/rouba-monte/model.js"
+import { toPlayerView } from "../src/domain/games/rouba-monte/player-view.js"
+import { startGame } from "../src/domain/games/rouba-monte/setup.js"
+import { applyTurnAction } from "../src/domain/games/rouba-monte/turn-actions.js"
+import { endTurn, playTurn as playAction } from "../src/domain/games/rouba-monte/turn-flow.js"
 import { createRoom } from "../src/domain/room/room.js"
 import type { Room } from "../src/domain/room/room.js"
 import { cryptoRandomSource } from "../src/infrastructure/crypto-identity.js"
@@ -52,7 +52,7 @@ const playWholeGame = (): void => {
 }
 
 const midGame = freshGame()
-const room: Room = {
+const room: Room<Game> = {
   ...createRoom("ABC234", {
     id: "p0",
     nickname: "Jogador0",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { computeHints } from "../../src/domain/game/hints.js"
-import { toPlayerView } from "../../src/domain/game/player-view.js"
-import { startGame } from "../../src/domain/game/setup.js"
+import { computeHints } from "../../src/domain/games/rouba-monte/hints.js"
+import { toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
+import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
 import { buildGame, meldOf, quadOf, seededRandom } from "../support/game-builder.js"
 
 describe("RN-18 e RNF-04 visibilidade", () => {

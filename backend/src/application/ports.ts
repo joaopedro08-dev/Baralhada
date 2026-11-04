@@ -1,18 +1,18 @@
-import type { PlayerId } from "../domain/game/model.js"
 import type { Room } from "../domain/room/room.js"
+import type { PlayerId } from "../domain/shared/seat.js"
 
-export interface RoomRepository {
-  find(code: string): Room | undefined
-  save(room: Room): void
+export interface RoomRepository<State> {
+  find(code: string): Room<State> | undefined
+  save(room: Room<State>): void
   remove(code: string): void
-  all(): Iterable<Room>
+  all(): Iterable<Room<State>>
   count(): number
 }
 
 export type RemovalReason = "kicked"
 
-export interface RoomNotifier {
-  publish(room: Room): void
+export interface RoomNotifier<State> {
+  publish(room: Room<State>): void
   notifyRemoved(playerId: PlayerId, reason: RemovalReason): void
 }
 

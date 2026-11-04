@@ -1,8 +1,13 @@
 import type { Card, Rank } from "../../domain/cards/card.js"
-import type { GameEndReason, Meld, PlayerId, TurnActionKind } from "../../domain/game/model.js"
+import type {
+  GameEndReason,
+  Meld,
+  PlayerId,
+  TurnActionKind,
+} from "../../domain/games/rouba-monte/model.js"
 import type { RoomStatus } from "../../domain/room/room.js"
 import type { RemovalReason } from "../../application/ports.js"
-import type { TurnAction } from "../../domain/game/turn-actions.js"
+import type { TurnAction } from "../../domain/games/rouba-monte/turn-actions.js"
 
 export type AckError = { readonly code: string; readonly message: string }
 

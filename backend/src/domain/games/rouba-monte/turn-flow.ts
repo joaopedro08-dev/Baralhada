@@ -1,8 +1,8 @@
-import type { Card } from "../cards/card.js"
-import type { RandomSource } from "../shared/random.js"
-import { pickOne, shuffle } from "../shared/random.js"
-import { err, ok } from "../shared/result.js"
-import type { Result } from "../shared/result.js"
+import type { Card } from "../../cards/card.js"
+import type { RandomSource } from "../../shared/random.js"
+import { pickOne, shuffle } from "../../shared/random.js"
+import { err, ok } from "../../shared/result.js"
+import type { Result } from "../../shared/result.js"
 import type { GameErrorCode } from "./errors.js"
 import {
   appendEvents,
@@ -97,14 +97,26 @@ const advanceTurn = (game: Game, random: RandomSource): Game => {
 const mustDiscardToClose = (game: Game, playerId: PlayerId): boolean =>
   game.deck.length > 0 && getPlayer(game, playerId).hand.length > HAND_SIZE
 
+const mustPlayBeforePassing = (game: Game, playerId: PlayerId): boolean =>
+  game.deck.length === 0 &&
+  game.turn.usedActions.length === 0 &&
+  getPlayer(game, playerId).hand.length > 0
+
+export const passRefusal = (game: Game, playerId: PlayerId): GameErrorCode | null => {
+  if (isFinished(game)) return "GAME_FINISHED"
+  if (game.turn.playerId !== playerId) return "NOT_YOUR_TURN"
+  if (mustDiscardToClose(game, playerId)) return "MUST_DISCARD"
+  if (mustPlayBeforePassing(game, playerId)) return "MUST_PLAY"
+  return null
+}
+
 export const endTurn = (
   game: Game,
   playerId: PlayerId,
   random: RandomSource
 ): Result<Game, GameErrorCode> => {
-  if (isFinished(game)) return err("GAME_FINISHED")
-  if (game.turn.playerId !== playerId) return err("NOT_YOUR_TURN")
-  if (mustDiscardToClose(game, playerId)) return err("MUST_DISCARD")
+  const refusal = passRefusal(game, playerId)
+  if (refusal) return err(refusal)
   return ok(advanceTurn(refillHand(game, playerId), random))
 }
 

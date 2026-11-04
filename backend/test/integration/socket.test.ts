@@ -73,6 +73,7 @@ beforeAll(async () => {
     ROOM_JOINS_PER_MINUTE: "100000",
     MAX_CONNECTIONS_PER_IP: "100000",
     MATCH_COUNTDOWN_SECONDS: "0",
+    MAX_ROOMS: "1000",
   })
   app = await startApp(config, silentLogger)
   url = `http://127.0.0.1:${app.port}`

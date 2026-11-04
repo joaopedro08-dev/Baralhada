@@ -10,6 +10,8 @@ import {
   statusOf,
 } from "../../src/domain/room/room.js"
 import type { Room, RoomPlayer } from "../../src/domain/room/room.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import { roubaMonteRules as rules } from "../../src/domain/games/rouba-monte/rules.js"
 import { buildGame } from "../support/game-builder.js"
 
 const player = (id: string, nickname = id): RoomPlayer => ({
@@ -20,30 +22,36 @@ const player = (id: string, nickname = id): RoomPlayer => ({
   disconnectedAt: null,
 })
 
-const roomWith = (...ids: string[]): Room =>
+const roomWith = (...ids: string[]): Room<Game> =>
   ids.slice(1).reduce(
     (room, id) => {
-      const joined = addPlayer(room, player(id))
+      const joined = addPlayer(room, player(id), rules)
       if (!joined.ok) throw new Error(joined.error)
       return joined.value
     },
-    createRoom("ABC234", player(ids[0] as string))
+    createRoom<Game>("ABC234", player(ids[0] as string))
   )
 
 describe("RF-02 entrada na sala", () => {
   it("recusa sala cheia", () => {
     const room = roomWith("a", "b", "c", "d", "e", "f")
-    expect(addPlayer(room, player("g"))).toEqual({ ok: false, error: "ROOM_FULL" })
+    expect(addPlayer(room, player("g"), rules)).toEqual({ ok: false, error: "ROOM_FULL" })
   })
 
   it("recusa apelido repetido ignorando caixa e espaços", () => {
     const room = roomWith("Ana")
-    expect(addPlayer(room, player("x", " ana "))).toEqual({ ok: false, error: "NICKNAME_TAKEN" })
+    expect(addPlayer(room, player("x", " ana "), rules)).toEqual({
+      ok: false,
+      error: "NICKNAME_TAKEN",
+    })
   })
 
   it("recusa entrada com a partida em andamento", () => {
     const room = { ...roomWith("a", "b"), game: buildGame({ players: { a: {}, b: {} } }) }
-    expect(addPlayer(room, player("c"))).toEqual({ ok: false, error: "GAME_ALREADY_STARTED" })
+    expect(addPlayer(room, player("c"), rules)).toEqual({
+      ok: false,
+      error: "GAME_ALREADY_STARTED",
+    })
   })
 
   it("aceita entrada depois que a partida terminou", () => {
@@ -51,29 +59,29 @@ describe("RF-02 entrada na sala", () => {
       ...buildGame({ players: { a: {}, b: {} } }),
       endReason: "abandoned" as const,
     }
-    const joined = addPlayer({ ...roomWith("a"), game: finished }, player("b"))
+    const joined = addPlayer({ ...roomWith("a"), game: finished }, player("b"), rules)
     expect(joined.ok).toBe(true)
   })
 })
 
 describe("RF-04 início", () => {
   it("só libera com 2 a 6 jogadores", () => {
-    expect(canStart(roomWith("a"))).toBe(false)
-    expect(canStart(roomWith("a", "b"))).toBe(true)
-    expect(canStart(roomWith("a", "b", "c", "d", "e", "f"))).toBe(true)
+    expect(canStart(roomWith("a"), rules)).toBe(false)
+    expect(canStart(roomWith("a", "b"), rules)).toBe(true)
+    expect(canStart(roomWith("a", "b", "c", "d", "e", "f"), rules)).toBe(true)
   })
 
   it("não libera com partida em andamento", () => {
     const room = { ...roomWith("a", "b"), game: buildGame({ players: { a: {}, b: {} } }) }
-    expect(statusOf(room)).toBe("playing")
-    expect(canStart(room)).toBe(false)
+    expect(statusOf(room, rules)).toBe("playing")
+    expect(canStart(room, rules)).toBe(false)
   })
 
   it("libera jogar de novo depois do fim (RF-15)", () => {
     const game = { ...buildGame({ players: { a: {}, b: {} } }), endReason: "abandoned" as const }
     const room = { ...roomWith("a", "b"), game }
-    expect(statusOf(room)).toBe("finished")
-    expect(canStart(room)).toBe(true)
+    expect(statusOf(room, rules)).toBe("finished")
+    expect(canStart(room, rules)).toBe(true)
   })
 })
 
@@ -110,7 +118,7 @@ describe("RNF-07 sala vazia", () => {
 
   it("limpa quando alguém novo entra", () => {
     const room = dropPlayer(roomWith("a"), "a", null, 100)
-    const joined = addPlayer(room, player("b"))
+    const joined = addPlayer(room, player("b"), rules)
     expect(joined.ok && joined.value.emptySince).toBeNull()
   })
 })

@@ -14,7 +14,7 @@ const envSchema = z.object({
   RECONNECT_GRACE_SECONDS: z.coerce.number().positive().default(120),
   EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(600),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().positive().default(5),
-  MAX_ROOMS: z.coerce.number().int().positive().default(1000),
+  MAX_ROOMS: z.coerce.number().int().positive().default(10),
   TRUST_PROXY: z.stringbool().default(false),
   CLIENT_IP_HEADER: z.string().min(1).default("x-forwarded-for"),
   MAX_CONNECTIONS_PER_IP: z.coerce.number().int().positive().default(30),

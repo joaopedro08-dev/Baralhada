@@ -1,14 +1,14 @@
 import type { RoomRepository } from "../application/ports.js"
 import type { Room } from "../domain/room/room.js"
 
-export class InMemoryRoomRepository implements RoomRepository {
-  private readonly rooms = new Map<string, Room>()
+export class InMemoryRoomRepository<State> implements RoomRepository<State> {
+  private readonly rooms = new Map<string, Room<State>>()
 
-  find(code: string): Room | undefined {
+  find(code: string): Room<State> | undefined {
     return this.rooms.get(code)
   }
 
-  save(room: Room): void {
+  save(room: Room<State>): void {
     this.rooms.set(room.code, room)
   }
 
@@ -16,7 +16,7 @@ export class InMemoryRoomRepository implements RoomRepository {
     this.rooms.delete(code)
   }
 
-  all(): Iterable<Room> {
+  all(): Iterable<Room<State>> {
     return this.rooms.values()
   }
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 import { io } from "socket.io-client"
 import type { Socket } from "socket.io-client"
 import type { Ack, HintsDto, RoomStateDto, SeatDto } from "../src/adapters/socket/contract.js"
-import type { TurnAction } from "../src/domain/game/turn-actions.js"
+import type { TurnAction } from "../src/domain/games/rouba-monte/turn-actions.js"
 import { percentile, readServerSample } from "./server-sample.js"
 import type { ServerSample } from "./server-sample.js"
 

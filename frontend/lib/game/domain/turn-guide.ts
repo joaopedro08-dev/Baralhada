@@ -26,6 +26,9 @@ export const describeNextStep = ({
   if (hasPick(selection)) {
     return "Agora escolha a jogada abaixo. Ela fecha o seu turno."
   }
+  if (game.deckSize === 0 && !game.canEndTurn) {
+    return "O monte acabou: faça uma jogada ou descarte 1 carta. Passar a vez fica bloqueado."
+  }
   if (topHint) return `Dica: ${topHint}`
   return "Faça 1 jogada: compre, baixe, pegue da mesa, roube ou descarte."
 }

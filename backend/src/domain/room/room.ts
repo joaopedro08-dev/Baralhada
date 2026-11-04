@@ -1,8 +1,8 @@
-import { MAX_PLAYERS, MIN_PLAYERS, isFinished } from "../game/model.js"
-import type { Game, PlayerId } from "../game/model.js"
 import { err, ok } from "../shared/result.js"
 import type { Result } from "../shared/result.js"
+import type { PlayerId } from "../shared/seat.js"
 import type { RoomErrorCode } from "./errors.js"
+import type { PlayerLimits } from "./game-rules.js"
 
 export interface RoomPlayer {
   readonly id: PlayerId
@@ -12,10 +12,10 @@ export interface RoomPlayer {
   readonly disconnectedAt: number | null
 }
 
-export interface Room {
+export interface Room<State = unknown> {
   readonly code: string
   readonly players: readonly RoomPlayer[]
-  readonly game: Game | null
+  readonly game: State | null
   readonly lastStarterId: PlayerId | null
   readonly matchStartsAt: number | null
   readonly version: number
@@ -26,26 +26,30 @@ export interface Room {
 
 export type RoomStatus = "lobby" | "playing" | "finished"
 
+export interface RoomRules<State> extends PlayerLimits {
+  isFinished(state: State): boolean
+}
+
 const normalizeNickname = (nickname: string): string => nickname.trim().toLocaleLowerCase("pt-BR")
 
-export const statusOf = (room: Room): RoomStatus => {
-  if (!room.game) return "lobby"
-  return isFinished(room.game) ? "finished" : "playing"
+export const statusOf = <State>(room: Room<State>, rules: RoomRules<State>): RoomStatus => {
+  if (room.game === null) return "lobby"
+  return rules.isFinished(room.game) ? "finished" : "playing"
 }
 
 export const hostIdOf = (room: Room): PlayerId | null => room.players[0]?.id ?? null
 
 export const isHost = (room: Room, playerId: PlayerId): boolean => hostIdOf(room) === playerId
 
-export const canStart = (room: Room): boolean =>
-  statusOf(room) !== "playing" &&
-  room.players.length >= MIN_PLAYERS &&
-  room.players.length <= MAX_PLAYERS
+export const canStart = <State>(room: Room<State>, rules: RoomRules<State>): boolean =>
+  statusOf(room, rules) !== "playing" &&
+  room.players.length >= rules.minPlayers &&
+  room.players.length <= rules.maxPlayers
 
 export const findRoomPlayer = (room: Room, playerId: PlayerId): RoomPlayer | undefined =>
   room.players.find((player) => player.id === playerId)
 
-export const createRoom = (code: string, host: RoomPlayer): Room => ({
+export const createRoom = <State>(code: string, host: RoomPlayer): Room<State> => ({
   code,
   players: [host],
   game: null,
@@ -57,9 +61,13 @@ export const createRoom = (code: string, host: RoomPlayer): Room => ({
   emptySince: null,
 })
 
-export const addPlayer = (room: Room, player: RoomPlayer): Result<Room, RoomErrorCode> => {
-  if (statusOf(room) === "playing") return err("GAME_ALREADY_STARTED")
-  if (room.players.length >= MAX_PLAYERS) return err("ROOM_FULL")
+export const addPlayer = <State>(
+  room: Room<State>,
+  player: RoomPlayer,
+  rules: RoomRules<State>
+): Result<Room<State>, RoomErrorCode> => {
+  if (statusOf(room, rules) === "playing") return err("GAME_ALREADY_STARTED")
+  if (room.players.length >= rules.maxPlayers) return err("ROOM_FULL")
   const nickname = normalizeNickname(player.nickname)
   if (room.players.some((seated) => normalizeNickname(seated.nickname) === nickname)) {
     return err("NICKNAME_TAKEN")
@@ -67,12 +75,20 @@ export const addPlayer = (room: Room, player: RoomPlayer): Result<Room, RoomErro
   return ok({ ...room, players: [...room.players, player], emptySince: null })
 }
 
-const updateConnectedState = (room: Room, players: readonly RoomPlayer[], now: number): Room => {
+const updateConnectedState = <State>(
+  room: Room<State>,
+  players: readonly RoomPlayer[],
+  now: number
+): Room<State> => {
   const anyoneConnected = players.some((player) => player.connected)
   return { ...room, players, emptySince: anyoneConnected ? null : (room.emptySince ?? now) }
 }
 
-export const markDisconnected = (room: Room, playerId: PlayerId, now: number): Room =>
+export const markDisconnected = <State>(
+  room: Room<State>,
+  playerId: PlayerId,
+  now: number
+): Room<State> =>
   updateConnectedState(
     room,
     room.players.map((player) =>
@@ -81,7 +97,11 @@ export const markDisconnected = (room: Room, playerId: PlayerId, now: number): R
     now
   )
 
-export const markReconnected = (room: Room, playerId: PlayerId, now: number): Room =>
+export const markReconnected = <State>(
+  room: Room<State>,
+  playerId: PlayerId,
+  now: number
+): Room<State> =>
   updateConnectedState(
     room,
     room.players.map((player) =>
@@ -90,7 +110,12 @@ export const markReconnected = (room: Room, playerId: PlayerId, now: number): Ro
     now
   )
 
-export const dropPlayer = (room: Room, playerId: PlayerId, game: Game | null, now: number): Room =>
+export const dropPlayer = <State>(
+  room: Room<State>,
+  playerId: PlayerId,
+  game: State | null,
+  now: number
+): Room<State> =>
   updateConnectedState(
     { ...room, game },
     room.players.filter((player) => player.id !== playerId),

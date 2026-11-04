@@ -26,7 +26,7 @@ services:
       - key: LOG_LEVEL
         value: info
       - key: MAX_ROOMS
-        value: "50"
+        value: "10"
       - key: PUBLIC_URL
         sync: false
       - key: CORS_ORIGIN

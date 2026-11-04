@@ -1,6 +1,7 @@
-import type { Card } from "../cards/card.js"
-import { findPlayer, HAND_SIZE, isFinished } from "./model.js"
+import type { Card } from "../../cards/card.js"
+import { findPlayer } from "./model.js"
 import type { Game, GameEndReason, GameEvent, Meld, PlayerId, TurnActionKind } from "./model.js"
+import { passRefusal } from "./turn-flow.js"
 
 export interface PublicPlayer {
   readonly id: PlayerId
@@ -26,7 +27,6 @@ export interface PlayerView {
 
 export const toPlayerView = (game: Game, viewerId: PlayerId): PlayerView => {
   const hand = findPlayer(game, viewerId)?.hand ?? []
-  const isViewerTurn = game.turn.playerId === viewerId
   return {
     viewerId,
     hand,
@@ -41,8 +41,7 @@ export const toPlayerView = (game: Game, viewerId: PlayerId): PlayerView => {
     currentPlayerId: game.turn.playerId,
     turnNumber: game.turn.number,
     usedActions: game.turn.usedActions,
-    canEndTurn:
-      isViewerTurn && !isFinished(game) && (game.deck.length === 0 || hand.length <= HAND_SIZE),
+    canEndTurn: passRefusal(game, viewerId) === null,
     endReason: game.endReason,
     winnerIds: game.winnerIds,
     events: game.events,

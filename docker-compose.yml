@@ -11,7 +11,7 @@ services:
     environment:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      MAX_ROOMS: ${MAX_ROOMS:-1000}
+      MAX_ROOMS: ${MAX_ROOMS:-10}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       MAX_CONNECTIONS_PER_IP: ${MAX_CONNECTIONS_PER_IP:-30}
       ROOM_CREATIONS_PER_MINUTE: ${ROOM_CREATIONS_PER_MINUTE:-10}

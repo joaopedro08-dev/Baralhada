@@ -1,16 +1,12 @@
-import { createFullDeck } from "../cards/card.js"
-import type { RandomSource } from "../shared/random.js"
-import { pickOne, shuffle } from "../shared/random.js"
-import { err, ok } from "../shared/result.js"
-import type { Result } from "../shared/result.js"
+import { createFullDeck } from "../../cards/card.js"
+import type { RandomSource } from "../../shared/random.js"
+import { shuffle } from "../../shared/random.js"
+import { err, ok } from "../../shared/result.js"
+import type { Result } from "../../shared/result.js"
 import type { GameErrorCode } from "./errors.js"
 import { HAND_SIZE, MAX_PLAYERS, MIN_PLAYERS, TABLE_SIZE } from "./model.js"
+import type { Seat } from "../../shared/seat.js"
 import type { Game, GamePlayer, PlayerId } from "./model.js"
-
-export interface Seat {
-  readonly id: PlayerId
-  readonly nickname: string
-}
 
 export const startGame = (
   seats: readonly Seat[],
@@ -37,14 +33,4 @@ export const startGame = (
     endReason: null,
     winnerIds: [],
   })
-}
-
-export const chooseStartingPlayer = (
-  seats: readonly Seat[],
-  previousStarterId: PlayerId | null,
-  random: RandomSource
-): PlayerId => {
-  const previousIndex = seats.findIndex((seat) => seat.id === previousStarterId)
-  if (previousIndex < 0) return pickOne(seats, random).id
-  return (seats[(previousIndex + 1) % seats.length] as Seat).id
 }

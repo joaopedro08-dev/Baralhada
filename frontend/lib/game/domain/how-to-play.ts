@@ -17,6 +17,6 @@ export const RULE_SECTIONS = [
   },
   {
     title: "Tempo e monte vazio",
-    text: "Cada turno tem 60 segundos. Quando o monte acaba, a regra das 4 cartas deixa de valer e todos jogam até esvaziar a mão.",
+    text: "Cada turno tem 60 segundos. Quando o monte acaba, a regra das 4 cartas deixa de valer, ninguém pode passar a vez e todos jogam até esvaziar a mão.",
   },
 ] as const

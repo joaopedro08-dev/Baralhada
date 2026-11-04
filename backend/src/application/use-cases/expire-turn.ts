@@ -1,11 +1,9 @@
-import { expireTurn } from "../../domain/game/turn-flow.js"
-import { statusOf } from "../../domain/room/room.js"
 import type { RandomSource } from "../../domain/shared/random.js"
 import type { RoomSession } from "../room-session.js"
 
-export class ExpireTurn {
+export class ExpireTurn<State, Action, GameCode extends string> {
   constructor(
-    private readonly session: RoomSession,
+    private readonly session: RoomSession<State, Action, GameCode>,
     private readonly random: RandomSource
   ) {}
 
@@ -13,8 +11,9 @@ export class ExpireTurn {
     const loaded = this.session.load(input.roomCode)
     if (!loaded.ok) return
     const room = loaded.value
-    if (!room.game || statusOf(room) !== "playing") return
-    if (room.game.turn.number !== input.turnNumber) return
-    this.session.commit({ ...room, game: expireTurn(room.game, this.random) })
+    const rules = this.session.rules
+    if (room.game === null || this.session.statusOf(room) !== "playing") return
+    if (rules.turnOf(room.game).number !== input.turnNumber) return
+    this.session.commit({ ...room, game: rules.expireTurn(room.game, this.random) })
   }
 }

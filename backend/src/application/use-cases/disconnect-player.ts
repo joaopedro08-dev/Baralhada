@@ -2,9 +2,9 @@ import { markDisconnected } from "../../domain/room/room.js"
 import type { Clock } from "../ports.js"
 import type { Actor, RoomSession } from "../room-session.js"
 
-export class DisconnectPlayer {
+export class DisconnectPlayer<State, Action, GameCode extends string> {
   constructor(
-    private readonly session: RoomSession,
+    private readonly session: RoomSession<State, Action, GameCode>,
     private readonly clock: Clock
   ) {}
 

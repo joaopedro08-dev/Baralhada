@@ -1,6 +1,6 @@
 import { rankOf } from "../../src/domain/cards/card.js"
 import type { Card } from "../../src/domain/cards/card.js"
-import type { Game, GamePlayer, Meld, Turn } from "../../src/domain/game/model.js"
+import type { Game, GamePlayer, Meld, Turn } from "../../src/domain/games/rouba-monte/model.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
 
 export const seededRandom = (seed: number): RandomSource => {

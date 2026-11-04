@@ -13,3 +13,4 @@ export type GameErrorCode =
   | "TARGET_NOT_FOUND"
   | "MELD_NOT_STEALABLE"
   | "MUST_DISCARD"
+  | "MUST_PLAY"

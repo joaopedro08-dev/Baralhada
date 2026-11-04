@@ -56,7 +56,7 @@ Medido em 2026-11-04 com a mesma imagem, limitada a 0,1 CPU, em etapas de 45 s. 
 
 - **Picos:** mesmo com poucas salas, o p99 passa de 1 s. Com 0,1 CPU, o processo fica pausado boa parte do tempo, então espere travadas curtas ocasionais.
 - **Bots contra pessoas:** cada sala de bots gerou de 1 a 2 comandos por segundo. Pessoas jogam bem mais devagar, então o limite real deve ser maior, mas isso é estimativa, não medição.
-- **Limite no Render:** o `render.yaml` usa `MAX_ROOMS=50`. O número é uma estimativa a partir dessa diferença de ritmo. Se o jogo ficar lento com menos salas do que isso, reduza o limite ou troque de plano.
+- **Limite no Render:** o `render.yaml` usa `MAX_ROOMS=10`, o maior número medido que atendeu à meta de 1 s no p95. Decidido em 2026-11-04. Suba o limite só depois de medir no próprio Render ou trocar de plano.
 - **Medição conservadora:** a imagem inclui o Next.js no mesmo processo, e no Render o servidor roda sem ele.
 
 ## Partidas completas pela rede
@@ -126,11 +126,11 @@ A imagem tem 1,08 GB, dos quais 600 MB são o `node_modules` do frontend. O pró
 
 A divisão entre instâncias não foi construída porque o escopo é de amigos e a RNF-06 pede 10 salas. O estado em memória continua sendo um limite aceito pelo documento de requisitos: reiniciar o servidor perde as partidas.
 
-`MAX_ROOMS` vale 1000 por padrão, para proteger a memória. Em 0,5 CPU, use 200 para recusar salas novas antes de degradar as partidas em andamento.
+`MAX_ROOMS` vale 10 por padrão, o mesmo do plano gratuito. Em 0,5 CPU, dá para usar 200 e recusar salas novas antes de degradar as partidas em andamento.
 
 ## Como repetir
 
-Desative a suspensão do computador antes de rodar.
+Desative a suspensão do computador antes de rodar. Suba o app com `MAX_ROOMS` acima do maior passo, senão as salas extras são recusadas.
 
 ```bash
 ROOM_STEPS=10 STEP_SECONDS=60 LABEL=rnf06 docker compose --profile perf run --rm --no-deps loadtest
@@ -141,7 +141,7 @@ ROOM_STEPS=50,100,200,400 STEP_SECONDS=45 LABEL=capacidade docker compose --prof
 ```
 
 ```bash
-APP_CPUS=1 MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
+APP_CPUS=1 MAX_ROOMS=1000 MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
 ```
 
 Os resultados ficam em `backend/perf/results`. Para acompanhar ao vivo, suba o perfil `observability` e abra o painel em `localhost:3001`.

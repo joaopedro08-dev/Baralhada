@@ -1,5 +1,8 @@
-import { QUAD_SIZE, TOTAL_QUADS } from "../cards/card.js"
-import type { Card, Rank } from "../cards/card.js"
+import { QUAD_SIZE, TOTAL_QUADS } from "../../cards/card.js"
+import type { Card, Rank } from "../../cards/card.js"
+import type { PlayerId } from "../../shared/seat.js"
+
+export type { PlayerId }
 
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 6
@@ -7,8 +10,6 @@ export const HAND_SIZE = 4
 export const TABLE_SIZE = 10
 export const TABLE_MINIMUM = 3
 export const EVENT_LOG_LIMIT = 200
-
-export type PlayerId = string
 
 export type TurnActionKind = "draw" | "layDown" | "takeFromTable" | "steal" | "discard"
 

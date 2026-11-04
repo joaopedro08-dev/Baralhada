@@ -40,4 +40,11 @@ describe("guia do turno", () => {
       "Dica: Compra 1 carta."
     )
   })
+
+  it("avisa que não dá para passar com o monte vazio", () => {
+    const game = buildGame({ deckSize: 0, canEndTurn: false })
+    expect(describeNextStep({ ...base, game })).toContain(
+      "Passar a vez fica bloqueado"
+    )
+  })
 })

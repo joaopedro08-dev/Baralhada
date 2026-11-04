@@ -2,10 +2,10 @@ import type { Room } from "../../domain/room/room.js"
 import type { Clock, GameSettings, RoomRepository } from "../ports.js"
 import type { RoomSession } from "../room-session.js"
 
-export class SweepRooms {
+export class SweepRooms<State, Action, GameCode extends string> {
   constructor(
-    private readonly rooms: RoomRepository,
-    private readonly session: RoomSession,
+    private readonly rooms: RoomRepository<State>,
+    private readonly session: RoomSession<State, Action, GameCode>,
     private readonly clock: Clock,
     private readonly settings: GameSettings
   ) {}
@@ -23,7 +23,7 @@ export class SweepRooms {
     }
   }
 
-  private removeExpiredPlayers(room: Room, now: number): Room {
+  private removeExpiredPlayers(room: Room<State>, now: number): Room<State> {
     return room.players
       .filter(
         (player) =>

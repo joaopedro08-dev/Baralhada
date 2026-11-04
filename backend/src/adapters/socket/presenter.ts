@@ -1,15 +1,16 @@
-import type { HintsResult } from "../../application/use-cases/get-hints.js"
-import type { PlayerId } from "../../domain/game/model.js"
-import { toPlayerView } from "../../domain/game/player-view.js"
+import type { HintsResult } from "../../application/use-cases/rouba-monte/get-hints.js"
+import { toPlayerView } from "../../domain/games/rouba-monte/player-view.js"
+import { roubaMonteRules } from "../../domain/games/rouba-monte/rules.js"
 import { canStart, hostIdOf, statusOf } from "../../domain/room/room.js"
-import type { Room } from "../../domain/room/room.js"
+import type { PlayerId } from "../../domain/shared/seat.js"
 import type { GameStateDto, HintsDto, RoomStateDto } from "./contract.js"
+import type { GameRoom } from "./game.js"
 import { describeHistory, describePlay, describeRisk } from "./messages.js"
 
 const HISTORY_LIMIT = 50
 
 const presentGame = (
-  room: Room,
+  room: GameRoom,
   viewerId: PlayerId,
   history: readonly string[]
 ): GameStateDto | null => {
@@ -19,7 +20,7 @@ const presentGame = (
 }
 
 export const createRoomStatePresenter = (
-  room: Room,
+  room: GameRoom,
   serverNow: number
 ): ((viewerId: PlayerId) => RoomStateDto) => {
   const history = room.game ? describeHistory(room.game, HISTORY_LIMIT) : []
@@ -27,9 +28,9 @@ export const createRoomStatePresenter = (
     code: room.code,
     version: room.version,
     serverNow,
-    status: statusOf(room),
+    status: statusOf(room, roubaMonteRules),
     hostId: hostIdOf(room),
-    canStart: canStart(room),
+    canStart: canStart(room, roubaMonteRules),
     players: room.players.map(({ id, nickname, connected }) => ({ id, nickname, connected })),
     turnDeadlineAt: room.turnDeadlineAt,
     matchStartsAt: room.matchStartsAt,

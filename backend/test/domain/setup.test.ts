@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { createFullDeck } from "../../src/domain/cards/card.js"
-import { chooseStartingPlayer, startGame } from "../../src/domain/game/setup.js"
-import type { Seat } from "../../src/domain/game/setup.js"
+import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
+import { chooseStartingPlayer } from "../../src/domain/room/turn-order.js"
+import type { Seat } from "../../src/domain/shared/seat.js"
 import { shuffle } from "../../src/domain/shared/random.js"
 import { allCardsOf, seededRandom } from "../support/game-builder.js"
 

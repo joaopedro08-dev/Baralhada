@@ -75,6 +75,26 @@ describe("arquitetura limpa", () => {
   )
 })
 
+const GAME_SPECIFIC = [join("domain", "games"), join("use-cases", "rouba-monte")]
+
+const isGameSpecific = (file: string): boolean =>
+  GAME_SPECIFIC.some((part) => relative(sourceRoot, file).includes(part))
+
+describe("plataforma separada dos jogos", () => {
+  const platformFiles = listFiles(sourceRoot).filter(
+    (file) => ["domain", "application"].includes(layerOf(file)) && !isGameSpecific(file)
+  )
+
+  it.each(platformFiles.map((file) => [relative(root, file), file] as const))(
+    "%s não depende de um jogo específico",
+    (_name, file) => {
+      for (const specifier of importsOf(file).filter((imported) => imported.startsWith("."))) {
+        expect(isGameSpecific(resolve(dirname(file), specifier)), specifier).toBe(false)
+      }
+    }
+  )
+})
+
 describe("código limpo", () => {
   const directories = ["src", "test", "perf"].map((directory) => join(root, directory))
   const files = directories.flatMap(listFiles)

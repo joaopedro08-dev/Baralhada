@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest"
 import { createFullDeck, RANKS } from "../../src/domain/cards/card.js"
 import type { Card } from "../../src/domain/cards/card.js"
-import { computeHints } from "../../src/domain/game/hints.js"
-import { isFinished } from "../../src/domain/game/model.js"
-import type { Game, PlayerId } from "../../src/domain/game/model.js"
-import { toPlayerView } from "../../src/domain/game/player-view.js"
-import { startGame } from "../../src/domain/game/setup.js"
-import type { TurnAction } from "../../src/domain/game/turn-actions.js"
-import { applyTurnAction } from "../../src/domain/game/turn-actions.js"
-import { endTurn, expireTurn, playTurn, removePlayer } from "../../src/domain/game/turn-flow.js"
+import { computeHints } from "../../src/domain/games/rouba-monte/hints.js"
+import { isFinished } from "../../src/domain/games/rouba-monte/model.js"
+import type { Game, PlayerId } from "../../src/domain/games/rouba-monte/model.js"
+import { toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
+import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
+import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import { applyTurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import {
+  endTurn,
+  expireTurn,
+  playTurn,
+  removePlayer,
+} from "../../src/domain/games/rouba-monte/turn-flow.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
 import { allCardsOf, seededRandom } from "../support/game-builder.js"
 
