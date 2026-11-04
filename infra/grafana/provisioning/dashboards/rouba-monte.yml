@@ -1,0 +1,7 @@
+apiVersion: 1
+
+providers:
+  - name: rouba-monte
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

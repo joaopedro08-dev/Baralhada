@@ -1,0 +1,44 @@
+{
+  "label": "partidas-completas",
+  "target": "http://app:3000",
+  "results": [
+    {
+      "rooms": 10,
+      "players": 60,
+      "thinkMs": 25,
+      "connectSeconds": 4.4,
+      "commandsPerSecond": 123.7,
+      "stateMessagesPerSecond": 392.4,
+      "ackMs": {
+        "count": 9295,
+        "p50": 47.73,
+        "p95": 165.08,
+        "p99": 320.07,
+        "max": 1178.43
+      },
+      "broadcastMs": {
+        "count": 24330,
+        "p50": 34.09,
+        "p95": 152.66,
+        "p99": 316.04,
+        "max": 1119.43
+      },
+      "sloBroadcastP95Ok": true,
+      "gamesFinished": 58,
+      "rejected": {
+        "GAME_NOT_RUNNING": 58
+      },
+      "server": {
+        "cpuPercent": 46.2,
+        "rssMb": 144.9,
+        "heapUsedMb": 39.6,
+        "idleRssMb": 136,
+        "eventLoopLagP99Ms": 145.62,
+        "connections": 60
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 56.75
+      }
+    }
+  ]
+}

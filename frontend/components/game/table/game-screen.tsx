@@ -1,0 +1,118 @@
+"use client"
+
+import { m } from "framer-motion"
+
+import { CardFlights } from "@/components/game/table/card-flights"
+import { GameHeader } from "@/components/game/table/game-header"
+import { HandDock } from "@/components/game/table/hand-dock"
+import { HistoryList } from "@/components/game/table/history-list"
+import { OpponentPanels } from "@/components/game/table/opponent-panels"
+import { OwnArea } from "@/components/game/table/own-area"
+import { TableZone } from "@/components/game/table/table-zone"
+import { TurnBanner } from "@/components/game/table/turn-banner"
+import { useHints } from "@/components/game/table/use-hints"
+import { useTableEffects } from "@/components/game/table/use-table-effects"
+import { useTurnControls } from "@/components/game/table/use-turn-controls"
+import { focusOfHints } from "@/lib/game/domain/hint-focus"
+import { describeNextStep } from "@/lib/game/domain/turn-guide"
+import type { GameState, RoomState } from "@/lib/game/domain/types"
+
+export function GameScreen({
+  room,
+  game,
+}: {
+  room: RoomState
+  game: GameState
+}) {
+  const isMyTurn = game.currentPlayerId === room.viewerId
+  const currentName =
+    game.players.find((player) => player.id === game.currentPlayerId)
+      ?.nickname ?? "outro jogador"
+  const { enabled, setEnabled, hints } = useHints(room, isMyTurn)
+  const controls = useTurnControls(
+    game,
+    room.viewerId,
+    hints?.plays[0]?.action.type ?? null
+  )
+  useTableEffects(game, room.viewerId)
+
+  const { selection } = controls
+  const focus = focusOfHints(hints)
+  const guide = describeNextStep({
+    game,
+    selection,
+    isMyTurn,
+    currentName,
+    topHint: hints?.plays[0]?.sentence ?? null,
+  })
+
+  return (
+    <div className="flex h-dvh flex-col">
+      <GameHeader
+        room={room}
+        game={game}
+        isMyTurn={isMyTurn}
+        currentName={currentName}
+        hints={hints}
+        hintsEnabled={enabled}
+        onHintsChange={setEnabled}
+      />
+
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_20rem] short:grid-cols-[minmax(0,1fr)_22rem] short:grid-rows-1">
+        <m.main
+          layoutScroll
+          tabIndex={0}
+          className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 lg:col-start-1 lg:row-start-1"
+        >
+          <OpponentPanels
+            room={room}
+            game={game}
+            selection={selection}
+            focus={focus}
+            onToggleTarget={isMyTurn ? controls.toggleTarget : undefined}
+          />
+          <TableZone
+            game={game}
+            selection={selection}
+            focus={focus}
+            isMyTurn={isMyTurn}
+            onDraw={() => controls.perform("draw")}
+            onToggleCard={controls.toggleTable}
+          />
+          <OwnArea
+            viewerId={room.viewerId}
+            player={game.players.find((player) => player.id === room.viewerId)}
+            hints={hints}
+          />
+        </m.main>
+
+        <HandDock
+          game={game}
+          selection={selection}
+          focus={focus}
+          isMyTurn={isMyTurn}
+          busy={controls.busy}
+          guide={guide}
+          refusal={controls.refusal}
+          suggested={controls.suggested}
+          onToggleCard={controls.toggleHand}
+          onAction={controls.perform}
+          onPass={controls.pass}
+        />
+
+        <aside
+          aria-label="Histórico de jogadas"
+          className="hidden min-h-0 overflow-y-auto border-l border-felt-line bg-felt-deep p-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block [&_.text-muted-foreground]:text-felt-muted"
+        >
+          <h2 className="mb-2 font-heading text-sm font-semibold">
+            Histórico de jogadas
+          </h2>
+          <HistoryList history={game.history} />
+        </aside>
+      </div>
+
+      {isMyTurn && <TurnBanner turnNumber={game.turnNumber} />}
+      <CardFlights />
+    </div>
+  )
+}

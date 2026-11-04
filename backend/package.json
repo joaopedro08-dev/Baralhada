@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.10.0",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/main/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main/server.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.ts\"",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "perf:engine": "tsx perf/engine-benchmark.ts",
+    "perf:load": "tsx perf/load-test.ts",
+    "perf:frontend": "tsx perf/frontend-weight.ts"
+  },
+  "dependencies": {
+    "pino": "^10.4.0",
+    "prom-client": "^15.1.3",
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "socket.io-client": "^4.8.4",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}

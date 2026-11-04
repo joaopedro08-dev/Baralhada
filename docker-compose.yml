@@ -1,0 +1,76 @@
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    image: rouba-monte:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MAX_ROOMS: ${MAX_ROOMS:-1000}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      MAX_CONNECTIONS_PER_IP: ${MAX_CONNECTIONS_PER_IP:-30}
+      ROOM_CREATIONS_PER_MINUTE: ${ROOM_CREATIONS_PER_MINUTE:-10}
+    cpus: ${APP_CPUS:-0.5}
+    mem_limit: ${APP_MEMORY:-512m}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/frontend/.next/cache:uid=1000,gid=1000
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [observability]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [observability]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+
+  loadtest:
+    build:
+      context: .
+      target: perf
+    image: rouba-monte-perf:local
+    profiles: [perf]
+    cpus: ${LOAD_CPUS:-1.5}
+    environment:
+      TARGET_URL: http://app:3000
+      METRICS_URL: http://app:9464/metrics
+      ROOM_STEPS: ${ROOM_STEPS:-10}
+      PLAYERS_PER_ROOM: ${PLAYERS_PER_ROOM:-6}
+      STEP_SECONDS: ${STEP_SECONDS:-60}
+      THINK_MS: ${THINK_MS:-1000}
+      LABEL: ${LABEL:-run}
+    volumes:
+      - ./backend/perf/results:/app/backend/perf/results
+    depends_on:
+      app:
+        condition: service_healthy

@@ -1,0 +1,8 @@
+export type RoomErrorCode =
+  | "ROOM_FULL"
+  | "GAME_ALREADY_STARTED"
+  | "NICKNAME_TAKEN"
+  | "NOT_HOST"
+  | "NOT_ENOUGH_PLAYERS"
+  | "PLAYER_NOT_IN_ROOM"
+  | "CANNOT_KICK_SELF"

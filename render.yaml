@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: rouba-monte-backend
+    runtime: node
+    plan: free
+    region: virginia
+    rootDir: backend
+    buildCommand: npx --yes pnpm@11.10.0 install --frozen-lockfile --prod=false && npx --yes pnpm@11.10.0 build
+    startCommand: node dist/main/server.js
+    healthCheckPath: /readyz
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=384
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
+      - key: LOG_LEVEL
+        value: info
+      - key: PUBLIC_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

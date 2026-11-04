@@ -1,0 +1,42 @@
+{
+  "label": "rnf06",
+  "target": "http://app:3000",
+  "results": [
+    {
+      "rooms": 10,
+      "players": 60,
+      "thinkMs": 1000,
+      "connectSeconds": 1.2,
+      "commandsPerSecond": 16.2,
+      "stateMessagesPerSecond": 51.6,
+      "ackMs": {
+        "count": 971,
+        "p50": 3.8,
+        "p95": 16.98,
+        "p99": 27.9,
+        "max": 45.77
+      },
+      "broadcastMs": {
+        "count": 2580,
+        "p50": 3.84,
+        "p95": 15.92,
+        "p99": 28.95,
+        "max": 45.29
+      },
+      "sloBroadcastP95Ok": true,
+      "gamesFinished": 0,
+      "rejected": {},
+      "server": {
+        "cpuPercent": 8.6,
+        "rssMb": 142.1,
+        "heapUsedMb": 39.7,
+        "idleRssMb": 136.1,
+        "eventLoopLagP99Ms": 16.77,
+        "connections": 60
+      },
+      "generator": {
+        "eventLoopLagP99Ms": 13.92
+      }
+    }
+  ]
+}

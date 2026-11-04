@@ -1,0 +1,40 @@
+import type { GamePlayer, GameState, RoomState } from "@/lib/game/domain/types"
+
+export const buildPlayer = (
+  id: string,
+  changes: Partial<GamePlayer> = {}
+): GamePlayer => ({
+  id,
+  nickname: id.toUpperCase(),
+  handSize: 4,
+  melds: [],
+  ...changes,
+})
+
+export const buildGame = (changes: Partial<GameState> = {}): GameState => ({
+  hand: [],
+  table: [],
+  deckSize: 20,
+  players: [buildPlayer("eu"), buildPlayer("ana")],
+  currentPlayerId: "eu",
+  turnNumber: 3,
+  usedActions: [],
+  canEndTurn: true,
+  endReason: null,
+  winnerIds: [],
+  history: [],
+  ...changes,
+})
+
+export const buildRoom = (changes: Partial<RoomState> = {}): RoomState => ({
+  code: "ABC234",
+  version: 1,
+  status: "lobby",
+  hostId: "eu",
+  viewerId: "eu",
+  canStart: false,
+  players: [],
+  turnDeadlineAt: null,
+  game: null,
+  ...changes,
+})
