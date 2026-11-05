@@ -3,14 +3,24 @@ import type { Card } from "../../cards/card.js"
 import { err, ok } from "../../shared/result.js"
 import type { Result } from "../../shared/result.js"
 import type { GameErrorCode } from "./errors.js"
-import { appendEvents, findPlayer, getPlayer, isFinished, replacePlayer, topOf } from "./model.js"
+import {
+  appendEvents,
+  findPlayer,
+  getPlayer,
+  HAND_SIZE,
+  isFinished,
+  replacePlayer,
+  topOf,
+} from "./model.js"
 import type { Game, GameEvent, GamePlayer, PlayerId } from "./model.js"
 
-export type TurnAction =
+export type CardPlay =
   | { readonly type: "capture"; readonly card: Card; readonly tableCards: readonly Card[] }
   | { readonly type: "stack"; readonly card: Card }
   | { readonly type: "steal"; readonly card: Card; readonly targetId: PlayerId }
   | { readonly type: "discard"; readonly card: Card }
+
+export type TurnAction = CardPlay | { readonly type: "draw" } | { readonly type: "pass" }
 
 export type TurnActionKind = TurnAction["type"]
 
@@ -32,7 +42,7 @@ const capture = (
   game: Game,
   actor: GamePlayer,
   hand: readonly Card[],
-  { card, tableCards }: Extract<TurnAction, { type: "capture" }>
+  { card, tableCards }: Extract<CardPlay, { type: "capture" }>
 ): MutationResult => {
   if (tableCards.length === 0) return err("NO_TABLE_CARDS_SELECTED")
   const table = withoutCards(game.table, tableCards)
@@ -69,7 +79,7 @@ const steal = (
   game: Game,
   actor: GamePlayer,
   hand: readonly Card[],
-  { card, targetId }: Extract<TurnAction, { type: "steal" }>
+  { card, targetId }: Extract<CardPlay, { type: "steal" }>
 ): MutationResult => {
   if (targetId === actor.id) return err("CANNOT_STEAL_FROM_SELF")
   const target = findPlayer(game, targetId)
@@ -111,7 +121,7 @@ const execute = (
   game: Game,
   actor: GamePlayer,
   hand: readonly Card[],
-  action: TurnAction
+  action: CardPlay
 ): MutationResult => {
   switch (action.type) {
     case "capture":
@@ -125,20 +135,65 @@ const execute = (
   }
 }
 
-export const applyTurnAction = (
-  game: Game,
-  playerId: PlayerId,
-  action: TurnAction
-): Result<Game, GameErrorCode> => {
-  if (isFinished(game)) return err("GAME_FINISHED")
-  if (game.turn.playerId !== playerId) return err("NOT_YOUR_TURN")
-  const actor = getPlayer(game, playerId)
+const playCard = (game: Game, actor: GamePlayer, action: CardPlay): Result<Game, GameErrorCode> => {
   const hand = withoutCards(actor.hand, [action.card])
   if (!hand) return err("CARD_NOT_IN_HAND")
   const mutation = execute(game, actor, hand, action)
   if (!mutation.ok) return mutation
   const { event, ...changes } = mutation.value
   return ok({ ...game, ...changes, events: appendEvents(game.events, event) })
+}
+
+const drawCard = (game: Game, actor: GamePlayer): Game => {
+  const [card, ...deck] = game.deck as [Card, ...Card[]]
+  return {
+    ...game,
+    players: replacePlayer(game.players, { ...actor, hand: [...actor.hand, card] }),
+    deck,
+    turn: { ...game.turn, drew: true },
+    events: appendEvents(game.events, { type: "drew", playerId: actor.id }),
+  }
+}
+
+const holdsSpareCard = (actor: GamePlayer): boolean => actor.hand.length > HAND_SIZE
+
+export const turnRefusal = (
+  game: Game,
+  playerId: PlayerId,
+  kind: TurnActionKind
+): GameErrorCode | null => {
+  if (isFinished(game)) return "GAME_FINISHED"
+  if (game.turn.playerId !== playerId) return "NOT_YOUR_TURN"
+  const actor = getPlayer(game, playerId)
+  const { drew } = game.turn
+  switch (kind) {
+    case "draw":
+      if (drew) return "ALREADY_DREW"
+      return game.deck.length === 0 ? "DECK_EMPTY" : null
+    case "pass":
+      if (!drew) return "MUST_DRAW_BEFORE_PASSING"
+      return holdsSpareCard(actor) ? "MUST_PLAY_AFTER_DRAW" : null
+    default:
+      return drew && !holdsSpareCard(actor) ? "MUST_PASS_AFTER_DRAW" : null
+  }
+}
+
+export const applyTurnAction = (
+  game: Game,
+  playerId: PlayerId,
+  action: TurnAction
+): Result<Game, GameErrorCode> => {
+  const refusal = turnRefusal(game, playerId, action.type)
+  if (refusal) return err(refusal)
+  const actor = getPlayer(game, playerId)
+  switch (action.type) {
+    case "draw":
+      return ok(drawCard(game, actor))
+    case "pass":
+      return ok({ ...game, events: appendEvents(game.events, { type: "passed", playerId }) })
+    default:
+      return playCard(game, actor, action)
+  }
 }
 
 export const anyoneCanScore = (game: Game): boolean => {

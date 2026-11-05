@@ -38,7 +38,7 @@ export const buildGame = (spec: GameSpec): Game => {
     players,
     deck: spec.deck ?? ["KC", "KD", "KH", "KS", "QC", "QD", "QH", "QS"],
     table: spec.table ?? ["9C", "9D", "9H", "8C"],
-    turn: { number: 1, playerId: ids[0] as string, ...spec.turn },
+    turn: { number: 1, playerId: ids[0] as string, drew: false, ...spec.turn },
     events: [],
     endReason: null,
     winnerIds: [],

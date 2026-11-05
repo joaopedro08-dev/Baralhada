@@ -10,16 +10,20 @@ import type { HintFocus } from "@/lib/game/domain/hint-focus"
 import type { Selection } from "@/lib/game/domain/selection"
 import { DECK_ANCHOR, TABLE_ANCHOR } from "@/lib/game/domain/table-changes"
 import type { Card, GameState } from "@/lib/game/domain/types"
+import { cn } from "@/lib/utils"
 
-function DeckPile({ size }: { size: number }) {
-  return (
-    <div
-      role="img"
-      aria-label={`Baralho de compra: ${plural(size, "carta", "cartas")}`}
-      data-anchor={DECK_ANCHOR}
-      data-deck={size}
-      className="relative block aspect-[5/7] w-full rounded-lg"
-    >
+function DeckPile({
+  size,
+  suggested,
+  onDraw,
+}: {
+  size: number
+  suggested: boolean
+  onDraw?: () => void
+}) {
+  const label = `Baralho de compra: ${plural(size, "carta", "cartas")}`
+  const pile = (
+    <>
       {size === 0 && (
         <span className="absolute inset-0 rounded-lg border-2 border-dashed border-felt-line" />
       )}
@@ -33,6 +37,32 @@ function DeckPile({ size }: { size: number }) {
       <span className="absolute inset-x-0 bottom-1 text-center font-heading text-sm font-bold text-white tabular-nums lg:text-lg">
         {size}
       </span>
+    </>
+  )
+  const body = cn(
+    "relative block aspect-[5/7] w-full rounded-lg",
+    suggested && "hint-best"
+  )
+
+  return (
+    <div data-anchor={DECK_ANCHOR} data-deck={size}>
+      {onDraw ? (
+        <button
+          type="button"
+          aria-label={`${label}. Toque para comprar.`}
+          onClick={onDraw}
+          className={cn(
+            body,
+            "transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-[3px] focus-visible:ring-sky-400 active:scale-95"
+          )}
+        >
+          {pile}
+        </button>
+      ) : (
+        <div role="img" aria-label={label} className={body}>
+          {pile}
+        </div>
+      )}
     </div>
   )
 }
@@ -42,12 +72,16 @@ export function TableZone({
   selection,
   focus,
   isMyTurn,
+  canDraw,
+  onDraw,
   onToggleCard,
 }: {
   game: GameState
   selection: Selection
   focus: HintFocus
   isMyTurn: boolean
+  canDraw: boolean
+  onDraw: () => void
   onToggleCard: (card: Card) => void
 }) {
   return (
@@ -64,7 +98,11 @@ export function TableZone({
         className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1.5 lg:grid-cols-[repeat(auto-fill,minmax(4.25rem,5.25rem))] lg:gap-2"
       >
         <li>
-          <DeckPile size={game.deckSize} />
+          <DeckPile
+            size={game.deckSize}
+            suggested={isMyTurn && focus.best.draw}
+            onDraw={isMyTurn && canDraw ? onDraw : undefined}
+          />
         </li>
         {sortCards(game.table).map((card) => (
           <m.li key={card} layout="position">
