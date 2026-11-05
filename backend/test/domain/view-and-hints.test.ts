@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest"
 import { computeHints } from "../../src/domain/games/rouba-monte/hints.js"
-import { toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import { countRanksInPiles, toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
 import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
-import { buildGame, meldOf, quadOf, seededRandom } from "../support/game-builder.js"
+import { buildGame, seededRandom, unwrap } from "../support/game-builder.js"
 
-describe("RN-18 e RNF-04 visibilidade", () => {
+const hintsOf = (game: Game, viewerId: string) =>
+  computeHints(toPlayerView(game, viewerId), countRanksInPiles(game))
+
+describe("RN-15 e RNF-04 visibilidade", () => {
   const seats = ["a", "b", "c"].map((id) => ({ id, nickname: id }))
-  const started = startGame(seats, "a", seededRandom(5))
-  if (!started.ok) throw new Error(started.error)
-  const game = started.value
+  const game = unwrap(startGame(seats, "a", seededRandom(5)))
+  const withPiles = buildGame({
+    players: { a: { hand: ["2C"] }, b: { hand: ["3C"], pile: ["5C", "6D", "7H"] } },
+  })
 
   it("mostra só a mão do próprio jogador", () => {
     const serialized = JSON.stringify(toPlayerView(game, "a"))
@@ -19,12 +24,21 @@ describe("RN-18 e RNF-04 visibilidade", () => {
     for (const card of game.players[0]?.hand ?? []) expect(serialized).toContain(`"${card}"`)
   })
 
-  it("nunca revela a ordem do monte", () => {
+  it("nunca revela a ordem do baralho de compra", () => {
     const serialized = JSON.stringify(toPlayerView(game, "b"))
     for (const card of game.deck) expect(serialized).not.toContain(`"${card}"`)
   })
 
-  it("mostra o tamanho das mãos e do monte", () => {
+  it("mostra o topo e o tamanho dos montes, mas não as cartas de baixo", () => {
+    const view = toPlayerView(withPiles, "a")
+    const serialized = JSON.stringify(view)
+
+    expect(view.players[1]).toMatchObject({ pileSize: 3, pileTop: "7H", handSize: 1 })
+    expect(serialized).not.toContain('"5C"')
+    expect(serialized).not.toContain('"6D"')
+  })
+
+  it("mostra o tamanho das mãos e do baralho", () => {
     const view = toPlayerView(game, "b")
     expect(view.deckSize).toBe(game.deck.length)
     expect(view.players.map((player) => player.handSize)).toEqual([4, 4, 4])
@@ -33,193 +47,95 @@ describe("RN-18 e RNF-04 visibilidade", () => {
   it("quem saiu da partida vira espectador sem cartas", () => {
     expect(toPlayerView(game, "ausente").hand).toEqual([])
   })
-
-  it("libera encerrar turno só para o jogador da vez", () => {
-    expect(toPlayerView(game, "a").canEndTurn).toBe(true)
-    expect(toPlayerView(game, "b").canEndTurn).toBe(false)
-  })
 })
 
 describe("RF-16 e RF-17 jogadas possíveis", () => {
   const scene = buildGame({
     players: {
-      a: { hand: ["5C", "5D", "3C", "KS"] },
-      b: { melds: [meldOf("3D", "3H")] },
-      c: { melds: [quadOf("7")] },
+      a: { hand: ["5C", "3C", "KS", "2D"], pile: ["2H"] },
+      b: { pile: ["9C", "8D", "3D"] },
+      c: { pile: ["4C"] },
     },
-    table: ["5H", "9C", "9D"],
+    table: ["5H", "9D", "JD"],
   })
 
-  it("ordena da melhor para a pior", () => {
-    const { plays } = computeHints(toPlayerView(scene, "a"))
+  it("ordena da melhor para a pior e lista o descarte por último", () => {
+    const { plays } = hintsOf(scene, "a")
     const scores = plays.map((play) => play.score)
 
     expect(scores).toEqual([...scores].sort((first, second) => second - first))
-    expect(plays[0]?.kind).toBe("steal")
+    expect(plays[0]).toMatchObject({ kind: "steal", targetId: "b", gainedCards: 4 })
     expect(plays.at(-1)?.kind).toBe("discard")
   })
 
-  it("prioriza fechar quadra", () => {
-    const withMeld = buildGame({
-      players: {
-        a: { hand: ["5C", "3C"], melds: [meldOf("5D", "5H", "5S")] },
-        b: { melds: [meldOf("3D", "3H")] },
-      },
-      table: ["9C", "9D", "9H"],
-    })
-
-    expect(computeHints(toPlayerView(withMeld, "a")).plays[0]?.kind).toBe("complete")
+  it("inclui capturar, pôr no monte, roubar e descartar", () => {
+    const kinds = hintsOf(scene, "a").plays.map((play) => play.kind)
+    expect(new Set(kinds)).toEqual(new Set(["steal", "capture", "stack", "discard"]))
   })
 
-  it("sugere pegar todas as cartas iguais da mesa", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "KS"] }, b: {} },
-      table: ["5H", "5S", "9C"],
-    })
-    const { plays, highlights } = computeHints(toPlayerView(game, "a"))
-
-    expect(plays[0]?.action).toEqual({
-      type: "takeFromTable",
-      tableCards: ["5H", "5S"],
-      handCards: ["5C"],
-    })
-    expect(highlights.tableCards).toEqual(["5H", "5S"])
-  })
-
-  it("com um par igual em cada área, sugere pegar o par do outro e fechar", () => {
-    const game = buildGame({
-      players: {
-        a: { hand: ["KS"], melds: [meldOf("7C", "7D")] },
-        b: { melds: [meldOf("7H", "7S")] },
-      },
-      table: ["9C", "9D", "2C"],
-    })
-    const { plays, highlights } = computeHints(toPlayerView(game, "a"))
-
-    expect(plays[0]).toMatchObject({
-      kind: "complete",
-      action: { type: "steal", targetId: "b", rank: "7", handCards: [] },
-    })
-    expect(highlights.stealableMelds).toEqual([{ playerId: "b", rank: "7" }])
-  })
-
-  it("destaca cartas da mão, da mesa e quadras roubáveis", () => {
-    const { highlights } = computeHints(toPlayerView(scene, "a"))
-
-    expect(highlights.handCards).toEqual(expect.arrayContaining(["5C", "5D", "3C"]))
+  it("destaca as cartas da mão, da mesa e os topos que podem ser usados", () => {
+    const { highlights } = hintsOf(scene, "a")
+    expect(new Set(highlights.handCards)).toEqual(new Set(["5C", "3C", "2D"]))
     expect(highlights.tableCards).toEqual(["5H"])
-    expect(highlights.stealableMelds).toEqual([{ playerId: "b", rank: "3" }])
+    expect(new Set(highlights.piles)).toEqual(new Set(["a", "b"]))
   })
 
-  it("não sugere quadra completa nem ações já usadas", () => {
-    const used = {
-      ...scene,
-      turn: { ...scene.turn, usedActions: ["steal", "discard", "draw"] as const },
-    }
-    const kinds = computeHints(toPlayerView(used, "a")).plays.map((play) => play.action.type)
-
-    expect(kinds).not.toContain("steal")
-    expect(kinds).not.toContain("discard")
-    expect(kinds).not.toContain("draw")
+  it("não sugere nada fora da vez", () => {
+    expect(hintsOf(scene, "b").plays).toEqual([])
   })
 
-  it("depois de comprar, só sugere o que fecha a compra", () => {
-    const drew = {
-      ...scene,
-      turn: { ...scene.turn, usedActions: ["draw"] as const },
-    }
-    const { plays } = computeHints(toPlayerView(drew, "a"))
-    const kinds = new Set(plays.map((play) => play.action.type))
-
-    expect(kinds).toEqual(new Set(["takeFromTable", "steal", "discard"]))
-    expect(plays[0]?.action.type).toBe("steal")
-  })
-
-  it("depois de comprar, sugere baixar a carta em quadra incompleta", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "2D", "3D", "4D", "KS"], melds: [meldOf("5H", "5S")] }, b: {} },
-      table: ["9C", "9D", "2C"],
-      turn: { usedActions: ["draw"] },
-    })
-    expect(computeHints(toPlayerView(game, "a")).plays[0]?.action).toEqual({
-      type: "layDown",
-      cards: ["5C"],
-    })
-  })
-
-  it("não sugere abrir quadra com uma carta só", () => {
-    const { plays } = computeHints(toPlayerView(scene, "a"))
-    expect(plays.some((play) => play.action.type === "layDown" && play.rank === "K")).toBe(false)
-  })
-
-  it("não sugere nada fora da vez ou com partida encerrada", () => {
-    expect(computeHints(toPlayerView(scene, "b")).plays).toEqual([])
-    const finished = { ...scene, endReason: "abandoned" as const }
-    expect(computeHints(toPlayerView(finished, "a")).plays).toEqual([])
-  })
-
-  it("não sugere comprar com monte vazio", () => {
-    const empty = { ...scene, deck: [] }
-    const kinds = computeHints(toPlayerView(empty, "a")).plays.map((play) => play.kind)
-    expect(kinds).not.toContain("draw")
+  it("não sugere nada com a partida encerrada", () => {
+    expect(hintsOf({ ...scene, endReason: "noPlaysLeft" }, "a").plays).toEqual([])
   })
 })
 
 describe("RF-18 alerta de risco", () => {
-  it("avisa quantas cartas do valor ainda não apareceram", () => {
+  it("avisa quantas cartas do valor do topo ainda não apareceram", () => {
     const game = buildGame({
-      players: { a: { hand: ["2C"], melds: [meldOf("5C", "5D")] }, b: {} },
-      table: ["5H", "9C", "9D"],
+      players: { a: { hand: ["7C"], pile: ["2C", "7D"] }, b: {} },
+      table: ["4S", "5S", "6S"],
     })
-    expect(computeHints(toPlayerView(game, "a")).risks).toEqual([
-      { rank: "5", cardsInMeld: 2, unseenCards: 1 },
-    ])
+    expect(hintsOf(game, "a").risk).toEqual({ rank: "7", pileSize: 2, unseenCards: 2 })
   })
 
-  it("não avisa quando as cartas restantes já estão visíveis", () => {
+  it("não avisa quando todas as cartas do valor já apareceram", () => {
     const game = buildGame({
-      players: { a: { hand: ["5S"], melds: [meldOf("5C", "5D")] }, b: {} },
-      table: ["5H", "9C", "9D"],
+      players: { a: { hand: ["7C"], pile: ["7D"] }, b: { pile: ["7H", "7S"] } },
+      table: ["4S", "5S", "6S"],
     })
-    expect(computeHints(toPlayerView(game, "a")).risks).toEqual([])
+    expect(hintsOf(game, "a").risk).toBeNull()
   })
-})
 
-describe("RF-19 contador de cartas", () => {
-  it("conta visíveis e faltantes por valor", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5S"] }, b: { melds: [quadOf("7")] } },
-      table: ["5H", "9C", "9D"],
-    })
-    const { cardCounts } = computeHints(toPlayerView(game, "a"))
-
-    expect(cardCounts).toHaveLength(13)
-    expect(cardCounts.find((count) => count.rank === "5")).toEqual({
-      rank: "5",
-      visible: 2,
-      missing: 2,
-    })
-    expect(cardCounts.find((count) => count.rank === "7")?.missing).toBe(0)
+  it("não avisa sem monte", () => {
+    expect(hintsOf(buildGame({ players: { a: { hand: ["7C"] }, b: {} } }), "a").risk).toBeNull()
   })
 })
 
-describe("RF-20 dicas só com informação pública", () => {
-  it("o resultado não muda quando a mão alheia e o monte mudam", () => {
-    const base = {
-      table: ["9C", "9D", "9H"] as const,
-      current: "a",
+describe("RF-19 e RF-20 contador e informação pública", () => {
+  const base = buildGame({
+    players: { a: { hand: ["7C", "AS"] }, b: { hand: ["7D"], pile: ["7H", "KC"] } },
+    table: ["7S", "AH"],
+    deck: ["2C", "3C"],
+  })
+
+  it("conta as cartas que já apareceram na mesa, na mão e nos montes", () => {
+    const counts = hintsOf(base, "a").cardCounts
+    expect(counts.find((count) => count.rank === "7")).toEqual({
+      rank: "7",
+      visible: 3,
+      missing: 1,
+    })
+    expect(counts).toHaveLength(13)
+  })
+
+  it("dá as mesmas dicas mesmo quando as cartas escondidas mudam", () => {
+    const shuffled: Game = {
+      ...base,
+      deck: ["7D", "2C"],
+      players: base.players.map((player) =>
+        player.id === "b" ? { ...player, hand: ["3C"] } : player
+      ),
     }
-    const first = buildGame({
-      ...base,
-      players: { a: { hand: ["5C", "3C"] }, b: { hand: ["5D", "5H", "5S"] } },
-      deck: ["KC"],
-    })
-    const second = buildGame({
-      ...base,
-      players: { a: { hand: ["5C", "3C"] }, b: { hand: ["2C", "2D", "2H"] } },
-      deck: ["QC"],
-    })
-
-    expect(computeHints(toPlayerView(first, "a"))).toEqual(computeHints(toPlayerView(second, "a")))
+    expect(hintsOf(shuffled, "a")).toEqual(hintsOf(base, "a"))
   })
 })

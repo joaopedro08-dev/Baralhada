@@ -1,22 +1,26 @@
 export const RULE_SECTIONS = [
   {
     title: "Objetivo",
-    text: "Feche quadras: 4 cartas do mesmo valor, de qualquer naipe. Cada quadra completa vale 1 ponto, e vence quem tiver mais quando as 13 quadras estiverem fechadas.",
+    text: "Termine com o maior monte. Cada carta do seu monte vale 1 ponto e, em caso de empate, todos os empatados vencem.",
   },
   {
     title: "Seu turno",
-    text: "Você faz 1 jogada por turno: baixar, pegar da mesa, roubar ou descartar. A jogada fecha o turno e a mão volta a ter 4 cartas. Quem compra do monte fecha o turno descartando 1 carta, pegando da mesa, avançando uma quadra incompleta sua ou roubando com carta da mão. Se não quiser jogar, passe a vez.",
+    text: "Você faz 1 jogada por turno, e ela fecha o turno: capturar, pôr no seu monte, roubar ou descartar. Não existe comprar nem passar a vez. Quando sua mão fica vazia, você recebe 4 cartas do baralho de compra.",
   },
   {
-    title: "Baixar e pegar da mesa",
-    text: "Para abrir uma quadra, baixe ao menos 2 cartas iguais. Se a mesa tem um ou mais 5 e você tem outro, toque nos 5 da mesa que quiser e em Pegar: as cartas vão direto para a sua área.",
+    title: "Capturar e pôr no monte",
+    text: "Com um 7 na mão e um 7 na mesa, toque nos 7 da mesa que quiser e em Capturar: as cartas vão para o topo do seu monte. O naipe não importa. Se sua carta tem o mesmo valor do topo do seu monte, você também pode pô-la por cima.",
   },
   {
     title: "Roubar",
-    text: "Quadras incompletas podem ser roubadas. Toque na quadra de um adversário e em Roubar: com ao menos 1 carta igual na mão, ela vem inteira para a sua área. Quadras completas não podem ser roubadas e, se o adversário tiver mais de uma incompleta, você leva só a que escolheu. Se você e o adversário tiverem cada um um par do mesmo valor, quem jogar primeiro pega o par do outro e fecha a quadra.",
+    text: "Se você tem uma carta do mesmo valor do topo do monte de um adversário, toque no monte dele e em Roubar: você leva o monte inteiro para cima do seu. Cada jogada rouba só 1 monte. Só o topo de cada monte fica à mostra.",
   },
   {
-    title: "Tempo e monte vazio",
-    text: "Cada turno tem 60 segundos. Quando o monte acaba, a regra das 4 cartas deixa de valer, ninguém pode passar a vez e todos jogam até esvaziar a mão.",
+    title: "Descartar",
+    text: "Você pode descartar 1 carta na mesa mesmo tendo captura ou roubo, por exemplo para guardar uma carta e roubar depois. Qualquer jogador pode capturá-la, inclusive você.",
+  },
+  {
+    title: "Mesa, tempo e fim",
+    text: "A mesa começa com 8 cartas e volta a 8 quando fica com menos de 3. Cada turno tem 60 segundos; se o tempo acabar, 1 carta da sua mão vai para a mesa. A partida termina quando o baralho acaba e ninguém consegue mais capturar, pôr no monte nem roubar, ou quando todas as mãos ficam vazias.",
   },
 ] as const

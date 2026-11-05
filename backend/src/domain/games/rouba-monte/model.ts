@@ -1,5 +1,4 @@
-import { QUAD_SIZE, TOTAL_QUADS } from "../../cards/card.js"
-import type { Card, Rank } from "../../cards/card.js"
+import type { Card } from "../../cards/card.js"
 import type { PlayerId } from "../../shared/seat.js"
 
 export type { PlayerId }
@@ -7,62 +6,43 @@ export type { PlayerId }
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 6
 export const HAND_SIZE = 4
-export const TABLE_SIZE = 10
+export const TABLE_SIZE = 8
 export const TABLE_MINIMUM = 3
 export const EVENT_LOG_LIMIT = 200
-
-export type TurnActionKind = "draw" | "layDown" | "takeFromTable" | "steal" | "discard"
-
-export interface Meld {
-  readonly rank: Rank
-  readonly cards: readonly Card[]
-}
 
 export interface GamePlayer {
   readonly id: PlayerId
   readonly hand: readonly Card[]
-  readonly melds: readonly Meld[]
+  readonly pile: readonly Card[]
 }
 
 export type GameEvent =
-  | { readonly type: "drew"; readonly playerId: PlayerId }
   | {
-      readonly type: "laidDown"
+      readonly type: "captured"
       readonly playerId: PlayerId
-      readonly rank: Rank
-      readonly count: number
-      readonly completed: boolean
+      readonly card: Card
+      readonly tableCards: readonly Card[]
     }
-  | {
-      readonly type: "tookFromTable"
-      readonly playerId: PlayerId
-      readonly rank: Rank
-      readonly count: number
-      readonly tableCount: number
-      readonly completed: boolean
-    }
+  | { readonly type: "stacked"; readonly playerId: PlayerId; readonly card: Card }
   | {
       readonly type: "stole"
       readonly playerId: PlayerId
       readonly targetId: PlayerId
-      readonly rank: Rank
+      readonly card: Card
       readonly stolenCount: number
-      readonly completed: boolean
     }
   | { readonly type: "discarded"; readonly playerId: PlayerId; readonly card: Card }
   | { readonly type: "handRefilled"; readonly playerId: PlayerId; readonly count: number }
   | { readonly type: "tableReplenished"; readonly count: number }
-  | { readonly type: "pileRecycled"; readonly count: number }
   | { readonly type: "turnTimedOut"; readonly playerId: PlayerId }
   | { readonly type: "playerLeft"; readonly playerId: PlayerId; readonly returnedCount: number }
 
 export interface Turn {
   readonly number: number
   readonly playerId: PlayerId
-  readonly usedActions: readonly TurnActionKind[]
 }
 
-export type GameEndReason = "allQuadsComplete" | "abandoned"
+export type GameEndReason = "noPlaysLeft" | "handsEmpty" | "abandoned"
 
 export interface Game {
   readonly nicknames: Readonly<Record<PlayerId, string>>
@@ -96,15 +76,15 @@ export const appendEvents = (
   ...added: readonly GameEvent[]
 ): readonly GameEvent[] => [...events, ...added].slice(-EVENT_LOG_LIMIT)
 
-export const isComplete = (meld: Meld): boolean => meld.cards.length === QUAD_SIZE
+export const topOf = (pile: readonly Card[]): Card | null => pile.at(-1) ?? null
 
-export const countCompleteMelds = (player: GamePlayer): number =>
-  player.melds.filter(isComplete).length
-
-export const isEveryQuadComplete = (players: readonly GamePlayer[]): boolean =>
-  players.reduce((total, player) => total + countCompleteMelds(player), 0) === TOTAL_QUADS
+export const seatsAfter = (game: Game, playerId: PlayerId): readonly PlayerId[] => {
+  const ids = game.players.map((player) => player.id)
+  const index = ids.indexOf(playerId)
+  return [...ids.slice(index + 1), ...ids.slice(0, index + 1)]
+}
 
 export const findWinnerIds = (players: readonly GamePlayer[]): readonly PlayerId[] => {
-  const best = Math.max(...players.map(countCompleteMelds))
-  return players.filter((player) => countCompleteMelds(player) === best).map(({ id }) => id)
+  const best = Math.max(...players.map((player) => player.pile.length))
+  return players.filter((player) => player.pile.length === best).map(({ id }) => id)
 }

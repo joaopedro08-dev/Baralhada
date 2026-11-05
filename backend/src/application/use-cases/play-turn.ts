@@ -11,24 +11,9 @@ export class PlayTurn<State, Action, GameCode extends string> {
   ) {}
 
   perform(actor: Actor, action: Action): Result<null, ApplicationErrorCode<GameCode>> {
-    return this.transition(actor, (game) =>
-      this.session.rules.play(game, actor.playerId, action, this.random)
-    )
-  }
-
-  finish(actor: Actor): Result<null, ApplicationErrorCode<GameCode>> {
-    return this.transition(actor, (game) =>
-      this.session.rules.pass(game, actor.playerId, this.random)
-    )
-  }
-
-  private transition(
-    actor: Actor,
-    change: (game: State) => Result<State, GameCode>
-  ): Result<null, ApplicationErrorCode<GameCode>> {
     const running = this.session.loadPlayableGame(actor)
     if (!running.ok) return running
-    const next = change(running.value.game)
+    const next = this.session.rules.play(running.value.game, actor.playerId, action, this.random)
     if (!next.ok) return next
     this.session.commit({ ...running.value.room, game: next.value })
     return ok(null)

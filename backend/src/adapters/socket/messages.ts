@@ -19,19 +19,14 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   INVALID_PLAYER_COUNT: "A partida precisa de 2 a 6 jogadores.",
   GAME_FINISHED: "A partida já terminou.",
   NOT_YOUR_TURN: "Não é a sua vez.",
-  ACTION_ALREADY_USED: "Você já fez sua jogada neste turno.",
-  DECK_EMPTY: "O monte de compra acabou.",
-  NO_CARDS_SELECTED: "Selecione ao menos uma carta da sua mão.",
   CARD_NOT_IN_HAND: "Essa carta não está na sua mão.",
   CARD_NOT_ON_TABLE: "Essa carta não está na mesa.",
+  NO_TABLE_CARDS_SELECTED: "Toque nas cartas da mesa que quer capturar.",
   CARDS_MUST_SHARE_RANK: "As cartas precisam ser do mesmo valor.",
-  MELD_REQUIRES_TWO_CARDS: "Para abrir uma quadra, baixe ao menos 2 cartas iguais.",
-  CANNOT_STEAL_FROM_SELF: "Você não pode roubar de si mesmo.",
+  PILE_EMPTY: "Esse monte ainda está vazio.",
+  TOP_MISMATCH: "A carta precisa ter o mesmo valor do topo do monte.",
+  CANNOT_STEAL_FROM_SELF: "Você não pode roubar o próprio monte.",
   TARGET_NOT_FOUND: "Esse jogador não está na partida.",
-  MELD_NOT_STEALABLE: "Só quadras incompletas podem ser roubadas.",
-  MUST_DISCARD:
-    "Depois de comprar, descarte 1 carta, pegue da mesa, avance uma quadra sua ou roube com carta da mão.",
-  MUST_PLAY: "Com o monte vazio, não dá para passar a vez: faça uma jogada ou descarte 1 carta.",
   ROOM_FULL: "A sala está cheia.",
   GAME_ALREADY_STARTED: "A partida está em andamento. Entre quando ela terminar.",
   NICKNAME_TAKEN: "Esse apelido já está em uso na sala.",
@@ -56,15 +51,6 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
 
 export const errorMessage = (code: ErrorCode): string => ERROR_MESSAGES[code]
 
-const MELD_NAMES: Readonly<Record<number, string>> = {
-  2: "o par",
-  3: "a trinca",
-  4: "a quadra",
-}
-
-const meldName = (size: number, rank: Rank): string =>
-  `${MELD_NAMES[size] ?? "as cartas"} de ${rank}`
-
 const cardCount = (count: number): string => (count === 1 ? "1 carta" : `${count} cartas`)
 
 const SUIT_NAMES: Readonly<Record<Suit, string>> = {
@@ -81,38 +67,30 @@ const RANK_NAMES: Partial<Readonly<Record<Rank, string>>> = {
   K: "o rei",
 }
 
-const cardName = (card: Card): string => {
-  const rank = rankOf(card)
-  return `${RANK_NAMES[rank] ?? `o ${rank}`} de ${SUIT_NAMES[card.slice(-1) as Suit]}`
-}
+const rankLabel = (rank: Rank): string => RANK_NAMES[rank] ?? `o ${rank}`
+
+const cardName = (card: Card): string =>
+  `${rankLabel(rankOf(card))} de ${SUIT_NAMES[card.slice(-1) as Suit]}`
 
 const unseenCards = (count: number): string =>
   count === 1
     ? "1 carta desse valor ainda não apareceu"
     : `${count} cartas desse valor ainda não apareceram`
 
-const completion = (completed: boolean): string => (completed ? " e fechou a quadra" : "")
-
 export const describeEvent = (event: GameEvent, nameOf: (id: PlayerId) => string): string => {
   switch (event.type) {
-    case "drew":
-      return `${nameOf(event.playerId)} comprou 1 carta`
-    case "laidDown":
-      return `${nameOf(event.playerId)} baixou ${cardCount(event.count)} de ${event.rank}${completion(event.completed)}`
-    case "tookFromTable":
-      return `${nameOf(event.playerId)} pegou ${cardCount(event.tableCount)} de ${event.rank} da mesa${completion(event.completed)}`
+    case "captured":
+      return `${nameOf(event.playerId)} capturou ${cardCount(event.tableCards.length)} da mesa com ${cardName(event.card)}`
+    case "stacked":
+      return `${nameOf(event.playerId)} pôs ${cardName(event.card)} no próprio monte`
     case "stole":
-      return `${nameOf(event.playerId)} roubou ${meldName(event.stolenCount, event.rank)} de ${nameOf(event.targetId)}${completion(event.completed)}`
+      return `${nameOf(event.playerId)} roubou o monte de ${nameOf(event.targetId)} (${cardCount(event.stolenCount)})`
     case "discarded":
       return `${nameOf(event.playerId)} descartou ${cardName(event.card)}`
     case "handRefilled":
-      return `${nameOf(event.playerId)} repôs ${cardCount(event.count)}`
+      return `${nameOf(event.playerId)} recebeu ${cardCount(event.count)}`
     case "tableReplenished":
-      return `A mesa recebeu ${cardCount(event.count)} do monte`
-    case "pileRecycled":
-      return event.count === 1
-        ? "1 carta voltou para o monte"
-        : `${event.count} cartas voltaram para o monte`
+      return `A mesa recebeu ${cardCount(event.count)} do baralho`
     case "turnTimedOut":
       return `O tempo de ${nameOf(event.playerId)} acabou`
     case "playerLeft":
@@ -129,22 +107,18 @@ export const describeHistory = (game: Game, limit: number): readonly string[] =>
 }
 
 export const describePlay = (play: Play, nameOf: (id: PlayerId) => string): string => {
-  const rank = play.rank ?? ""
+  const gained = cardCount(play.gainedCards)
   switch (play.kind) {
-    case "complete":
-      return `Fecha a quadra de ${rank} e garante 1 ponto.`
     case "steal":
-      return `Rouba as cartas de ${rank} de ${nameOf(play.targetId ?? "")} e tira a jogada dele.`
-    case "advance":
-      return `Avança sua quadra de ${rank}.`
-    case "open":
-      return `Abre uma quadra de ${rank} na sua área, mas ela pode ser roubada.`
-    case "draw":
-      return "Compra 1 carta do monte para ter mais opções."
+      return `Rouba o monte de ${nameOf(play.targetId ?? "")} com ${rankLabel(play.rank)} e leva ${gained}.`
+    case "capture":
+      return `Captura ${rankLabel(play.rank)} da mesa e leva ${gained} para o seu monte.`
+    case "stack":
+      return `Põe ${rankLabel(play.rank)} no seu monte, que mantém o mesmo topo.`
     case "discard":
-      return `Descarta um ${rank}, que é a carta menos útil agora.`
+      return `Descarta ${rankLabel(play.rank)}, a carta que menos ajuda os adversários agora.`
   }
 }
 
 export const describeRisk = (risk: RiskAlert): string =>
-  `Sua quadra de ${risk.rank} pode ser roubada: ${unseenCards(risk.unseenCards)}.`
+  `Seu monte de ${cardCount(risk.pileSize)} pode ser roubado com ${rankLabel(risk.rank)}: ${unseenCards(risk.unseenCards)}.`

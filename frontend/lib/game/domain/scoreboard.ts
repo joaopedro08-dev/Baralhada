@@ -1,5 +1,9 @@
-import { countCompleteMelds } from "@/lib/game/domain/cards"
-import type { GamePlayer, GameState, PlayerId } from "@/lib/game/domain/types"
+import type {
+  GameEndReason,
+  GamePlayer,
+  GameState,
+  PlayerId,
+} from "@/lib/game/domain/types"
 
 const listNames = (names: readonly string[]): string =>
   names.length < 2
@@ -8,10 +12,7 @@ const listNames = (names: readonly string[]): string =>
 
 export const rankPlayers = (
   players: readonly GamePlayer[]
-): readonly GamePlayer[] =>
-  [...players].sort(
-    (a, b) => countCompleteMelds(b.melds) - countCompleteMelds(a.melds)
-  )
+): readonly GamePlayer[] => [...players].sort((a, b) => b.pileSize - a.pileSize)
 
 export const describeResult = (game: GameState, viewerId: PlayerId): string => {
   const winners = game.players
@@ -25,3 +26,13 @@ export const describeResult = (game: GameState, viewerId: PlayerId): string => {
   }
   return viewerWon ? "Você venceu!" : `${winners[0] ?? "Ninguém"} venceu`
 }
+
+const END_EXPLANATIONS: Readonly<Record<GameEndReason, string>> = {
+  noPlaysLeft:
+    "O baralho acabou e ninguém tinha mais como capturar, pôr no monte ou roubar.",
+  handsEmpty: "Todas as cartas das mãos foram jogadas.",
+  abandoned: "A partida acabou porque os outros jogadores saíram.",
+}
+
+export const explainEnd = ({ endReason }: GameState): string | null =>
+  endReason ? END_EXPLANATIONS[endReason] : null

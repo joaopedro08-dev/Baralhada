@@ -12,6 +12,7 @@ const FLIGHT_SECONDS = 0.55
 
 const findDestination = ({ card, toAnchor }: Flight): Element | null =>
   (card && document.querySelector(`[data-card-ids~="${card}"]`)) ||
+  document.querySelector(`[data-anchor="${toAnchor}"] [data-landing]`) ||
   document.querySelector(`[data-anchor="${toAnchor}"]`)
 
 const isSingleCard = (element: Element): boolean =>

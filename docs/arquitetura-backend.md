@@ -44,7 +44,7 @@ flowchart TB
 
 | Camada | Pasta | Pode importar | Responsabilidade |
 | --- | --- | --- | --- |
-| Domínio | `src/domain` | só ela mesma, sem pacotes | Sala e `GameRules` em `room`; regras RN-01 a RN-21, visão por jogador e dicas em `games/rouba-monte` |
+| Domínio | `src/domain` | só ela mesma, sem pacotes | Sala e `GameRules` em `room`; regras RN-01 a RN-17, visão por jogador e dicas em `games/rouba-monte` |
 | Aplicação | `src/application` | domínio | Casos de uso e portas |
 | Adaptadores | `src/adapters` | aplicação, domínio, `zod` | Contrato, validação, tradução para pt-BR |
 | Infraestrutura | `src/infrastructure` | camadas internas e bibliotecas | Socket.io, HTTP, Next, métricas, logs, relógio |
@@ -64,7 +64,7 @@ A regra de dependência é verificada em `test/architecture.test.ts`. O mesmo te
 | Contrato do Socket.io, mensagens e telas | `src/adapters/socket` | Sim, ligado ao Rouba Monte por `game.ts` |
 | Escolha do jogo | `src/main/container.ts` | Sim, é onde as regras são ligadas |
 
-A `GameRules` pede limites de jogadores e sete operações: começar, jogar, passar a vez, estourar o tempo, tirar um jogador, dizer de quem é o turno e dizer se a partida acabou. A sala usa esses limites para aceitar ou recusar entradas, e a sessão usa o número do turno para o relógio.
+A `GameRules` pede limites de jogadores e seis operações: começar, jogar, estourar o tempo, tirar um jogador, dizer de quem é o turno e dizer se a partida acabou. A sala usa esses limites para aceitar ou recusar entradas, e a sessão usa o número do turno para o relógio.
 
 `test/application/second-game.test.ts` prova a separação: um jogo de mentira, a corrida até 5, roda pela mesma sala e pelos mesmos casos de uso, sem nenhuma mudança neles.
 
@@ -100,12 +100,11 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 | `room:create` | `{ nickname }` | código, jogador, token, convite | RF-01 |
 | `room:join` | `{ code, nickname }` | igual | RF-02 |
 | `room:reconnect` | `{ code, nickname, reconnectToken }` | igual | RF-06 |
-| `room:leave` | nenhuma | `null` | RN-20 |
+| `room:leave` | nenhuma | `null` | RN-16 |
 | `room:kick` | `{ playerId }` | `null` | RF-05 |
 | `game:start` | nenhuma | `null` | RF-04, RF-15 |
-| `game:action` | `draw`, `layDown`, `takeFromTable`, `steal` ou `discard`. A jogada fecha o turno; só a compra espera o descarte | `null` | RF-09 |
-| `game:endTurn` | nenhuma. Passa a vez sem jogar | `null` | RF-10 |
-| `game:hints` | nenhuma | jogadas, destaques, riscos, contador | RF-16 a RF-19 |
+| `game:action` | `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }` ou `discard { card }`. A jogada fecha o turno | `null` | RF-09, RF-10 |
+| `game:hints` | nenhuma | jogadas, destaques, risco do monte, contador | RF-16 a RF-19 |
 
 | Evento do servidor | Conteúdo |
 | --- | --- |
@@ -122,30 +121,41 @@ O contrato HTTP tem só esses três caminhos sem regra de negócio, então não 
 
 ## Regras confirmadas
 
+As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rouba-monte tradicional, em que vence quem termina com o maior monte.
+
 | Regra | Como funciona |
 | --- | --- |
-| Uma jogada por turno (RN-04) | Baixar, pegar da mesa, roubar ou descartar fecha o turno na hora, e a mão volta a ter 4 cartas |
-| Comprar (RN-05) | A compra e o que vem depois contam como uma jogada só: com 5 cartas, o jogador descarta 1, pega da mesa, avança uma quadra incompleta dele ou rouba com carta da mão, e o turno fecha. Abrir quadra nova depois de comprar é recusado, e a exceção dos dois pares da RN-10 também, porque a mão ficaria com 5. Se a compra esgotar o monte, fecha na hora (RN-14) |
-| Contagem regressiva | A partida começa depois de 3 segundos, contados pelo servidor. O relógio do turno só começa depois dela, e jogadas enviadas antes são recusadas |
-| Passar a vez (RF-10) | O jogador pode passar sem jogar, menos depois de comprar e menos com o monte vazio. Com o monte vazio e cartas na mão, ele precisa jogar ou descartar. Decidido em 2026-11-04 |
+| Uma jogada por turno (RN-04) | Capturar, pôr no próprio monte, roubar ou descartar fecha o turno na hora. Não existe comprar nem passar a vez |
+| Capturar (RN-05) | 1 carta da mão e 1 ou mais cartas de mesmo valor da mesa, à escolha do jogador, vão para o topo do monte dele. A carta da mão fica por cima |
+| Pôr no próprio monte (RN-06) | Uma carta da mão igual ao topo vai para cima do monte. Com o monte vazio, a jogada é recusada |
+| Roubar (RN-07, RN-08) | A carta da mão vai para cima do monte do adversário, e esse monte inteiro vai para cima do monte de quem roubou. Cada jogada rouba 1 monte |
+| Descartar (RN-09) | Sempre permitido, mesmo com captura ou roubo possível |
+| Mão vazia (RN-10) | Ao fechar o turno, quem está sem cartas recebe 4 do baralho de compra, ou as que restarem |
+| Mesa (RN-11) | Com menos de 3 cartas, a mesa volta a 8 enquanto houver baralho |
+| Baralho vazio (RN-12) | Quem está sem cartas tem a vez pulada |
+| Fim (RN-13, RN-14) | Ao fechar cada turno, o servidor encerra a partida se todas as mãos estão vazias ou se o baralho acabou e ninguém tem carta para capturar, pôr no monte ou roubar. Vence o maior monte, e os empatados vencem juntos |
+| Saída (RN-16) | Mão e monte de quem sai voltam ao baralho, que é embaralhado de novo |
+| Tempo (RN-17) | Ao estourar os 60 s, 1 carta aleatória da mão vai para a mesa e o turno fecha |
+| Contagem regressiva (RF-24) | A partida começa depois de 3 segundos, contados pelo servidor. O relógio do turno só começa depois dela, e jogadas enviadas antes são recusadas |
 | Desfazer (RF-12) | Removido: não sobra ação para desfazer, porque a jogada fecha o turno |
 | Entrar na sala (RF-02) | Vale na sala de espera e entre uma partida e outra. Só a partida em andamento recusa a entrada |
-| Pegar da mesa (RN-06) | O jogador escolhe uma ou mais cartas iguais da mesa e junta com ao menos 1 da mão. Tudo vai para a área dele, e a jogada é uma só |
-| Pares iguais em duas áreas (RN-10) | Com um par do mesmo valor em cada área, as 4 cartas estão à vista e ninguém tem carta na mão para roubar. Quem jogar primeiro pode pegar o par do outro sem carta da mão e fecha a quadra |
 | Ordem dos turnos (RN-03) | "Para a direita" é a ordem de entrada na sala: depois do último, volta para o primeiro. Quem sai não muda a ordem dos outros |
+| Baralho (seção 8) | Um baralho de 52 cartas para qualquer número de jogadores, de 2 a 6 |
 | Limite de salas | `MAX_ROOMS=10` no plano gratuito, o maior número medido que atendeu à meta de 1 s. Decidido em 2026-11-04 |
-| Sala vazia (RNF-07) | Quando o último jogador sai pelo botão, a sala é apagada na hora. Sem ninguém conectado, ela é apagada depois de 150 s, em vez dos 10 min do documento de requisitos, para não prender as vagas do limite. Decidido em 2026-11-04 |
+| Sala vazia (RNF-07) | Quando o último jogador sai pelo botão, a sala é apagada na hora. Sem ninguém conectado, ela é apagada depois de 150 s |
 
-## Decisões onde os requisitos eram omissos ou conflitantes
+Toda jogada tira 1 carta de alguma mão, e as mãos só recebem cartas do baralho, que só cresce quando alguém sai. Por isso a partida sempre termina, sem precisar reciclar a mesa.
 
-O documento de requisitos do projeto não está neste repositório; os códigos RN, RF e RNF apontam para ele. Estas escolhas foram tomadas para o motor funcionar. A do impasse foi confirmada em 2026-11-03; as demais aguardam confirmação do autor.
+## Decisões onde os requisitos eram omissos
 
-| Ponto | Conflito | O que foi implementado |
+O documento de requisitos do projeto não está neste repositório; os códigos RN, RF e RNF apontam para ele.
+
+| Ponto | Lacuna | O que foi implementado |
 | --- | --- | --- |
-| Monte e mãos vazios com quadras faltando | O diagrama de fluxo encerrava a partida; a RN-15 diz que ela só acaba com as 13 quadras | Confirmado: vale a RN-15. A mesa volta embaralhada para o monte e é distribuída de novo. Com a mesa vazia, voltam as quadras incompletas |
+| Contador e alerta de risco (RF-18, RF-19) | A RN-15 esconde as cartas abaixo do topo, mas todas foram vistas por todos quando entraram no monte | As dicas contam como já vistas as cartas da própria mão, da mesa e de todos os montes, somadas por valor. Nenhuma carta abaixo do topo é enviada ao navegador |
+| Ordem da reposição (RN-10, RN-11) | Não há regra | Primeiro as mãos, a partir do jogador seguinte, depois a mesa |
 | Reconexão por apelido | Com só o apelido, qualquer um da sala assumiria a mão de quem caiu, contrariando a RNF-04 | Exige apelido e um token entregue ao entrar na sala. O frontend guarda o token no navegador |
 | Só 1 jogador restante | Não há regra | A partida encerra por abandono e quem ficou vence. Quem saiu, ou outro amigo, pode entrar de novo na sala |
-| Tempo estourado com monte vazio | A RN-21 fala em mão diferente de 4; a RN-14 desliga essa regra | Descarta 1 carta aleatória para a partida andar |
 | Anfitrião sai da sala | Não há regra | O jogador seguinte vira anfitrião |
 
 ## Limites de segurança

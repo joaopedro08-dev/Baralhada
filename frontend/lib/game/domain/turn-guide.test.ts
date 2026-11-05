@@ -19,32 +19,27 @@ describe("guia do turno", () => {
     )
   })
 
-  it("explica a jogada única no começo do turno", () => {
-    expect(describeNextStep(base)).toContain("Faça 1 jogada")
-  })
-
-  it("pede o descarte depois da compra", () => {
-    const game = buildGame({ usedActions: ["draw"], canEndTurn: false })
-    expect(describeNextStep({ ...base, game })).toContain("descarte")
+  it("lista as quatro jogadas no começo do turno", () => {
+    expect(describeNextStep(base)).toBe(
+      "Escolha 1 carta da mão: capture da mesa, ponha no seu monte, roube um monte ou descarte."
+    )
   })
 
   it("avisa que a jogada fecha o turno", () => {
-    const selection = { ...emptySelection(3), hand: ["5C"] as const }
+    const selection = { ...emptySelection(3), card: "5C" as const }
     expect(describeNextStep({ ...base, selection })).toContain(
       "fecha o seu turno"
     )
   })
 
   it("mostra a dica quando não há seleção", () => {
-    expect(describeNextStep({ ...base, topHint: "Compra 1 carta." })).toBe(
-      "Dica: Compra 1 carta."
+    expect(describeNextStep({ ...base, topHint: "Rouba o monte." })).toBe(
+      "Dica: Rouba o monte."
     )
   })
 
-  it("avisa que não dá para passar com o monte vazio", () => {
-    const game = buildGame({ deckSize: 0, canEndTurn: false })
-    expect(describeNextStep({ ...base, game })).toContain(
-      "Passar a vez fica bloqueado"
-    )
+  it("avisa quando o baralho de compra acabou", () => {
+    const game = buildGame({ deckSize: 0 })
+    expect(describeNextStep({ ...base, game })).toContain("O baralho acabou")
   })
 })

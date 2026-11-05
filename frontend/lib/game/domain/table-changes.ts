@@ -1,11 +1,4 @@
-import { isCompleteMeld } from "@/lib/game/domain/cards"
-import type {
-  Card,
-  GamePlayer,
-  GameState,
-  PlayerId,
-  Rank,
-} from "@/lib/game/domain/types"
+import type { Card, GameState, PlayerId } from "@/lib/game/domain/types"
 
 export const HAND_ANCHOR = "hand"
 export const TABLE_ANCHOR = "table"
@@ -18,18 +11,11 @@ export interface CardMove {
   readonly to: string
 }
 
-export type TableEvent =
-  | {
-      readonly kind: "quadCompleted"
-      readonly playerId: PlayerId
-      readonly rank: Rank
-    }
-  | {
-      readonly kind: "stolen"
-      readonly thiefId: PlayerId
-      readonly victimId: PlayerId
-      readonly rank: Rank
-    }
+export interface PileStolen {
+  readonly thiefId: PlayerId
+  readonly victimId: PlayerId
+  readonly count: number
+}
 
 const MAX_MOVES = 14
 
@@ -37,27 +23,58 @@ const locateCards = (game: GameState): ReadonlyMap<Card, string> => {
   const places = new Map<Card, string>()
   game.hand.forEach((card) => places.set(card, HAND_ANCHOR))
   game.table.forEach((card) => places.set(card, TABLE_ANCHOR))
-  game.players.forEach((player) =>
-    player.melds.forEach((meld) =>
-      meld.cards.forEach((card) => places.set(card, playerAnchor(player.id)))
-    )
+  game.players.forEach(
+    (player) =>
+      player.pileTop && places.set(player.pileTop, playerAnchor(player.id))
   )
   return places
 }
 
+const findPlayer = (game: GameState, playerId: PlayerId) =>
+  game.players.find((player) => player.id === playerId)
+
 const handSizeOf = (game: GameState, playerId: PlayerId): number =>
-  game.players.find((player) => player.id === playerId)?.handSize ?? 0
+  findPlayer(game, playerId)?.handSize ?? 0
+
+const pileSizeOf = (game: GameState, playerId: PlayerId): number =>
+  findPlayer(game, playerId)?.pileSize ?? 0
 
 const originOfRevealedCard = (
   to: string,
   previous: GameState,
   next: GameState
 ): string => {
-  if (to !== TABLE_ANCHOR) return to === HAND_ANCHOR ? DECK_ANCHOR : to
   const actor = previous.currentPlayerId
-  return handSizeOf(next, actor) < handSizeOf(previous, actor)
-    ? playerAnchor(actor)
-    : DECK_ANCHOR
+  if (to === HAND_ANCHOR) return DECK_ANCHOR
+  if (handSizeOf(next, actor) < handSizeOf(previous, actor)) {
+    return playerAnchor(actor)
+  }
+  return to === TABLE_ANCHOR ? DECK_ANCHOR : to
+}
+
+const revealedMoves = (
+  previous: GameState,
+  next: GameState,
+  before: ReadonlyMap<Card, string>,
+  after: ReadonlyMap<Card, string>
+): readonly CardMove[] =>
+  [...after].flatMap(([card, to]) => {
+    const from = before.get(card) ?? originOfRevealedCard(to, previous, next)
+    return from === to ? [] : [{ card, from, to }]
+  })
+
+const buriedMoves = (
+  previous: GameState,
+  next: GameState,
+  before: ReadonlyMap<Card, string>,
+  after: ReadonlyMap<Card, string>
+): readonly CardMove[] => {
+  const actor = previous.currentPlayerId
+  const to = playerAnchor(actor)
+  if (pileSizeOf(next, actor) <= pileSizeOf(previous, actor)) return []
+  return [...before]
+    .filter(([card, from]) => !after.has(card) && from !== to)
+    .map(([card, from]) => ({ card, from, to }))
 }
 
 const hiddenDraws = (
@@ -82,67 +99,28 @@ export const describeMoves = (
   viewerId: PlayerId
 ): readonly CardMove[] => {
   const before = locateCards(previous)
-  const visible = [...locateCards(next)].flatMap(([card, to]) => {
-    const from = before.get(card) ?? originOfRevealedCard(to, previous, next)
-    return before.get(card) === to ? [] : [{ card, from, to }]
-  })
-  return [...visible, ...hiddenDraws(previous, next, viewerId)].slice(
-    0,
-    MAX_MOVES
-  )
+  const after = locateCards(next)
+  return [
+    ...buriedMoves(previous, next, before, after),
+    ...revealedMoves(previous, next, before, after),
+    ...hiddenDraws(previous, next, viewerId),
+  ].slice(0, MAX_MOVES)
 }
 
-const completedRanks = (player: GamePlayer | undefined): readonly Rank[] =>
-  player?.melds.filter(isCompleteMeld).map((meld) => meld.rank) ?? []
-
-const findPlayer = (game: GameState, playerId: PlayerId) =>
-  game.players.find((player) => player.id === playerId)
-
-const quadEvents = (
+export const describeSteal = (
   previous: GameState,
   next: GameState
-): readonly TableEvent[] =>
-  next.players.flatMap((player) => {
-    const known = completedRanks(findPlayer(previous, player.id))
-    return completedRanks(player)
-      .filter((rank) => !known.includes(rank))
-      .map((rank) => ({
-        kind: "quadCompleted" as const,
-        playerId: player.id,
-        rank,
-      }))
-  })
-
-const stealEvents = (
-  previous: GameState,
-  next: GameState
-): readonly TableEvent[] => {
+): PileStolen | null => {
   const thiefId = previous.currentPlayerId
-  const thief = findPlayer(next, thiefId)
-  return previous.players
-    .filter((player) => player.id !== thiefId)
-    .flatMap((victim) =>
-      victim.melds
-        .filter((meld) => {
-          const stillThere = findPlayer(next, victim.id)?.melds.some(
-            (kept) => kept.rank === meld.rank
-          )
-          const taken = thief?.melds.some((held) => held.rank === meld.rank)
-          return !stillThere && taken
-        })
-        .map((meld) => ({
-          kind: "stolen" as const,
-          thiefId,
-          victimId: victim.id,
-          rank: meld.rank,
-        }))
-    )
+  const victim = previous.players.find(
+    (player) =>
+      player.id !== thiefId &&
+      player.pileSize > 0 &&
+      pileSizeOf(next, player.id) === 0 &&
+      findPlayer(next, player.id) !== undefined
+  )
+  if (!victim || pileSizeOf(next, thiefId) <= pileSizeOf(previous, thiefId)) {
+    return null
+  }
+  return { thiefId, victimId: victim.id, count: victim.pileSize }
 }
-
-export const describeEvents = (
-  previous: GameState,
-  next: GameState
-): readonly TableEvent[] => [
-  ...quadEvents(previous, next),
-  ...stealEvents(previous, next),
-]

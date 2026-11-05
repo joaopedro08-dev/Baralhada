@@ -28,7 +28,8 @@ export const metadata: Metadata = {
     "Jogue Rouba Monte online com 2 a 6 amigos, no PC ou no celular.",
   openGraph: {
     title: "Rouba Monte",
-    description: "Junte quadras, roube as dos amigos e vença a mesa.",
+    description:
+      "Capture cartas, roube o monte dos amigos e termine com o maior.",
     type: "website",
     locale: "pt_BR",
   },

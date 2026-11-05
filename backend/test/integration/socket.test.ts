@@ -206,8 +206,9 @@ describe("partida pela rede", () => {
   it("RF-07 distribui e informa o prazo do turno", async () => {
     const { hostView } = await startMatch()
     expect(hostView.game?.hand).toHaveLength(4)
-    expect(hostView.game?.table).toHaveLength(10)
-    expect(hostView.game?.deckSize).toBe(34)
+    expect(hostView.game?.table).toHaveLength(8)
+    expect(hostView.game?.deckSize).toBe(36)
+    expect(hostView.game?.players.every((player) => player.pileSize === 0)).toBe(true)
     expect(hostView.turnDeadlineAt).toBeGreaterThan(Date.now())
   })
 
@@ -218,15 +219,14 @@ describe("partida pela rede", () => {
     idleSocket.onAny((_event, payload) => idleFrames.push(JSON.stringify(payload)))
     activeSocket.onAny((_event, payload) => activeFrames.push(JSON.stringify(payload)))
 
-    const received = nextState(idleSocket, (state) => state.game?.deckSize === 33)
-    await expectData(request(activeSocket, "game:action", { type: "draw" }))
+    const [discarded, ...stillHidden] = activeView.game?.hand ?? []
+    const received = nextState(idleSocket, (state) => state.game?.turnNumber === 2)
+    await expectData(request(activeSocket, "game:action", { type: "discard", card: discarded }))
     await received
 
-    const cardsIn = (frame: string) => frame.match(/"(?:10|[2-9AJQK])[CDHS]"/g) ?? []
-    const visibleToIdle = new Set(
-      [...(idleView.game?.hand ?? []), ...(idleView.game?.table ?? [])].map((card) => `"${card}"`)
-    )
-    expect(idleFrames.flatMap(cardsIn).every((card) => visibleToIdle.has(card))).toBe(true)
+    for (const card of stillHidden) {
+      expect(idleFrames.some((frame) => frame.includes(`"${card}"`))).toBe(false)
+    }
     for (const frame of [...idleFrames, ...activeFrames]) {
       expect(frame).not.toContain("reconnectToken")
       expect(frame).not.toContain('"deck"')
@@ -234,24 +234,23 @@ describe("partida pela rede", () => {
   })
 
   it("RF-08 só o jogador da vez consegue agir", async () => {
-    const { idleSocket } = await startMatch()
-    expect(await expectErrorCode(request(idleSocket, "game:action", { type: "draw" }))).toBe(
-      "NOT_YOUR_TURN"
-    )
+    const { idleSocket, idleView } = await startMatch()
+    const card = idleView.game?.hand[0]
+    expect(
+      await expectErrorCode(request(idleSocket, "game:action", { type: "discard", card }))
+    ).toBe("NOT_YOUR_TURN")
   })
 
   it("RF-10 e RF-11 ação chega a todos e o turno passa", async () => {
     const { activeSocket, activeView, idleSocket, idleView } = await startMatch()
-    const drawn = nextState(idleSocket, (state) => state.game?.deckSize === 33)
-    await expectData(request(activeSocket, "game:action", { type: "draw" }))
-    expect((await drawn).version).toBeGreaterThan(idleView.version)
-
-    expect(await expectErrorCode(request(activeSocket, "game:endTurn"))).toBe("MUST_DISCARD")
-
     const card = activeView.game?.hand[0]
     const passed = nextState(idleSocket, (state) => state.game?.turnNumber === 2)
     await expectData(request(activeSocket, "game:action", { type: "discard", card }))
-    expect((await passed).game?.canEndTurn).toBe(true)
+    const after = await passed
+
+    expect(after.version).toBeGreaterThan(idleView.version)
+    expect(after.game?.table).toContain(card)
+    expect(after.game?.currentPlayerId).toBe(after.viewerId)
   })
 
   it("RF-01 entrega o estado inicial a quem cria ou entra na sala", async () => {
@@ -264,16 +263,11 @@ describe("partida pela rede", () => {
   it("RF-13 histórico descreve as jogadas, da mais recente para a mais antiga", async () => {
     const { activeSocket, activeView, idleSocket } = await startMatch()
     const card = activeView.game?.hand[0]
-    const drew = nextState(idleSocket, (state) => (state.game?.history.length ?? 0) === 1)
-    await expectData(request(activeSocket, "game:action", { type: "draw" }))
-    const first = await drew
-    const discarded = nextState(idleSocket, (state) => (state.game?.history.length ?? 0) === 2)
+    const discarded = nextState(idleSocket, (state) => (state.game?.history.length ?? 0) === 1)
     await expectData(request(activeSocket, "game:action", { type: "discard", card }))
     const history = (await discarded).game?.history ?? []
 
-    expect(first.game?.history[0]).toMatch(/comprou 1 carta$/)
-    expect(history[0]).toMatch(/descartou/)
-    expect(history[1]).toMatch(/comprou 1 carta$/)
+    expect(history[0]).toMatch(/^.+ descartou .+ de (paus|ouros|copas|espadas)$/)
   })
 
   it("RF-16 a RF-19 dicas com frases em português", async () => {
@@ -294,9 +288,10 @@ describe("partida pela rede", () => {
     const passed = nextState(idleSocket, (state) => state.game?.turnNumber === 2)
     await expectData(request(activeSocket, "game:action", { type: "discard", card }))
     expect((await passed).game?.currentPlayerId).toBe(idleSocketViewerId(await passed))
-    expect(await expectErrorCode(request(activeSocket, "game:action", { type: "draw" }))).toBe(
-      "NOT_YOUR_TURN"
-    )
+    const other = activeView.game?.hand[1]
+    expect(
+      await expectErrorCode(request(activeSocket, "game:action", { type: "discard", card: other }))
+    ).toBe("NOT_YOUR_TURN")
   })
 
   it("recusa conexão vinda de outro site", async () => {
@@ -444,8 +439,9 @@ describe("partida pela rede", () => {
       { nickname: 7 },
       { nickname: "<script>" },
       { code: "../../etc", nickname: "Eva" },
-      { type: "takeFromTable", tableCards: ["5H", "5H", "5H", "5H", "5H"], handCards: [] },
-      { type: "draw", extra: true },
+      { type: "capture", card: "5C", tableCards: ["5H", "5H", "5H", "5H", "5H"] },
+      { type: "discard", card: "2C", extra: true },
+      { type: "draw" },
       { __proto__: { admin: true }, nickname: "" },
     ]
     const commands = [
@@ -558,7 +554,7 @@ describe("partida pela rede", () => {
     expect(await expectErrorCode(request(guestSocket, "game:start"))).toBe("NOT_IN_ROOM")
   })
 
-  it("RN-20 a saída do penúltimo jogador encerra e dá a vitória a quem ficou", async () => {
+  it("RN-16 a saída do penúltimo jogador encerra e dá a vitória a quem ficou", async () => {
     const { hostSocket, guestSocket, host } = await createLobby()
     const started = nextState(hostSocket, (state) => state.status === "playing")
     await expectData(request(hostSocket, "game:start"))

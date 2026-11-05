@@ -169,7 +169,7 @@ export function HomeScreen() {
             Rouba Monte
           </h1>
           <p className="text-sm text-felt-muted short:hidden">
-            Junte quadras, roube as dos amigos e vença a mesa.
+            Capture cartas, roube o monte dos amigos e termine com o maior.
           </p>
         </header>
 

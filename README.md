@@ -2,7 +2,7 @@
 
 Jogo de cartas online para 2 a 6 amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala e manda o código ou o link para os outros. Jogue em [rouba-monte.vercel.app](https://rouba-monte.vercel.app).
 
-O objetivo é fechar quadras, 4 cartas do mesmo valor. Vence quem tiver mais quando as 13 quadras estiverem fechadas. Cada turno tem 1 jogada e 60 segundos, e as regras completas ficam na página `/informacoes` do jogo.
+O objetivo é terminar com o maior monte: capture cartas da mesa com cartas de mesmo valor da mão e roube o monte dos adversários quando tiver uma carta igual ao topo. Cada turno tem 1 jogada e 60 segundos, e as regras completas ficam na página `/informacoes` do jogo.
 
 ## Estrutura
 

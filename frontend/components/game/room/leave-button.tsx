@@ -31,8 +31,8 @@ export function LeaveMatchButton({ className }: { className?: string }) {
             Sair da partida?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm/relaxed">
-            Suas cartas e quadras voltam para o monte. Você só pode entrar de
-            novo quando esta partida terminar.
+            Sua mão e seu monte voltam para o baralho de compra. Você só pode
+            entrar de novo quando esta partida terminar.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -134,15 +134,9 @@ class BotRoom {
     const turn = bot.state?.game?.turnNumber ?? 0
     if (turn === this.lastTurn) this.recorder.stalledRooms++
     this.lastTurn = turn
-    for (let step = 0; step < 2 && !this.stopped && bot.myTurn; step++) {
-      await sleep(THINK_MS)
-      const action = await this.chooseAction(bot)
-      if (!action) break
-      await this.command(bot, "game:action", action, true)
-    }
-    if (this.stopped || !bot.myTurn) return
     await sleep(THINK_MS)
-    await this.command(bot, "game:endTurn", undefined, true)
+    const action = await this.chooseAction(bot)
+    if (action && !this.stopped) await this.command(bot, "game:action", action, true)
   }
 
   private async chooseAction(bot: Bot): Promise<TurnAction | null> {

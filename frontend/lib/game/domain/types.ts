@@ -20,31 +20,23 @@ export type Suit = (typeof SUITS)[number]
 export type Card = `${Rank}${Suit}`
 export type PlayerId = string
 
-export type TurnActionKind =
-  "draw" | "layDown" | "takeFromTable" | "steal" | "discard"
-
 export type TurnAction =
-  | { readonly type: "draw" }
-  | { readonly type: "layDown"; readonly cards: readonly Card[] }
   | {
-      readonly type: "takeFromTable"
+      readonly type: "capture"
+      readonly card: Card
       readonly tableCards: readonly Card[]
-      readonly handCards: readonly Card[]
     }
+  | { readonly type: "stack"; readonly card: Card }
   | {
       readonly type: "steal"
+      readonly card: Card
       readonly targetId: PlayerId
-      readonly rank: Rank
-      readonly handCards: readonly Card[]
     }
   | { readonly type: "discard"; readonly card: Card }
 
-export interface Meld {
-  readonly rank: Rank
-  readonly cards: readonly Card[]
-}
+export type TurnActionKind = TurnAction["type"]
 
-export type GameEndReason = "allQuadsComplete" | "abandoned"
+export type GameEndReason = "noPlaysLeft" | "handsEmpty" | "abandoned"
 export type RoomStatus = "lobby" | "playing" | "finished"
 
 export interface RoomPlayer {
@@ -57,7 +49,8 @@ export interface GamePlayer {
   readonly id: PlayerId
   readonly nickname: string
   readonly handSize: number
-  readonly melds: readonly Meld[]
+  readonly pileSize: number
+  readonly pileTop: Card | null
 }
 
 export interface GameState {
@@ -67,8 +60,6 @@ export interface GameState {
   readonly players: readonly GamePlayer[]
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
-  readonly usedActions: readonly TurnActionKind[]
-  readonly canEndTurn: boolean
   readonly endReason: GameEndReason | null
   readonly winnerIds: readonly PlayerId[]
   readonly history: readonly string[]
@@ -88,11 +79,6 @@ export interface RoomState {
   readonly game: GameState | null
 }
 
-export interface MeldTarget {
-  readonly playerId: PlayerId
-  readonly rank: Rank
-}
-
 export interface SuggestedPlay {
   readonly action: TurnAction
   readonly sentence: string
@@ -103,13 +89,14 @@ export interface Hints {
   readonly highlights: {
     readonly handCards: readonly Card[]
     readonly tableCards: readonly Card[]
-    readonly stealableMelds: readonly MeldTarget[]
+    readonly piles: readonly PlayerId[]
   }
-  readonly risks: readonly {
+  readonly risk: {
     readonly rank: Rank
+    readonly pileSize: number
     readonly unseenCards: number
     readonly sentence: string
-  }[]
+  } | null
   readonly cardCounts: readonly {
     readonly rank: Rank
     readonly visible: number

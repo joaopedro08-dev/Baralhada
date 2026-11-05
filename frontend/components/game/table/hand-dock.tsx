@@ -10,7 +10,12 @@ import { handCardHint } from "@/lib/game/domain/hint-focus"
 import type { HintFocus } from "@/lib/game/domain/hint-focus"
 import type { Selection } from "@/lib/game/domain/selection"
 import { HAND_ANCHOR } from "@/lib/game/domain/table-changes"
-import type { Card, GameState, TurnActionKind } from "@/lib/game/domain/types"
+import type {
+  Card,
+  GameState,
+  PlayerId,
+  TurnActionKind,
+} from "@/lib/game/domain/types"
 import { cn } from "@/lib/utils"
 
 const FAN_DEGREES = 3
@@ -20,6 +25,7 @@ const fanTilt = (position: number, total: number): number =>
 
 export function HandDock({
   game,
+  viewerId,
   selection,
   focus,
   isMyTurn,
@@ -29,9 +35,9 @@ export function HandDock({
   suggested,
   onToggleCard,
   onAction,
-  onPass,
 }: {
   game: GameState
+  viewerId: PlayerId
   selection: Selection
   focus: HintFocus
   isMyTurn: boolean
@@ -41,7 +47,6 @@ export function HandDock({
   suggested: TurnActionKind | null
   onToggleCard: (card: Card) => void
   onAction: (kind: TurnActionKind) => void
-  onPass: () => void
 }) {
   const cards = sortCards(game.hand)
 
@@ -91,7 +96,7 @@ export function HandDock({
               <SelectableCard
                 card={card}
                 size="hand"
-                selected={selection.hand.includes(card)}
+                selected={selection.card === card}
                 hint={handCardHint(focus, card)}
                 tilt={fanTilt(position, cards.length)}
                 onToggle={isMyTurn ? () => onToggleCard(card) : undefined}
@@ -108,11 +113,11 @@ export function HandDock({
 
       <ActionBar
         game={game}
+        viewerId={viewerId}
         isMyTurn={isMyTurn}
         busy={busy}
         suggested={suggested}
         onAction={onAction}
-        onPass={onPass}
       />
     </section>
   )

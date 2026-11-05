@@ -22,7 +22,7 @@ interface RaceState {
   readonly winnerId: PlayerId | null
 }
 
-type RaceStep = { readonly add: 1 | 2 }
+type RaceStep = { readonly add: 0 | 1 | 2 }
 type RaceError = "NOT_YOUR_TURN" | "GAME_OVER"
 
 const TARGET = 5
@@ -57,8 +57,6 @@ const raceRules: GameRules<RaceState, RaceStep, RaceError> = {
     if (state.current !== playerId) return err("NOT_YOUR_TURN")
     return ok(advance(state, state.total + step.add))
   },
-  pass: (state, playerId) =>
-    state.current === playerId ? ok(advance(state, state.total)) : err("NOT_YOUR_TURN"),
   expireTurn: (state) => advance(state, state.total),
   removePlayer: (state, playerId) => ({
     ...state,
@@ -140,7 +138,7 @@ describe("a plataforma recebe outro jogo sem mudar sala nem casos de uso", () =>
     expect(t.timers.get(host.roomCode)).toBe(3)
 
     unwrap(t.play.perform(actorOf(first), { add: 2 }))
-    unwrap(t.play.finish(actorOf(second)))
+    unwrap(t.play.perform(actorOf(second), { add: 0 }))
     unwrap(t.play.perform(actorOf(first), { add: 1 }))
 
     expect(stateOf().winnerId).toBe(first)

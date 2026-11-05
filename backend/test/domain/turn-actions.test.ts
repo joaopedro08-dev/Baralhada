@@ -1,481 +1,169 @@
 import { describe, expect, it } from "vitest"
-import type { Card } from "../../src/domain/cards/card.js"
-import type { Game } from "../../src/domain/games/rouba-monte/model.js"
 import { getPlayer } from "../../src/domain/games/rouba-monte/model.js"
+import type { Game } from "../../src/domain/games/rouba-monte/model.js"
 import { applyTurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
 import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
-import { buildGame, meldOf, quadOf } from "../support/game-builder.js"
+import { buildGame, unwrap } from "../support/game-builder.js"
 
-const act = (game: Game, action: TurnAction, playerId = game.turn.playerId): Game => {
-  const result = applyTurnAction(game, playerId, action)
-  if (!result.ok) throw new Error(result.error)
-  return result.value
-}
+const act = (game: Game, action: TurnAction): Game =>
+  unwrap(applyTurnAction(game, game.turn.playerId, action))
 
-const rejection = (game: Game, action: TurnAction, playerId = game.turn.playerId) => {
-  const result = applyTurnAction(game, playerId, action)
-  return result.ok ? null : result.error
-}
+const refusal = (game: Game, action: TurnAction) =>
+  applyTurnAction(game, game.turn.playerId, action)
 
-const hand: Card[] = ["5C", "5D", "7C", "2H"]
-
-describe("RF-08 só o jogador da vez age", () => {
-  it("recusa ação de quem não está na vez", () => {
-    const game = buildGame({ players: { a: { hand }, b: { hand: ["3C"] } } })
-    expect(rejection(game, { type: "draw" }, "b")).toBe("NOT_YOUR_TURN")
+describe("RN-05 capturar", () => {
+  const game = buildGame({
+    players: { a: { hand: ["7C", "2D"], pile: ["4H"] }, b: {} },
+    table: ["7H", "7S", "9C"],
   })
 
-  it("recusa ação com a partida encerrada", () => {
-    const game = { ...buildGame({ players: { a: {}, b: {} } }), endReason: "abandoned" as const }
-    expect(rejection(game, { type: "draw" })).toBe("GAME_FINISHED")
+  it("leva a carta da mão e a da mesa para o topo do monte", () => {
+    const next = act(game, { type: "capture", card: "7C", tableCards: ["7H"] })
+
+    expect(getPlayer(next, "a").pile).toEqual(["4H", "7H", "7C"])
+    expect(getPlayer(next, "a").hand).toEqual(["2D"])
+    expect(next.table).toEqual(["7S", "9C"])
+    expect(next.events.at(-1)).toEqual({
+      type: "captured",
+      playerId: "a",
+      card: "7C",
+      tableCards: ["7H"],
+    })
+  })
+
+  it("deixa o jogador escolher quantas cartas iguais leva", () => {
+    const next = act(game, { type: "capture", card: "7C", tableCards: ["7H", "7S"] })
+    expect(getPlayer(next, "a").pile).toEqual(["4H", "7H", "7S", "7C"])
+    expect(next.table).toEqual(["9C"])
+  })
+
+  it("ignora o naipe e compara só o valor", () => {
+    const next = act(game, { type: "capture", card: "7C", tableCards: ["7S"] })
+    expect(getPlayer(next, "a").pile.at(-1)).toBe("7C")
+  })
+
+  it.each([
+    [{ card: "7C", tableCards: [] }, "NO_TABLE_CARDS_SELECTED"],
+    [{ card: "7C", tableCards: ["7D"] }, "CARD_NOT_ON_TABLE"],
+    [{ card: "7C", tableCards: ["7H", "7H"] }, "CARD_NOT_ON_TABLE"],
+    [{ card: "7C", tableCards: ["9C"] }, "CARDS_MUST_SHARE_RANK"],
+    [{ card: "7D", tableCards: ["7H"] }, "CARD_NOT_IN_HAND"],
+  ] as const)("recusa %j com %s", (input, error) => {
+    expect(refusal(game, { type: "capture", ...input })).toEqual({ ok: false, error })
   })
 })
 
-describe("RN-04 cada ação no máximo 1 vez, em qualquer ordem", () => {
-  const actions: readonly [
-    string,
-    TurnAction,
-    TurnAction,
-    Partial<Parameters<typeof buildGame>[0]>,
-  ][] = [
-    ["comprar", { type: "draw" }, { type: "draw" }, {}],
-    [
-      "baixar",
-      { type: "layDown", cards: ["5C", "5D"] },
-      { type: "layDown", cards: ["7C", "7D"] },
-      { players: { a: { hand: ["5C", "5D", "7C", "7D"] }, b: {} } },
-    ],
-    [
-      "pegar da mesa",
-      { type: "takeFromTable", tableCards: ["9C"], handCards: ["9H"] },
-      { type: "takeFromTable", tableCards: ["8C"], handCards: ["8H"] },
-      {
-        players: { a: { hand: ["9H", "8H"] }, b: {} },
-        table: ["9C", "8C", "2C", "3C"],
-      },
-    ],
-    [
-      "roubar",
-      { type: "steal", targetId: "b", rank: "3", handCards: ["3C"] },
-      { type: "steal", targetId: "b", rank: "4", handCards: ["4C"] },
-      {
-        players: {
-          a: { hand: ["3C", "4C"] },
-          b: { melds: [meldOf("3D", "3H"), meldOf("4D", "4H")] },
-        },
-      },
-    ],
-    ["descartar", { type: "discard", card: "5C" }, { type: "discard", card: "5D" }, {}],
-  ]
+describe("RN-06 pôr no próprio monte", () => {
+  it("empilha uma carta igual ao topo", () => {
+    const game = buildGame({ players: { a: { hand: ["4C"], pile: ["9D", "4H"] }, b: {} } })
+    const next = act(game, { type: "stack", card: "4C" })
 
-  const playsThatCloseTheTurn = actions.filter(([name]) => name !== "comprar")
-
-  it.each(playsThatCloseTheTurn)(
-    "recusa nova jogada depois de %s",
-    (_name, first, second, spec) => {
-      const game = buildGame({ players: { a: { hand }, b: {} }, ...spec })
-      expect(rejection(act(game, first), second)).toBe("ACTION_ALREADY_USED")
-    }
-  )
-
-  it("depois de comprar, recusa o que não fecha a compra", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    const drew = act(game, { type: "draw" })
-    expect(rejection(drew, { type: "layDown", cards: ["5C", "5D"] })).toBe("MUST_DISCARD")
-    expect(rejection(drew, { type: "draw" })).toBe("MUST_DISCARD")
-    expect(act(drew, { type: "discard", card: "2H" }).turn.usedActions).toEqual(["draw", "discard"])
+    expect(getPlayer(next, "a").pile).toEqual(["9D", "4H", "4C"])
+    expect(next.events.at(-1)).toEqual({ type: "stacked", playerId: "a", card: "4C" })
   })
 
-  it("recusa outra jogada depois de comprar e descartar", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    const closed = act(act(game, { type: "draw" }), { type: "discard", card: "2H" })
-    expect(rejection(closed, { type: "layDown", cards: ["5C", "5D"] })).toBe("ACTION_ALREADY_USED")
+  it("recusa com o monte vazio ou de outro valor", () => {
+    const empty = buildGame({ players: { a: { hand: ["4C"] }, b: {} } })
+    const other = buildGame({ players: { a: { hand: ["4C"], pile: ["5H"] }, b: {} } })
+
+    expect(refusal(empty, { type: "stack", card: "4C" })).toEqual({
+      ok: false,
+      error: "PILE_EMPTY",
+    })
+    expect(refusal(other, { type: "stack", card: "4C" })).toEqual({
+      ok: false,
+      error: "TOP_MISMATCH",
+    })
   })
 })
 
-describe("RF-09 ação inválida não muda nada", () => {
-  it("devolve o motivo e mantém o estado original", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    const snapshot = structuredClone(game)
-    expect(rejection(game, { type: "layDown", cards: ["AC", "AD"] })).toBe("CARD_NOT_IN_HAND")
-    expect(game).toEqual(snapshot)
-  })
-
-  it("recusa comprar com o monte vazio", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, deck: [] })
-    expect(rejection(game, { type: "draw" })).toBe("DECK_EMPTY")
-  })
-
-  it("recusa carta repetida na seleção", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    expect(rejection(game, { type: "layDown", cards: ["5C", "5C"] })).toBe("CARD_NOT_IN_HAND")
-  })
-
-  it("recusa descartar carta que não está na mão", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    expect(rejection(game, { type: "discard", card: "AC" })).toBe("CARD_NOT_IN_HAND")
-  })
-})
-
-describe("RN-06 pegar da mesa", () => {
-  it("baixa o par da mão com a carta da mesa", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["5H", "2C", "3C", "4C"] })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C", "5D"] })
-
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "5", cards: ["5C", "5D", "5H"] }])
-    expect(getPlayer(next, "a").hand).toEqual(["7C", "2H"])
-    expect(next.table).not.toContain("5H")
-  })
-
-  it("pega mais de uma carta da mesa na mesma jogada", () => {
-    const game = buildGame({
-      players: { a: { hand }, b: {} },
-      table: ["5H", "5S", "2C", "3C", "4C"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H", "5S"], handCards: ["5C"] })
-
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "5", cards: ["5C", "5H", "5S"] }])
-    expect(next.table).toEqual(["2C", "3C", "4C"])
-    expect(next.events.at(-1)).toMatchObject({ type: "tookFromTable", tableCount: 2, count: 3 })
-  })
-
-  it("deixa o jogador escolher só parte das cartas iguais da mesa", () => {
-    const game = buildGame({
-      players: { a: { hand }, b: {} },
-      table: ["5H", "5S", "2C", "3C"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5S"], handCards: ["5C"] })
-
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "5", cards: ["5C", "5S"] }])
-    expect(next.table).toContain("5H")
-  })
-
-  it("fecha a quadra com 1 carta da mão e 3 da mesa", () => {
-    const game = buildGame({
-      players: { a: { hand }, b: {} },
-      table: ["7D", "7H", "7S", "2C"],
-    })
-    const next = act(game, {
-      type: "takeFromTable",
-      tableCards: ["7D", "7H", "7S"],
-      handCards: ["7C"],
-    })
-    expect(next.events).toContainEqual(
-      expect.objectContaining({ type: "tookFromTable", completed: true, tableCount: 3 })
-    )
-  })
-
-  it("recusa cartas da mesa de valores diferentes", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["5H", "7H", "2C"] })
-    expect(
-      rejection(game, { type: "takeFromTable", tableCards: ["5H", "7H"], handCards: ["5C"] })
-    ).toBe("CARDS_MUST_SHARE_RANK")
-  })
-
-  it("recusa carta repetida da mesa e lista vazia", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["5H", "2C", "3C"] })
-    expect(
-      rejection(game, { type: "takeFromTable", tableCards: ["5H", "5H"], handCards: ["5C"] })
-    ).toBe("CARD_NOT_ON_TABLE")
-    expect(rejection(game, { type: "takeFromTable", tableCards: [], handCards: ["5C"] })).toBe(
-      "CARD_NOT_ON_TABLE"
-    )
-  })
-
-  it("proíbe pegar da mesa só para guardar na mão", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["5H", "2C", "3C"] })
-    expect(rejection(game, { type: "takeFromTable", tableCards: ["5H"], handCards: [] })).toBe(
-      "NO_CARDS_SELECTED"
-    )
-  })
-
-  it("exige carta da mão do mesmo valor", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["5H", "2C", "3C"] })
-    expect(rejection(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["7C"] })).toBe(
-      "CARDS_MUST_SHARE_RANK"
-    )
-  })
-
-  it("avança uma quadra incompleta já aberta", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C"], melds: [meldOf("5D", "5S")] }, b: {} },
-      table: ["5H", "2C", "3C"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C"] })
-    expect(getPlayer(next, "a").melds[0]?.cards).toHaveLength(4)
-  })
-
-  it("recusa carta que não está na mesa", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["2C", "3C", "4C"] })
-    expect(rejection(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C"] })).toBe(
-      "CARD_NOT_ON_TABLE"
-    )
-  })
-
-  it("recusa carta da mão que o jogador não tem", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} }, table: ["AC", "2C", "3C"] })
-    expect(rejection(game, { type: "takeFromTable", tableCards: ["AC"], handCards: ["AD"] })).toBe(
-      "CARD_NOT_IN_HAND"
-    )
-  })
-})
-
-describe("RN-07 abrir quadra", () => {
-  it("recusa abrir com 1 carta", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    expect(rejection(game, { type: "layDown", cards: ["7C"] })).toBe("MELD_REQUIRES_TWO_CARDS")
-  })
-
-  it("abre com 2 cartas do mesmo valor", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    const next = act(game, { type: "layDown", cards: ["5C", "5D"] })
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "5", cards: ["5C", "5D"] }])
-  })
-
-  it("avança com 1 carta numa quadra já aberta", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C"], melds: [meldOf("5D", "5H")] }, b: {} },
-    })
-    const next = act(game, { type: "layDown", cards: ["5C"] })
-    expect(getPlayer(next, "a").melds[0]?.cards).toEqual(["5D", "5H", "5C"])
-  })
-
-  it("recusa valores diferentes", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    expect(rejection(game, { type: "layDown", cards: ["5C", "7C"] })).toBe("CARDS_MUST_SHARE_RANK")
-  })
-
-  it("recusa seleção vazia", () => {
-    const game = buildGame({ players: { a: { hand }, b: {} } })
-    expect(rejection(game, { type: "layDown", cards: [] })).toBe("NO_CARDS_SELECTED")
-  })
-})
-
-describe("RN-08 e RN-09 quadra completa", () => {
-  it("não pode ser roubada", () => {
-    const game = buildGame({
-      players: { a: { hand: ["3C"] }, b: { melds: [quadOf("7")] } },
-    })
-    expect(rejection(game, { type: "steal", targetId: "b", rank: "7", handCards: ["3C"] })).toBe(
-      "MELD_NOT_STEALABLE"
-    )
-  })
-
-  it("recusa roubar valor que o adversário não tem", () => {
-    const game = buildGame({ players: { a: { hand: ["3C"] }, b: {} } })
-    expect(rejection(game, { type: "steal", targetId: "b", rank: "3", handCards: ["3C"] })).toBe(
-      "MELD_NOT_STEALABLE"
-    )
-  })
-})
-
-describe("RN-10 roubo", () => {
-  const scene = buildGame({
+describe("RN-07 e RN-08 roubar", () => {
+  const game = buildGame({
     players: {
-      a: { hand: ["3C", "9C"] },
-      b: { melds: [quadOf("10"), meldOf("3D", "3H")] },
+      ana: { hand: ["9C", "3D"], pile: ["2H"] },
+      beto: { pile: ["5C", "9H"] },
+      caio: { pile: ["9S"] },
     },
   })
 
-  it("leva a quadra e a carta usada para a área do ladrão", () => {
-    const next = act(scene, { type: "steal", targetId: "b", rank: "3", handCards: ["3C"] })
+  it("leva o monte inteiro com a carta por cima", () => {
+    const next = act(game, { type: "steal", card: "9C", targetId: "beto" })
 
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "3", cards: ["3D", "3H", "3C"] }])
-    expect(getPlayer(next, "a").hand).toEqual(["9C"])
-    expect(getPlayer(next, "b").melds).toEqual([quadOf("10")])
+    expect(getPlayer(next, "ana").pile).toEqual(["2H", "5C", "9H", "9C"])
+    expect(getPlayer(next, "beto").pile).toEqual([])
+    expect(getPlayer(next, "caio").pile).toEqual(["9S"])
+    expect(next.events.at(-1)).toEqual({
+      type: "stole",
+      playerId: "ana",
+      targetId: "beto",
+      card: "9C",
+      stolenCount: 2,
+    })
   })
 
-  it("exige carta do mesmo valor na mão", () => {
-    expect(rejection(scene, { type: "steal", targetId: "b", rank: "3", handCards: [] })).toBe(
-      "NO_CARDS_SELECTED"
-    )
-    expect(rejection(scene, { type: "steal", targetId: "b", rank: "3", handCards: ["9C"] })).toBe(
-      "CARDS_MUST_SHARE_RANK"
-    )
-    expect(rejection(scene, { type: "steal", targetId: "b", rank: "3", handCards: ["3S"] })).toBe(
-      "CARD_NOT_IN_HAND"
-    )
+  it("deixa escolher qual monte roubar quando há mais de um", () => {
+    const next = act(game, { type: "steal", card: "9C", targetId: "caio" })
+    expect(getPlayer(next, "ana").pile).toEqual(["2H", "9S", "9C"])
+    expect(getPlayer(next, "beto").pile).toEqual(["5C", "9H"])
   })
 
-  it("recusa roubar de si mesmo ou de quem não existe", () => {
-    expect(rejection(scene, { type: "steal", targetId: "a", rank: "3", handCards: ["3C"] })).toBe(
-      "CANNOT_STEAL_FROM_SELF"
-    )
-    expect(rejection(scene, { type: "steal", targetId: "z", rank: "3", handCards: ["3C"] })).toBe(
-      "TARGET_NOT_FOUND"
-    )
+  it.each([
+    [{ card: "9C", targetId: "ana" }, "CANNOT_STEAL_FROM_SELF"],
+    [{ card: "9C", targetId: "ninguem" }, "TARGET_NOT_FOUND"],
+    [{ card: "3D", targetId: "beto" }, "TOP_MISMATCH"],
+    [{ card: "9D", targetId: "beto" }, "CARD_NOT_IN_HAND"],
+  ] as const)("recusa %j com %s", (input, error) => {
+    expect(refusal(game, { type: "steal", ...input })).toEqual({ ok: false, error })
+  })
+
+  it("recusa roubar monte vazio", () => {
+    const empty = buildGame({ players: { a: { hand: ["9C"] }, b: {} } })
+    expect(refusal(empty, { type: "steal", card: "9C", targetId: "b" })).toEqual({
+      ok: false,
+      error: "PILE_EMPTY",
+    })
   })
 })
 
-describe("RN-10 com um par igual em cada área", () => {
-  const scene = buildGame({
-    players: {
-      a: { hand: ["9C"], melds: [meldOf("7C", "7D")] },
-      b: { hand: ["KS"], melds: [meldOf("7H", "7S")] },
-    },
+describe("RN-09 descartar", () => {
+  it("põe a carta na mesa mesmo com captura possível", () => {
+    const game = buildGame({ players: { a: { hand: ["9S", "2C"] }, b: {} } })
+    const next = act(game, { type: "discard", card: "9S" })
+
+    expect(next.table).toContain("9S")
+    expect(getPlayer(next, "a").hand).toEqual(["2C"])
   })
 
-  it("quem joga primeiro pega o par do outro sem carta da mão e fecha a quadra", () => {
-    const next = act(scene, { type: "steal", targetId: "b", rank: "7", handCards: [] })
-
-    expect(getPlayer(next, "a").melds).toEqual([{ rank: "7", cards: ["7C", "7D", "7H", "7S"] }])
-    expect(getPlayer(next, "a").hand).toEqual(["9C"])
-    expect(getPlayer(next, "b").melds).toEqual([])
-    expect(next.events.at(-1)).toMatchObject({ type: "stole", completed: true, stolenCount: 2 })
-  })
-
-  it("não vale para quem não tem par desse valor", () => {
-    const game = buildGame({
-      players: {
-        a: { hand: ["9C"], melds: [meldOf("8C", "8D")] },
-        b: { melds: [meldOf("7H", "7S")] },
-      },
+  it("recusa carta fora da mão", () => {
+    const game = buildGame({ players: { a: { hand: ["9S"] }, b: {} } })
+    expect(refusal(game, { type: "discard", card: "2C" })).toEqual({
+      ok: false,
+      error: "CARD_NOT_IN_HAND",
     })
-    expect(rejection(game, { type: "steal", targetId: "b", rank: "7", handCards: [] })).toBe(
-      "NO_CARDS_SELECTED"
-    )
-  })
-
-  it("só o jogador da vez pode pegar", () => {
-    expect(rejection(scene, { type: "steal", targetId: "a", rank: "7", handCards: [] }, "b")).toBe(
-      "NOT_YOUR_TURN"
-    )
   })
 })
 
-describe("RN-11 e RN-12 limites do roubo", () => {
-  it("o jogador escolhe qual quadra roubar e só leva uma", () => {
-    const game = buildGame({
-      players: {
-        a: { hand: ["3C", "4C"] },
-        b: { melds: [meldOf("3D", "3H"), meldOf("4D", "4H")] },
-      },
+describe("RN-04 e RF-09 validação", () => {
+  const game = buildGame({ players: { a: { hand: ["9S"] }, b: { hand: ["2C"] } } })
+
+  it("recusa jogada fora da vez", () => {
+    expect(applyTurnAction(game, "b", { type: "discard", card: "2C" })).toEqual({
+      ok: false,
+      error: "NOT_YOUR_TURN",
     })
-    const next = act(game, { type: "steal", targetId: "b", rank: "4", handCards: ["4C"] })
-    expect(getPlayer(next, "b").melds).toEqual([meldOf("3D", "3H")])
   })
 
-  it("completa a quadra roubada na mesma jogada", () => {
-    const game = buildGame({
-      players: { a: { hand: ["3C", "3S"] }, b: { melds: [meldOf("3D", "3H")] } },
+  it("recusa jogada com a partida encerrada", () => {
+    const finished: Game = { ...game, endReason: "noPlaysLeft" }
+    expect(refusal(finished, { type: "discard", card: "9S" })).toEqual({
+      ok: false,
+      error: "GAME_FINISHED",
     })
-    const next = act(game, { type: "steal", targetId: "b", rank: "3", handCards: ["3C", "3S"] })
-
-    expect(getPlayer(next, "a").melds[0]?.cards).toHaveLength(4)
-    expect(next.events.at(-1)).toMatchObject({ type: "stole", completed: true, stolenCount: 2 })
-  })
-})
-
-describe("RN-13 descarte", () => {
-  it("vai para a mesa e quem descartou pode pegar de volta depois", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "5D"] }, b: {} },
-      table: ["2C", "3C", "4C"],
-    })
-    const discarded = act(game, { type: "discard", card: "5C" })
-    expect(discarded.table).toContain("5C")
-
-    const nextTurn = { ...discarded, turn: { ...discarded.turn, usedActions: [] } }
-    const recovered = act(nextTurn, {
-      type: "takeFromTable",
-      tableCards: ["5C"],
-      handCards: ["5D"],
-    })
-    expect(getPlayer(recovered, "a").melds).toEqual([{ rank: "5", cards: ["5D", "5C"] }])
-  })
-})
-
-describe("RN-15 fim da partida", () => {
-  it("termina ao fechar a 13ª quadra", () => {
-    const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q"]
-    const game = buildGame({
-      players: {
-        a: { hand: ["KC", "KD"], melds: [meldOf("KH", "KS"), ...ranks.slice(0, 6).map(quadOf)] },
-        b: { melds: ranks.slice(6).map(quadOf) },
-      },
-      deck: [],
-      table: [],
-    })
-    const next = act(game, { type: "layDown", cards: ["KC", "KD"] })
-
-    expect(next.endReason).toBe("allQuadsComplete")
-    expect(next.winnerIds).toEqual(["a"])
   })
 
-  it("não termina com quadra faltando", () => {
-    const game = buildGame({
-      players: { a: { hand: ["KC", "KD"] }, b: { melds: [quadOf("7")] } },
-      deck: [],
-      table: [],
-    })
-    expect(act(game, { type: "layDown", cards: ["KC", "KD"] }).endReason).toBeNull()
-  })
-})
-
-describe("RN-16 e RN-17 placar", () => {
-  it("só quadras completas contam para o vencedor", () => {
-    const first = ["A", "2", "3", "4", "5", "6"]
-    const second = ["7", "8", "9", "10", "J", "Q"]
-    const game = buildGame({
-      players: {
-        a: { hand: ["KC"], melds: [meldOf("KD", "KH", "KS"), ...first.map(quadOf)] },
-        b: { melds: second.map(quadOf) },
-      },
-      deck: [],
-      table: [],
-    })
-    const next = act(game, { type: "layDown", cards: ["KC"] })
-
-    expect(next.winnerIds).toEqual(["a"])
-    expect(getPlayer(next, "a").melds.filter((meld) => meld.cards.length === 4)).toHaveLength(7)
-  })
-
-  it("empate entre dois jogadores declara os dois vencedores", () => {
-    const first = ["A", "2", "3", "4", "5", "6"]
-    const second = ["7", "8", "9", "10", "J", "Q"]
-    const game = buildGame({
-      players: {
-        a: { melds: first.map(quadOf) },
-        b: { hand: ["KC"], melds: [meldOf("KD", "KH", "KS"), ...second.slice(0, 5).map(quadOf)] },
-        c: { melds: [quadOf("Q")] },
-      },
-      deck: [],
-      table: [],
-      current: "b",
-    })
-    const next = act(game, { type: "layDown", cards: ["KC"] })
-    expect(next.winnerIds).toEqual(["a", "b"])
-  })
-})
-
-describe("RN-19 mesa baixa", () => {
-  it("completa até 10 quando fica com menos de 3 cartas", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "5D"] }, b: {} },
-      table: ["5H", "2C", "3C"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C", "5D"] })
-    expect(next.table).toHaveLength(10)
-    expect(next.deck).toHaveLength(0)
-  })
-
-  it("repõe só o que o monte tiver", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "5D"] }, b: {} },
-      table: ["5H", "2C"],
-      deck: ["KC", "KD"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C", "5D"] })
-    expect(next.table).toEqual(["2C", "KC", "KD"])
-    expect(next.deck).toEqual([])
-  })
-
-  it("com 3 cartas na mesa não repõe", () => {
-    const game = buildGame({
-      players: { a: { hand: ["5C", "5D"] }, b: {} },
-      table: ["5H", "2C", "3C", "4C"],
-    })
-    const next = act(game, { type: "takeFromTable", tableCards: ["5H"], handCards: ["5C", "5D"] })
-    expect(next.table).toEqual(["2C", "3C", "4C"])
+  it("não altera o estado quando recusa", () => {
+    const before = structuredClone(game)
+    refusal(game, { type: "capture", card: "9S", tableCards: ["8C"] })
+    expect(game).toEqual(before)
   })
 })

@@ -2,10 +2,11 @@ import { createRoomStatePresenter } from "../src/adapters/socket/presenter.js"
 import { computeHints } from "../src/domain/games/rouba-monte/hints.js"
 import { getPlayer, isFinished } from "../src/domain/games/rouba-monte/model.js"
 import type { Game } from "../src/domain/games/rouba-monte/model.js"
-import { toPlayerView } from "../src/domain/games/rouba-monte/player-view.js"
+import { countRanksInPiles, toPlayerView } from "../src/domain/games/rouba-monte/player-view.js"
 import { startGame } from "../src/domain/games/rouba-monte/setup.js"
 import { applyTurnAction } from "../src/domain/games/rouba-monte/turn-actions.js"
-import { endTurn, playTurn as playAction } from "../src/domain/games/rouba-monte/turn-flow.js"
+import type { TurnAction } from "../src/domain/games/rouba-monte/turn-actions.js"
+import { playTurn as playAction } from "../src/domain/games/rouba-monte/turn-flow.js"
 import { createRoom } from "../src/domain/room/room.js"
 import type { Room } from "../src/domain/room/room.js"
 import { cryptoRandomSource } from "../src/infrastructure/crypto-identity.js"
@@ -24,26 +25,16 @@ const freshGame = (): Game => {
   return game.value
 }
 
-const chooseAction = (game: Game, playerId: string) => {
-  const best = computeHints(toPlayerView(game, playerId)).plays[0]
-  const canKeepHand = game.deck.length > 0 && getPlayer(game, playerId).hand.length <= 4
-  return best?.kind === "discard" && canKeepHand ? null : (best?.action ?? null)
-}
+const hintsFor = (game: Game, playerId: string) =>
+  computeHints(toPlayerView(game, playerId), countRanksInPiles(game))
 
-const playTurn = (initial: Game): Game => {
-  let game = initial
+const playTurn = (game: Game): Game => {
   const playerId = game.turn.playerId
-  for (let step = 0; step < 2 && !isFinished(game) && game.turn.playerId === playerId; step++) {
-    const action = chooseAction(game, playerId)
-    if (!action) break
-    const applied = playAction(game, playerId, action, cryptoRandomSource)
-    if (!applied.ok) throw new Error(applied.error)
-    game = applied.value
-  }
-  if (isFinished(game) || game.turn.playerId !== playerId) return game
-  const ended = endTurn(game, playerId, cryptoRandomSource)
-  if (!ended.ok) throw new Error(ended.error)
-  return ended.value
+  const best = hintsFor(game, playerId).plays[0]
+  if (!best) throw new Error(`Sem jogada para ${playerId}`)
+  const applied = playAction(game, playerId, best.action)
+  if (!applied.ok) throw new Error(applied.error)
+  return applied.value
 }
 
 const playWholeGame = (): void => {
@@ -52,6 +43,7 @@ const playWholeGame = (): void => {
 }
 
 const midGame = freshGame()
+const openingDiscard = { type: "discard", card: getPlayer(midGame, "p0").hand[0] } as TurnAction
 const room: Room<Game> = {
   ...createRoom("ABC234", {
     id: "p0",
@@ -92,9 +84,9 @@ const payloadBytes = Buffer.byteLength(
 
 console.table([
   measure("embaralhar e distribuir (6 jogadores)", () => void freshGame()),
-  measure("aplicar uma ação", () => void applyTurnAction(midGame, "p0", { type: "draw" })),
+  measure("aplicar uma ação", () => void applyTurnAction(midGame, "p0", openingDiscard)),
   measure("visão de um jogador", () => void toPlayerView(midGame, "p1")),
-  measure("calcular dicas", () => void computeHints(toPlayerView(midGame, "p0"))),
+  measure("calcular dicas", () => void hintsFor(midGame, "p0")),
   measure("montar e serializar estado para 6 jogadores", () => {
     const present = createRoomStatePresenter(room, Date.now())
     for (const seat of seats) JSON.stringify(present(seat.id))
