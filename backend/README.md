@@ -45,7 +45,7 @@ docker compose --profile observability up --build
 Roda o teste de carga contra o contêiner:
 
 ```bash
-MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
+MAX_CONNECTIONS_PER_IP=100000 MAX_ROOMS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
 ```
 
 ```bash
@@ -69,6 +69,7 @@ ROOM_STEPS=10,50,100 LABEL=capacidade docker compose --profile perf run --rm --n
 | `TRUST_PROXY` | `false` | Lê o IP real em `X-Forwarded-For`. Ligue em Railway, Render ou atrás de qualquer proxy, senão todos os jogadores contam como um só IP |
 | `CLIENT_IP_HEADER` | `x-forwarded-for` | Cabeçalho lido primeiro com `TRUST_PROXY` ligado. Use um que o proxy sobrescreva, como `cf-connecting-ip` no Render, porque o cliente pode falsificar o `X-Forwarded-For` |
 | `MAX_CONNECTIONS_PER_IP` | `30` | Conexões simultâneas por IP |
+| `MAX_ROOMS_PER_IP` | `3` | Salas abertas ao mesmo tempo criadas pelo mesmo IP. A vaga volta quando a sala é apagada. Exige `TRUST_PROXY` ligado atrás de proxy, senão vale para todos os jogadores juntos |
 | `ROOM_CREATIONS_PER_MINUTE` | `10` | Salas criadas por minuto, por IP |
 | `ROOM_JOINS_PER_MINUTE` | `30` | Tentativas de entrar em sala por minuto, por IP. Dificulta adivinhar códigos |
 | `LOG_LEVEL` | `info` | Nível de log |

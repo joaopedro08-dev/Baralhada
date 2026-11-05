@@ -152,7 +152,7 @@ O documento de requisitos do projeto não está neste repositório; os códigos 
 
 - Mensagem de até 4 KB, com esquema estrito por comando.
 - Até 20 comandos por segundo por conexão, com rajada de 40.
-- Até 30 conexões simultâneas e 10 salas novas por minuto por IP. Atrás de proxy, ligue `TRUST_PROXY`.
+- Até 30 conexões simultâneas, 10 salas novas por minuto e 3 salas abertas ao mesmo tempo por IP. Atrás de proxy, ligue `TRUST_PROXY`.
 - Conexão de outro site é recusada: a origem precisa ser o próprio endereço do jogo ou estar em `CORS_ORIGIN`.
 - Falha ao servir uma página responde 500 e não derruba o processo nem as salas.
 - Código de sala com 6 caracteres de um alfabeto de 32 (cerca de 1 bilhão de combinações).

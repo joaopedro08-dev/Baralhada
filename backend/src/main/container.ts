@@ -75,6 +75,8 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
       publicUrl: config.publicUrl,
       roomCreationsPerMinute: config.roomCreationsPerMinute,
       roomJoinsPerMinute: config.roomJoinsPerMinute,
+      maxRoomsPerAddress: config.maxRoomsPerAddress,
+      roomExists: (code) => rooms.find(code) !== undefined,
     }
   )
 

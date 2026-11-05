@@ -74,6 +74,7 @@ beforeAll(async () => {
     MAX_CONNECTIONS_PER_IP: "100000",
     MATCH_COUNTDOWN_SECONDS: "0",
     MAX_ROOMS: "1000",
+    MAX_ROOMS_PER_IP: "1000",
   })
   app = await startApp(config, silentLogger)
   url = `http://127.0.0.1:${app.port}`
@@ -389,6 +390,43 @@ describe("partida pela rede", () => {
     expect(await tryCode()).toBe("ROOM_NOT_FOUND")
     expect(await tryCode()).toBe("ROOM_NOT_FOUND")
     expect(await tryCode()).toBe("RATE_LIMITED")
+
+    await limited.stop()
+  })
+
+  it("limita as salas abertas por IP e devolve a vaga quando alguém sai", async () => {
+    const limited = await startApp(
+      loadConfig({
+        PORT: "0",
+        METRICS_PORT: "0",
+        LOG_LEVEL: "silent",
+        NODE_ENV: "test",
+        MAX_ROOMS_PER_IP: "2",
+      }),
+      silentLogger
+    )
+    const connectLimited = async () => {
+      const socket = io(`http://127.0.0.1:${limited.port}`, {
+        transports: ["websocket"],
+        forceNew: true,
+        reconnection: false,
+      })
+      opened.push(socket)
+      await new Promise((resolve) => socket.once("connect", () => resolve(null)))
+      return socket
+    }
+    const create = (socket: Awaited<ReturnType<typeof connectLimited>>) =>
+      request<SeatDto>(socket, "room:create", { nickname: "Ana" })
+
+    const first = await connectLimited()
+    await expectData(create(first))
+    await expectData(create(await connectLimited()))
+
+    const third = await connectLimited()
+    expect(await expectErrorCode(create(third))).toBe("TOO_MANY_ROOMS")
+
+    await expectData(request(first, "room:leave"))
+    await expectData(create(third))
 
     await limited.stop()
   })

@@ -13,6 +13,7 @@ import type { GetHints } from "../../application/use-cases/rouba-monte/get-hints
 import type { StartMatch } from "../../application/use-cases/start-match.js"
 import { err, ok } from "../../domain/shared/result.js"
 import type { Result } from "../../domain/shared/result.js"
+import { AddressRoomQuota } from "./address-room-quota.js"
 import type { ClientConnection, CommandMetrics, RawAck } from "./connection.js"
 import type { Ack, ClientCommand, ClientCommands, SeatDto } from "./contract.js"
 import type { Game, GameErrorCode, TurnAction } from "./game.js"
@@ -49,6 +50,8 @@ export interface SocketControllerOptions {
   readonly publicUrl: string
   readonly roomCreationsPerMinute: number
   readonly roomJoinsPerMinute: number
+  readonly maxRoomsPerAddress: number
+  readonly roomExists: (code: string) => boolean
 }
 
 type Outcome<C extends ClientCommand> = Result<ClientCommands[C]["output"], ErrorCode>
@@ -56,6 +59,7 @@ type Outcome<C extends ClientCommand> = Result<ClientCommands[C]["output"], Erro
 export class SocketController {
   private readonly roomCreations: AddressRateLimiter
   private readonly roomJoins: AddressRateLimiter
+  private readonly roomQuota: AddressRoomQuota
 
   constructor(
     private readonly useCases: SocketUseCases,
@@ -69,6 +73,7 @@ export class SocketController {
       new AddressRateLimiter(perMinute, perMinute / 60, clock)
     this.roomCreations = limiterOf(options.roomCreationsPerMinute)
     this.roomJoins = limiterOf(options.roomJoinsPerMinute)
+    this.roomQuota = new AddressRoomQuota(options.maxRoomsPerAddress, options.roomExists)
   }
 
   attach(connection: ClientConnection): void {
@@ -99,11 +104,14 @@ export class SocketController {
         session.actor ? run(session.actor, input as never) : err("NOT_IN_ROOM")
       )
 
-    seated("room:create", createRoomSchema, (input: { nickname: string }) =>
-      this.roomCreations.tryConsume(connection.clientAddress)
-        ? createRoom.execute(input)
-        : err("RATE_LIMITED")
-    )
+    seated("room:create", createRoomSchema, (input: { nickname: string }) => {
+      const address = connection.clientAddress
+      if (!this.roomQuota.hasRoomFor(address)) return err("TOO_MANY_ROOMS")
+      if (!this.roomCreations.tryConsume(address)) return err("RATE_LIMITED")
+      const created = createRoom.execute(input)
+      if (created.ok) this.roomQuota.record(address, created.value.roomCode)
+      return created
+    })
     seated("room:join", joinRoomSchema, (input: { code: string; nickname: string }) =>
       this.roomJoins.tryConsume(connection.clientAddress)
         ? joinRoom.execute(input)

@@ -6,7 +6,12 @@ import type { Play, RiskAlert } from "../../domain/games/rouba-monte/hints.js"
 import type { Game, GameEvent, PlayerId } from "../../domain/games/rouba-monte/model.js"
 
 export type TransportErrorCode =
-  "INVALID_PAYLOAD" | "NOT_IN_ROOM" | "ALREADY_IN_ROOM" | "RATE_LIMITED" | "INTERNAL_ERROR"
+  | "INVALID_PAYLOAD"
+  | "NOT_IN_ROOM"
+  | "ALREADY_IN_ROOM"
+  | "RATE_LIMITED"
+  | "TOO_MANY_ROOMS"
+  | "INTERNAL_ERROR"
 
 export type ErrorCode = ApplicationErrorCode<GameErrorCode> | TransportErrorCode
 
@@ -44,6 +49,8 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   NOT_IN_ROOM: "Você não está em uma sala.",
   ALREADY_IN_ROOM: "Você já está em uma sala.",
   RATE_LIMITED: "Muitas ações em pouco tempo. Aguarde um instante.",
+  TOO_MANY_ROOMS:
+    "Já há salas demais abertas nesta conexão. Saia de uma ou aguarde alguns minutos.",
   INTERNAL_ERROR: "Ocorreu um erro inesperado.",
 }
 

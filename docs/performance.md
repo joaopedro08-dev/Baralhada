@@ -93,7 +93,7 @@ Com a correção:
 | O último jogador clica em "Sair da sala" | Na hora |
 | Todos fecham a aba | Entre 146 s e 157 s depois |
 
-O prazo de 150 s fica acima dos 120 s de reconexão, então quem cai ainda consegue voltar. Quem mantém salas abertas de propósito continua ocupando vagas: isso exigiria um limite de salas por IP.
+O prazo de 150 s fica acima dos 120 s de reconexão, então quem cai ainda consegue voltar. Para quem mantém salas abertas de propósito, `MAX_ROOMS_PER_IP=3` limita cada IP a 3 das 10 vagas. Quem usa vários IPs ainda consegue ocupar todas.
 
 ## O que as medições encontraram
 
@@ -150,7 +150,7 @@ ROOM_STEPS=50,100,200,400 STEP_SECONDS=45 LABEL=capacidade docker compose --prof
 ```
 
 ```bash
-APP_CPUS=1 MAX_ROOMS=1000 MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
+APP_CPUS=1 MAX_ROOMS=1000 MAX_ROOMS_PER_IP=100000 MAX_CONNECTIONS_PER_IP=100000 ROOM_CREATIONS_PER_MINUTE=100000 ROOM_JOINS_PER_MINUTE=100000 docker compose up -d app
 ```
 
 Os resultados ficam em `backend/perf/results`. Para acompanhar ao vivo, suba o perfil `observability` e abra o painel em `localhost:3001`.

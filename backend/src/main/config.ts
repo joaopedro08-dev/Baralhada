@@ -15,6 +15,7 @@ const envSchema = z.object({
   EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(150),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().positive().default(5),
   MAX_ROOMS: z.coerce.number().int().positive().default(10),
+  MAX_ROOMS_PER_IP: z.coerce.number().int().positive().default(3),
   TRUST_PROXY: z.stringbool().default(false),
   CLIENT_IP_HEADER: z.string().min(1).default("x-forwarded-for"),
   MAX_CONNECTIONS_PER_IP: z.coerce.number().int().positive().default(30),
@@ -37,6 +38,7 @@ export interface AppConfig {
   readonly maxConnectionsPerAddress: number
   readonly roomCreationsPerMinute: number
   readonly roomJoinsPerMinute: number
+  readonly maxRoomsPerAddress: number
   readonly game: {
     readonly turnDurationMs: number
     readonly matchCountdownMs: number
@@ -70,6 +72,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv): AppConfig => {
     maxConnectionsPerAddress: parsed.MAX_CONNECTIONS_PER_IP,
     roomCreationsPerMinute: parsed.ROOM_CREATIONS_PER_MINUTE,
     roomJoinsPerMinute: parsed.ROOM_JOINS_PER_MINUTE,
+    maxRoomsPerAddress: parsed.MAX_ROOMS_PER_IP,
     game: {
       turnDurationMs: parsed.TURN_SECONDS * 1000,
       matchCountdownMs: parsed.MATCH_COUNTDOWN_SECONDS * 1000,
