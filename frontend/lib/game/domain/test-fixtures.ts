@@ -20,7 +20,6 @@ export const buildGame = (changes: Partial<GameState> = {}): GameState => ({
   currentPlayerId: "eu",
   turnNumber: 3,
   drewThisTurn: false,
-  canPass: false,
   endReason: null,
   winnerIds: [],
   history: [],

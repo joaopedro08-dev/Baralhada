@@ -25,11 +25,6 @@ describe("guia do turno", () => {
     )
   })
 
-  it("pede para passar a vez depois de comprar com até 4 cartas", () => {
-    const game = buildGame({ drewThisTurn: true, canPass: true })
-    expect(describeNextStep({ ...base, game })).toContain("passe a vez")
-  })
-
   it("pede uma jogada depois de comprar com 5 cartas", () => {
     const game = buildGame({ drewThisTurn: true })
     expect(describeNextStep({ ...base, game })).toContain("para fechar o turno")

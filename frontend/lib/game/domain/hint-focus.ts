@@ -42,8 +42,6 @@ const bestPlayOf = (action: TurnAction, viewerId: PlayerId): BestPlay => {
       return { ...NO_BEST_PLAY, card: action.card }
     case "draw":
       return { ...NO_BEST_PLAY, draw: true }
-    case "pass":
-      return NO_BEST_PLAY
   }
 }
 

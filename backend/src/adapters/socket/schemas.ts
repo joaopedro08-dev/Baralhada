@@ -48,5 +48,4 @@ export const turnActionSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("steal"), card, targetId: playerId }),
   z.strictObject({ type: z.literal("discard"), card }),
   z.strictObject({ type: z.literal("draw") }),
-  z.strictObject({ type: z.literal("pass") }),
 ])

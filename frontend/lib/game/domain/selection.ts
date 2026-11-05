@@ -108,9 +108,7 @@ export const planAction = (
   { card, tableCards, pile }: Selection,
   viewerId: PlayerId
 ): ActionPlan => {
-  if (kind === "draw" || kind === "pass") {
-    return { ready: true, action: { type: kind } }
-  }
+  if (kind === "draw") return { ready: true, action: { type: "draw" } }
   if (!card) {
     return { ready: false, problem: "Selecione 1 carta da sua mão." }
   }
@@ -143,9 +141,8 @@ export const isActionAvailable = (
   viewerId: PlayerId,
   kind: TurnActionKind
 ): boolean => {
+  if (game.hand.length === 0) return false
   if (kind === "draw") return !game.drewThisTurn && game.deckSize > 0
-  if (kind === "pass") return game.canPass
-  if (game.hand.length === 0 || game.canPass) return false
   switch (kind) {
     case "capture":
       return game.table.length > 0
@@ -172,7 +169,6 @@ export const suggestAction = (
   bestAction: TurnActionKind | null = null
 ): TurnActionKind | null => {
   const { card, tableCards, pile } = selection
-  if (game.canPass) return "pass"
   if (pile) return pile === viewerId ? "stack" : "steal"
   if (tableCards.length > 0) return "capture"
   if (!card) return bestAction

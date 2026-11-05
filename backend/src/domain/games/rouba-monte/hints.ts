@@ -137,25 +137,24 @@ const oneCardPerRank = (hand: readonly Card[]): readonly Card[] => [
   ...new Map(hand.map((card) => [rankOf(card), card])).values(),
 ]
 
-const turnPlay = (action: TurnAction, score: number): Play => ({
-  action,
-  kind: action.type,
+const DRAW_PLAY: Play = {
+  action: { type: "draw" },
+  kind: "draw",
   rank: null,
   targetId: null,
   gainedCards: 0,
-  score,
-})
+  score: DRAW_SCORE,
+}
 
 const availablePlays = (context: Context): readonly Play[] => {
   const { view } = context
   if (view.currentPlayerId !== view.viewerId || view.endReason !== null) return []
-  if (view.canPass) return [turnPlay({ type: "pass" }, 0)]
   const cards = oneCardPerRank(view.hand)
   const mayDraw = !view.drewThisTurn && view.deckSize > 0
   return [
     ...cards.flatMap((card) => playsWith(context, card)),
     ...cards.map((card) => discardPlay(context, card)),
-    ...(mayDraw ? [turnPlay({ type: "draw" }, DRAW_SCORE)] : []),
+    ...(mayDraw ? [DRAW_PLAY] : []),
   ].toSorted((first, second) => second.score - first.score)
 }
 

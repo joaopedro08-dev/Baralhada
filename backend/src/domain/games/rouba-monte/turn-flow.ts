@@ -15,16 +15,19 @@ import {
 } from "./model.js"
 import type { Game, GameEndReason, GameEvent, GamePlayer, PlayerId } from "./model.js"
 import { replenishTable } from "./table.js"
-import { anyoneCanScore, applyTurnAction, turnRefusal } from "./turn-actions.js"
+import { anyoneCanScore, applyTurnAction } from "./turn-actions.js"
 import type { TurnAction } from "./turn-actions.js"
 
 const refillHand = (game: Game, playerId: PlayerId): Game => {
   const player = getPlayer(game, playerId)
-  const count = Math.min(HAND_SIZE, game.deck.length)
-  if (player.hand.length > 0 || count === 0) return game
+  const count = Math.min(Math.max(HAND_SIZE - player.hand.length, 0), game.deck.length)
+  if (count === 0) return game
   return {
     ...game,
-    players: replacePlayer(game.players, { ...player, hand: game.deck.slice(0, count) }),
+    players: replacePlayer(game.players, {
+      ...player,
+      hand: [...player.hand, ...game.deck.slice(0, count)],
+    }),
     deck: game.deck.slice(count),
     events: appendEvents(game.events, { type: "handRefilled", playerId, count }),
   }
@@ -82,9 +85,7 @@ export const expireTurn = (game: Game, random: RandomSource): Game => {
     ...game,
     events: appendEvents(game.events, { type: "turnTimedOut", playerId: player.id }),
   }
-  const mayPass = turnRefusal(game, player.id, "pass") === null
-  const settled = mayPass ? timedOut : discardAtRandom(timedOut, player, random)
-  return settleTurn(settled, seatsAfter(game, player.id))
+  return settleTurn(discardAtRandom(timedOut, player, random), seatsAfter(game, player.id))
 }
 
 export const removePlayer = (game: Game, playerId: PlayerId, random: RandomSource): Game => {
