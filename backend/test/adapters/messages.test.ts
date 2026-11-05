@@ -18,6 +18,8 @@ describe("RF-13 frases do histórico", () => {
       "Ana capturou 2 cartas da mesa com o 7 de paus",
     ],
     [{ type: "stacked", playerId: "ana", card: "QD" }, "Ana pôs a dama de ouros no próprio monte"],
+    [{ type: "drew", playerId: "ana" }, "Ana comprou 1 carta"],
+    [{ type: "passed", playerId: "ana" }, "Ana passou a vez"],
     [
       { type: "stole", playerId: "ana", targetId: "beto", card: "9C", stolenCount: 12 },
       "Ana roubou o monte de Beto (12 cartas)",
@@ -45,21 +47,17 @@ describe("RF-17 e RF-18 frases das dicas", () => {
 
   it.each<[Partial<Play>, string]>([
     [
-      { kind: "steal", rank: "9", targetId: "beto", gainedCards: 5 },
+      { action: { type: "steal", card: "9C", targetId: "beto" }, gainedCards: 5 },
       "Rouba o monte de Beto com o 9 e leva 5 cartas.",
     ],
     [
-      { kind: "capture", rank: "J", gainedCards: 2 },
+      { action: { type: "capture", card: "JC", tableCards: ["JD"] }, gainedCards: 2 },
       "Captura o valete da mesa e leva 2 cartas para o seu monte.",
     ],
-    [
-      { kind: "stack", rank: "4", gainedCards: 1 },
-      "Põe o 4 no seu monte, que mantém o mesmo topo.",
-    ],
-    [
-      { kind: "discard", rank: "K" },
-      "Descarta o rei, a carta que menos ajuda os adversários agora.",
-    ],
+    [{ action: { type: "stack", card: "4C" } }, "Põe o 4 no seu monte, que mantém o mesmo topo."],
+    [{}, "Descarta o rei, a carta que menos ajuda os adversários agora."],
+    [{ action: { type: "draw" } }, "Compra 1 carta do baralho para ter mais opções."],
+    [{ action: { type: "pass" } }, "Passa a vez e guarda as cartas da mão."],
   ])("descreve %j", (changes, sentence) => {
     expect(describePlay(play(changes), nameOf)).toBe(sentence)
   })

@@ -68,9 +68,25 @@ describe("RF-16 e RF-17 jogadas possíveis", () => {
     expect(plays.at(-1)?.kind).toBe("discard")
   })
 
-  it("inclui capturar, pôr no monte, roubar e descartar", () => {
+  it("inclui capturar, pôr no monte, roubar, descartar e comprar", () => {
     const kinds = hintsOf(scene, "a").plays.map((play) => play.kind)
-    expect(new Set(kinds)).toEqual(new Set(["steal", "capture", "stack", "discard"]))
+    expect(new Set(kinds)).toEqual(new Set(["steal", "capture", "stack", "discard", "draw"]))
+  })
+
+  it("só sugere passar depois de comprar ficando com até 4 cartas", () => {
+    const drew: Game = { ...scene, turn: { ...scene.turn, drew: true } }
+    expect(hintsOf(drew, "a").plays.map((play) => play.action)).toEqual([{ type: "pass" }])
+  })
+
+  it("não sugere comprar de novo com 5 cartas", () => {
+    const five = buildGame({
+      players: { a: { hand: ["5C", "3C", "KS", "2D", "9H"] }, b: {} },
+      turn: { drew: true },
+    })
+    const kinds = hintsOf(five, "a").plays.map((play) => play.kind)
+    expect(kinds).not.toContain("draw")
+    expect(kinds).not.toContain("pass")
+    expect(kinds).toContain("discard")
   })
 
   it("destaca as cartas da mão, da mesa e os topos que podem ser usados", () => {

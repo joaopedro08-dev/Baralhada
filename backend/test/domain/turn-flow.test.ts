@@ -165,7 +165,7 @@ describe("RN-17 tempo de turno", () => {
 
     expect(["2C", "3D"]).toContain(discarded)
     expect(getPlayer(next, "a").hand).toHaveLength(1)
-    expect(next.turn).toEqual({ number: 2, playerId: "b" })
+    expect(next.turn).toEqual({ number: 2, playerId: "b", drew: false })
     expect(next.events.slice(-2)).toEqual([
       { type: "turnTimedOut", playerId: "a" },
       { type: "discarded", playerId: "a", card: discarded },
@@ -199,7 +199,7 @@ describe("RN-16 jogador sai no meio da partida", () => {
   })
 
   it("passa a vez quando quem saiu era o jogador da vez", () => {
-    expect(removePlayer(game, "a", random).turn).toEqual({ number: 2, playerId: "b" })
+    expect(removePlayer(game, "a", random).turn).toEqual({ number: 2, playerId: "b", drew: false })
   })
 
   it("encerra como abandonada quando sobra 1 jogador", () => {
@@ -225,5 +225,84 @@ describe("RN-16 jogador sai no meio da partida", () => {
   it("ignora saídas depois do fim", () => {
     const finished: Game = { ...game, endReason: "handsEmpty" }
     expect(removePlayer(finished, "a", random)).toBe(finished)
+  })
+})
+
+describe("comprar e passar a vez", () => {
+  const scene = (hand: readonly Card[], deck: readonly Card[] = ["KC", "KD"]) =>
+    buildGame({ players: { a: { hand }, b: { hand: ["3C"] } }, deck })
+
+  it("compra 1 carta sem fechar o turno", () => {
+    const next = play(scene(["2C", "5D", "6H"]), { type: "draw" })
+
+    expect(getPlayer(next, "a").hand).toEqual(["2C", "5D", "6H", "KC"])
+    expect(next.deck).toEqual(["KD"])
+    expect(next.turn).toEqual({ number: 1, playerId: "a", drew: true })
+    expect(next.events.at(-1)).toEqual({ type: "drew", playerId: "a" })
+  })
+
+  it("com até 4 cartas depois de comprar, só deixa passar a vez", () => {
+    const drew = play(scene(["2C", "5D", "6H"]), { type: "draw" })
+
+    expect(playTurn(drew, "a", { type: "discard", card: "2C" })).toEqual({
+      ok: false,
+      error: "MUST_PASS_AFTER_DRAW",
+    })
+    const passed = play(drew, { type: "pass" })
+    expect(passed.turn).toEqual({ number: 2, playerId: "b", drew: false })
+    expect(getPlayer(passed, "a").hand).toHaveLength(4)
+    expect(passed.events).toContainEqual({ type: "passed", playerId: "a" })
+  })
+
+  it("com 5 cartas depois de comprar, exige uma jogada que fecha o turno", () => {
+    const drew = play(scene(["2C", "5D", "6H", "7S"]), { type: "draw" })
+
+    expect(playTurn(drew, "a", { type: "pass" })).toEqual({
+      ok: false,
+      error: "MUST_PLAY_AFTER_DRAW",
+    })
+    const discarded = play(drew, { type: "discard", card: "2C" })
+    expect(discarded.turn.playerId).toBe("b")
+    expect(getPlayer(discarded, "a").hand).toHaveLength(4)
+  })
+
+  it("não deixa passar sem comprar nem comprar duas vezes", () => {
+    const game = scene(["2C", "5D"])
+    expect(playTurn(game, "a", { type: "pass" })).toEqual({
+      ok: false,
+      error: "MUST_DRAW_BEFORE_PASSING",
+    })
+    const drew = play(game, { type: "draw" })
+    expect(playTurn(drew, "a", { type: "draw" })).toEqual({ ok: false, error: "ALREADY_DREW" })
+  })
+
+  it("com o baralho vazio não compra e obriga a jogar", () => {
+    const empty = buildGame({
+      players: { a: { hand: ["2C"] }, b: { hand: ["2D"] } },
+      table: ["4S", "5S", "6S"],
+      deck: [],
+    })
+    expect(playTurn(empty, "a", { type: "draw" })).toEqual({ ok: false, error: "DECK_EMPTY" })
+    expect(playTurn(empty, "a", { type: "pass" })).toEqual({
+      ok: false,
+      error: "MUST_DRAW_BEFORE_PASSING",
+    })
+  })
+
+  it("quando o tempo acaba depois de comprar com até 4 cartas, só passa a vez", () => {
+    const drew = play(scene(["2C", "5D"]), { type: "draw" })
+    const next = expireTurn(drew, random)
+
+    expect(getPlayer(next, "a").hand).toEqual(["2C", "5D", "KC"])
+    expect(next.table).toEqual(drew.table)
+    expect(next.turn.playerId).toBe("b")
+  })
+
+  it("quando o tempo acaba com 5 cartas, descarta 1 aleatória", () => {
+    const drew = play(scene(["2C", "5D", "6H", "7S"]), { type: "draw" })
+    const next = expireTurn(drew, random)
+
+    expect(getPlayer(next, "a").hand).toHaveLength(4)
+    expect(next.table).toHaveLength(drew.table.length + 1)
   })
 })

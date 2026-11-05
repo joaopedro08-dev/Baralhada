@@ -5,7 +5,7 @@ export const RULE_SECTIONS = [
   },
   {
     title: "Seu turno",
-    text: "Você faz 1 jogada por turno, e ela fecha o turno: capturar, pôr no seu monte, roubar ou descartar. Não existe comprar nem passar a vez. Quando sua mão fica vazia, você recebe 4 cartas do baralho de compra.",
+    text: "Você faz 1 jogada por turno, e ela fecha o turno: capturar, pôr no seu monte, roubar ou descartar. Também pode comprar 1 carta do baralho: com 5 cartas na mão, faça uma dessas jogadas; com até 4, passe a vez. Passar a vez só vale depois de comprar. Quando sua mão fica vazia, você recebe 4 cartas do baralho de compra.",
   },
   {
     title: "Capturar e pôr no monte",
@@ -21,6 +21,6 @@ export const RULE_SECTIONS = [
   },
   {
     title: "Mesa, tempo e fim",
-    text: "A mesa começa com 8 cartas e volta a 8 quando fica com menos de 3. Cada turno tem 60 segundos; se o tempo acabar, 1 carta da sua mão vai para a mesa. A partida termina quando o baralho acaba e ninguém consegue mais capturar, pôr no monte nem roubar, ou quando todas as mãos ficam vazias.",
+    text: "A mesa começa com 8 cartas e volta a 8 quando fica com menos de 3. Cada turno tem 60 segundos; se o tempo acabar, 1 carta da sua mão vai para a mesa, a não ser que você já tenha comprado e possa passar a vez. Com o baralho vazio não dá para comprar nem passar. A partida termina quando o baralho acaba e ninguém consegue mais capturar, pôr no monte nem roubar, ou quando todas as mãos ficam vazias.",
   },
 ] as const
