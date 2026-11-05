@@ -29,7 +29,7 @@ const settings: GameSettings = {
   turnDurationMs: 60_000,
   matchCountdownMs: 0,
   reconnectGraceMs: 120_000,
-  emptyRoomTtlMs: 600_000,
+  emptyRoomTtlMs: 150_000,
   maxRooms: 2,
 }
 
@@ -335,7 +335,49 @@ describe("casos de uso", () => {
   })
 
   describe("RNF-07 limpeza", () => {
-    it("apaga a sala após 10 min sem ninguém conectado", () => {
+    it("libera a vaga na hora quando o último jogador sai", () => {
+      const first = unwrap(app.create.execute({ nickname: "A" }))
+      unwrap(app.create.execute({ nickname: "B" }))
+      expect(app.create.execute({ nickname: "C" })).toEqual({ ok: false, error: "SERVER_FULL" })
+
+      unwrap(app.leave.execute({ roomCode: first.roomCode, playerId: first.playerId }))
+
+      expect(app.rooms.find(first.roomCode)).toBeUndefined()
+      expect(app.create.execute({ nickname: "C" }).ok).toBe(true)
+    })
+
+    it("mantém a sala enquanto restar alguém nela", () => {
+      const { hostActor, host } = lobby(app)
+      unwrap(app.leave.execute(hostActor))
+      expect(app.rooms.find(host.roomCode)?.players).toHaveLength(1)
+    })
+
+    it("apaga a sala e cancela o cronômetro quando todos saem da partida", () => {
+      const { hostActor, guestActor, host } = lobby(app)
+      unwrap(app.start.execute(hostActor))
+      unwrap(app.leave.execute(hostActor))
+      unwrap(app.leave.execute(guestActor))
+      expect(app.rooms.find(host.roomCode)).toBeUndefined()
+      expect(app.timers.has(host.roomCode)).toBe(false)
+    })
+
+    it("deixa reconectar até o fim do prazo mesmo com a sala vazia", () => {
+      const { hostActor, guestActor, host } = lobby(app)
+      app.disconnect.execute(hostActor)
+      app.disconnect.execute(guestActor)
+
+      app.clock.current += settings.reconnectGraceMs - 1
+      app.sweep.execute()
+
+      const back = app.reconnect.execute({
+        code: host.roomCode,
+        nickname: "Ana",
+        reconnectToken: host.reconnectToken,
+      })
+      expect(back.ok).toBe(true)
+    })
+
+    it("apaga a sala depois do prazo sem ninguém conectado", () => {
       const { hostActor, guestActor, host } = lobby(app)
       app.disconnect.execute(hostActor)
       app.disconnect.execute(guestActor)

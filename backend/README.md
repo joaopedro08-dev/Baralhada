@@ -64,7 +64,7 @@ ROOM_STEPS=10,50,100 LABEL=capacidade docker compose --profile perf run --rm --n
 | `TURN_SECONDS` | `60` | Tempo de turno (RN-21) |
 | `MATCH_COUNTDOWN_SECONDS` | `3` | Contagem antes da partida. Jogadas só valem depois dela |
 | `RECONNECT_GRACE_SECONDS` | `120` | Prazo de reconexão (RF-06) |
-| `EMPTY_ROOM_TTL_SECONDS` | `600` | Tempo até apagar sala vazia (RNF-07) |
+| `EMPTY_ROOM_TTL_SECONDS` | `150` | Tempo até apagar sala sem ninguém conectado (RNF-07). Mantenha acima de `RECONNECT_GRACE_SECONDS`, senão a sala some antes do prazo de reconexão |
 | `MAX_ROOMS` | `10` | Limite de salas em memória. 10 é o que o plano gratuito sustentou com a meta de 1 s |
 | `TRUST_PROXY` | `false` | Lê o IP real em `X-Forwarded-For`. Ligue em Railway, Render ou atrás de qualquer proxy, senão todos os jogadores contam como um só IP |
 | `CLIENT_IP_HEADER` | `x-forwarded-for` | Cabeçalho lido primeiro com `TRUST_PROXY` ligado. Use um que o proxy sobrescreva, como `cf-connecting-ip` no Render, porque o cliente pode falsificar o `X-Forwarded-For` |

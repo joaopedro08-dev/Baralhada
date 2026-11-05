@@ -12,7 +12,7 @@ const envSchema = z.object({
   TURN_SECONDS: z.coerce.number().positive().default(60),
   MATCH_COUNTDOWN_SECONDS: z.coerce.number().min(0).default(3),
   RECONNECT_GRACE_SECONDS: z.coerce.number().positive().default(120),
-  EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(600),
+  EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(150),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().positive().default(5),
   MAX_ROOMS: z.coerce.number().int().positive().default(10),
   TRUST_PROXY: z.stringbool().default(false),

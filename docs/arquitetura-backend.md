@@ -134,6 +134,7 @@ O contrato HTTP tem só esses três caminhos sem regra de negócio, então não 
 | Pares iguais em duas áreas (RN-10) | Com um par do mesmo valor em cada área, as 4 cartas estão à vista e ninguém tem carta na mão para roubar. Quem jogar primeiro pode pegar o par do outro sem carta da mão e fecha a quadra |
 | Ordem dos turnos (RN-03) | "Para a direita" é a ordem de entrada na sala: depois do último, volta para o primeiro. Quem sai não muda a ordem dos outros |
 | Limite de salas | `MAX_ROOMS=10` no plano gratuito, o maior número medido que atendeu à meta de 1 s. Decidido em 2026-11-04 |
+| Sala vazia (RNF-07) | Quando o último jogador sai pelo botão, a sala é apagada na hora. Sem ninguém conectado, ela é apagada depois de 150 s, em vez dos 10 min do documento de requisitos, para não prender as vagas do limite. Decidido em 2026-11-04 |
 
 ## Decisões onde os requisitos eram omissos ou conflitantes
 

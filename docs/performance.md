@@ -84,7 +84,16 @@ O estado enviado a cada jogador tem cerca de 1 KB no início da partida e cresce
 
 ## Limpeza de salas (RNF-07)
 
-Dez salas abandonadas no fim de um teste estavam em memória às 16:57. Às 17:09 restavam zero salas, com o prazo de 10 min já vencido.
+Medido em 2026-11-04 com `MAX_ROOMS=10`, no build de produção. Com o prazo antigo de 10 min, uma pessoa ocupou as 10 vagas em 27 s, e as salas abandonadas prendiam as vagas: a 11ª sala só entrou entre 591 s e 622 s depois de as abas fecharem.
+
+Com a correção:
+
+| Situação | Vaga liberada |
+| --- | --- |
+| O último jogador clica em "Sair da sala" | Na hora |
+| Todos fecham a aba | Entre 146 s e 157 s depois |
+
+O prazo de 150 s fica acima dos 120 s de reconexão, então quem cai ainda consegue voltar. Quem mantém salas abertas de propósito continua ocupando vagas: isso exigiria um limite de salas por IP.
 
 ## O que as medições encontraram
 
