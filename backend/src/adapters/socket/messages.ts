@@ -27,6 +27,11 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   TOP_MISMATCH: "A carta precisa ter o mesmo valor do topo do monte.",
   CANNOT_STEAL_FROM_SELF: "Você não pode roubar o próprio monte.",
   TARGET_NOT_FOUND: "Esse jogador não está na partida.",
+  DECK_EMPTY: "O baralho de compra acabou.",
+  ALREADY_DREW: "Você já comprou neste turno.",
+  MUST_DRAW_BEFORE_PASSING: "Para passar a vez, compre 1 carta antes.",
+  MUST_PLAY_AFTER_DRAW: "Com 5 cartas, descarte, capture, ponha no monte ou roube.",
+  MUST_PASS_AFTER_DRAW: "Você comprou e está com até 4 cartas: passe a vez.",
   ROOM_FULL: "A sala está cheia.",
   GAME_ALREADY_STARTED: "A partida está em andamento. Entre quando ela terminar.",
   NICKNAME_TAKEN: "Esse apelido já está em uso na sala.",
@@ -79,6 +84,10 @@ const unseenCards = (count: number): string =>
 
 export const describeEvent = (event: GameEvent, nameOf: (id: PlayerId) => string): string => {
   switch (event.type) {
+    case "drew":
+      return `${nameOf(event.playerId)} comprou 1 carta`
+    case "passed":
+      return `${nameOf(event.playerId)} passou a vez`
     case "captured":
       return `${nameOf(event.playerId)} capturou ${cardCount(event.tableCards.length)} da mesa com ${cardName(event.card)}`
     case "stacked":
@@ -106,17 +115,24 @@ export const describeHistory = (game: Game, limit: number): readonly string[] =>
     .reverse()
 }
 
-export const describePlay = (play: Play, nameOf: (id: PlayerId) => string): string => {
-  const gained = cardCount(play.gainedCards)
-  switch (play.kind) {
+export const describePlay = (
+  { action, gainedCards }: Play,
+  nameOf: (id: PlayerId) => string
+): string => {
+  const gained = cardCount(gainedCards)
+  switch (action.type) {
     case "steal":
-      return `Rouba o monte de ${nameOf(play.targetId ?? "")} com ${rankLabel(play.rank)} e leva ${gained}.`
+      return `Rouba o monte de ${nameOf(action.targetId)} com ${rankLabel(rankOf(action.card))} e leva ${gained}.`
     case "capture":
-      return `Captura ${rankLabel(play.rank)} da mesa e leva ${gained} para o seu monte.`
+      return `Captura ${rankLabel(rankOf(action.card))} da mesa e leva ${gained} para o seu monte.`
     case "stack":
-      return `Põe ${rankLabel(play.rank)} no seu monte, que mantém o mesmo topo.`
+      return `Põe ${rankLabel(rankOf(action.card))} no seu monte, que mantém o mesmo topo.`
     case "discard":
-      return `Descarta ${rankLabel(play.rank)}, a carta que menos ajuda os adversários agora.`
+      return `Descarta ${rankLabel(rankOf(action.card))}, a carta que menos ajuda os adversários agora.`
+    case "draw":
+      return "Compra 1 carta do baralho para ter mais opções."
+    case "pass":
+      return "Passa a vez e guarda as cartas da mão."
   }
 }
 

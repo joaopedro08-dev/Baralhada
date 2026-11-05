@@ -103,7 +103,7 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 | `room:leave` | nenhuma | `null` | RN-16 |
 | `room:kick` | `{ playerId }` | `null` | RF-05 |
 | `game:start` | nenhuma | `null` | RF-04, RF-15 |
-| `game:action` | `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }` ou `discard { card }`. A jogada fecha o turno | `null` | RF-09, RF-10 |
+| `game:action` | `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }`, `draw` ou `pass`. A jogada com carta fecha o turno; `draw` não fecha e `pass` fecha | `null` | RF-09, RF-10 |
 | `game:hints` | nenhuma | jogadas, destaques, risco do monte, contador | RF-16 a RF-19 |
 
 | Evento do servidor | Conteúdo |
@@ -121,11 +121,12 @@ O contrato HTTP tem só esses três caminhos sem regra de negócio, então não 
 
 ## Regras confirmadas
 
-As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rouba-monte tradicional, em que vence quem termina com o maior monte.
+As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rouba-monte tradicional, em que vence quem termina com o maior monte. A compra foi mantida a pedido do autor no mesmo dia.
 
 | Regra | Como funciona |
 | --- | --- |
-| Uma jogada por turno (RN-04) | Capturar, pôr no próprio monte, roubar ou descartar fecha o turno na hora. Não existe comprar nem passar a vez |
+| Uma jogada por turno (RN-04) | Capturar, pôr no próprio monte, roubar ou descartar fecha o turno na hora |
+| Comprar e passar a vez | O jogador pode comprar 1 carta por turno. Com 5 cartas na mão, precisa descartar, capturar, pôr no monte ou roubar, e a compra e a jogada contam como uma só. Com até 4, só pode passar a vez. Passar sem comprar é recusado, e com o baralho vazio não há compra: o jogador precisa jogar |
 | Capturar (RN-05) | 1 carta da mão e 1 ou mais cartas de mesmo valor da mesa, à escolha do jogador, vão para o topo do monte dele. A carta da mão fica por cima |
 | Pôr no próprio monte (RN-06) | Uma carta da mão igual ao topo vai para cima do monte. Com o monte vazio, a jogada é recusada |
 | Roubar (RN-07, RN-08) | A carta da mão vai para cima do monte do adversário, e esse monte inteiro vai para cima do monte de quem roubou. Cada jogada rouba 1 monte |
@@ -135,7 +136,7 @@ As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rou
 | Baralho vazio (RN-12) | Quem está sem cartas tem a vez pulada |
 | Fim (RN-13, RN-14) | Ao fechar cada turno, o servidor encerra a partida se todas as mãos estão vazias ou se o baralho acabou e ninguém tem carta para capturar, pôr no monte ou roubar. Vence o maior monte, e os empatados vencem juntos |
 | Saída (RN-16) | Mão e monte de quem sai voltam ao baralho, que é embaralhado de novo |
-| Tempo (RN-17) | Ao estourar os 60 s, 1 carta aleatória da mão vai para a mesa e o turno fecha |
+| Tempo (RN-17) | Ao estourar os 60 s, 1 carta aleatória da mão vai para a mesa e o turno fecha. Se o jogador já comprou e pode passar, o turno só passa |
 | Contagem regressiva (RF-24) | A partida começa depois de 3 segundos, contados pelo servidor. O relógio do turno só começa depois dela, e jogadas enviadas antes são recusadas |
 | Desfazer (RF-12) | Removido: não sobra ação para desfazer, porque a jogada fecha o turno |
 | Entrar na sala (RF-02) | Vale na sala de espera e entre uma partida e outra. Só a partida em andamento recusa a entrada |
@@ -144,7 +145,7 @@ As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rou
 | Limite de salas | `MAX_ROOMS=10` no plano gratuito, o maior número medido que atendeu à meta de 1 s. Decidido em 2026-11-04 |
 | Sala vazia (RNF-07) | Quando o último jogador sai pelo botão, a sala é apagada na hora. Sem ninguém conectado, ela é apagada depois de 150 s |
 
-Toda jogada tira 1 carta de alguma mão, e as mãos só recebem cartas do baralho, que só cresce quando alguém sai. Por isso a partida sempre termina, sem precisar reciclar a mesa.
+Toda jogada com carta tira 1 carta de alguma mão, e toda compra tira 1 carta do baralho, que só cresce quando alguém sai. Com o baralho vazio, passar é impossível e cada turno tira uma carta das mãos. Por isso a partida sempre termina, sem precisar reciclar a mesa.
 
 ## Decisões onde os requisitos eram omissos
 

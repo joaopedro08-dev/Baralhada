@@ -6,6 +6,7 @@ interface BestPlay {
   readonly card: Card | null
   readonly tableCards: readonly Card[]
   readonly pile: PlayerId | null
+  readonly draw: boolean
 }
 
 export interface HintFocus {
@@ -13,21 +14,36 @@ export interface HintFocus {
   readonly possible: Hints["highlights"]
 }
 
+const NO_BEST_PLAY: BestPlay = {
+  card: null,
+  tableCards: [],
+  pile: null,
+  draw: false,
+}
+
 export const NO_FOCUS: HintFocus = {
-  best: { card: null, tableCards: [], pile: null },
+  best: NO_BEST_PLAY,
   possible: { handCards: [], tableCards: [], piles: [] },
 }
 
 const bestPlayOf = (action: TurnAction, viewerId: PlayerId): BestPlay => {
   switch (action.type) {
     case "capture":
-      return { card: action.card, tableCards: action.tableCards, pile: null }
+      return {
+        ...NO_BEST_PLAY,
+        card: action.card,
+        tableCards: action.tableCards,
+      }
     case "stack":
-      return { card: action.card, tableCards: [], pile: viewerId }
+      return { ...NO_BEST_PLAY, card: action.card, pile: viewerId }
     case "steal":
-      return { card: action.card, tableCards: [], pile: action.targetId }
+      return { ...NO_BEST_PLAY, card: action.card, pile: action.targetId }
     case "discard":
-      return { card: action.card, tableCards: [], pile: null }
+      return { ...NO_BEST_PLAY, card: action.card }
+    case "draw":
+      return { ...NO_BEST_PLAY, draw: true }
+    case "pass":
+      return NO_BEST_PLAY
   }
 }
 

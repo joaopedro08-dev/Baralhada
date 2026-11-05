@@ -28,7 +28,7 @@ export const startGame = (
     players,
     table: deck.slice(dealt, dealt + TABLE_SIZE),
     deck: deck.slice(dealt + TABLE_SIZE),
-    turn: { number: 1, playerId: startingPlayerId },
+    turn: { number: 1, playerId: startingPlayerId, drew: false },
     events: [],
     endReason: null,
     winnerIds: [],
