@@ -253,16 +253,14 @@ describe("partida pela rede", () => {
     expect(after.game?.currentPlayerId).toBe(after.viewerId)
   })
 
-  it("RF-10 comprar e passar a vez chega a todos", async () => {
+  it("RF-10 comprar 1 carta chega a todos e a jogada seguinte fecha o turno", async () => {
     const { activeSocket, activeView, idleSocket } = await startMatch()
-    expect(activeView.game?.canPass).toBe(false)
-    expect(await expectErrorCode(request(activeSocket, "game:action", { type: "pass" }))).toBe(
-      "MUST_DRAW_BEFORE_PASSING"
-    )
-
     const drawn = nextState(idleSocket, (state) => state.game?.deckSize === 35)
     await expectData(request(activeSocket, "game:action", { type: "draw" }))
     expect((await drawn).game?.drewThisTurn).toBe(true)
+    expect(await expectErrorCode(request(activeSocket, "game:action", { type: "draw" }))).toBe(
+      "ALREADY_DREW"
+    )
 
     const card = activeView.game?.hand[0]
     const passed = nextState(idleSocket, (state) => state.game?.turnNumber === 2)
@@ -280,11 +278,12 @@ describe("partida pela rede", () => {
   it("RF-13 histórico descreve as jogadas, da mais recente para a mais antiga", async () => {
     const { activeSocket, activeView, idleSocket } = await startMatch()
     const card = activeView.game?.hand[0]
-    const discarded = nextState(idleSocket, (state) => (state.game?.history.length ?? 0) === 1)
+    const discarded = nextState(idleSocket, (state) => (state.game?.history.length ?? 0) === 2)
     await expectData(request(activeSocket, "game:action", { type: "discard", card }))
     const history = (await discarded).game?.history ?? []
 
-    expect(history[0]).toMatch(/^.+ descartou .+ de (paus|ouros|copas|espadas)$/)
+    expect(history[0]).toMatch(/completou a mão com 1 carta$/)
+    expect(history[1]).toMatch(/^.+ descartou .+ de (paus|ouros|copas|espadas)$/)
   })
 
   it("RF-16 a RF-19 dicas com frases em português", async () => {
@@ -458,7 +457,7 @@ describe("partida pela rede", () => {
       { code: "../../etc", nickname: "Eva" },
       { type: "capture", card: "5C", tableCards: ["5H", "5H", "5H", "5H", "5H"] },
       { type: "discard", card: "2C", extra: true },
-      { type: "draw" },
+      { type: "pass" },
       { __proto__: { admin: true }, nickname: "" },
     ]
     const commands = [

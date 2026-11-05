@@ -3,15 +3,7 @@ import type { Card } from "../../cards/card.js"
 import { err, ok } from "../../shared/result.js"
 import type { Result } from "../../shared/result.js"
 import type { GameErrorCode } from "./errors.js"
-import {
-  appendEvents,
-  findPlayer,
-  getPlayer,
-  HAND_SIZE,
-  isFinished,
-  replacePlayer,
-  topOf,
-} from "./model.js"
+import { appendEvents, findPlayer, getPlayer, isFinished, replacePlayer, topOf } from "./model.js"
 import type { Game, GameEvent, GamePlayer, PlayerId } from "./model.js"
 
 export type CardPlay =
@@ -20,7 +12,7 @@ export type CardPlay =
   | { readonly type: "steal"; readonly card: Card; readonly targetId: PlayerId }
   | { readonly type: "discard"; readonly card: Card }
 
-export type TurnAction = CardPlay | { readonly type: "draw" } | { readonly type: "pass" }
+export type TurnAction = CardPlay | { readonly type: "draw" }
 
 export type TurnActionKind = TurnAction["type"]
 
@@ -155,27 +147,9 @@ const drawCard = (game: Game, actor: GamePlayer): Game => {
   }
 }
 
-const holdsSpareCard = (actor: GamePlayer): boolean => actor.hand.length > HAND_SIZE
-
-export const turnRefusal = (
-  game: Game,
-  playerId: PlayerId,
-  kind: TurnActionKind
-): GameErrorCode | null => {
-  if (isFinished(game)) return "GAME_FINISHED"
-  if (game.turn.playerId !== playerId) return "NOT_YOUR_TURN"
-  const actor = getPlayer(game, playerId)
-  const { drew } = game.turn
-  switch (kind) {
-    case "draw":
-      if (drew) return "ALREADY_DREW"
-      return game.deck.length === 0 ? "DECK_EMPTY" : null
-    case "pass":
-      if (!drew) return "MUST_DRAW_BEFORE_PASSING"
-      return holdsSpareCard(actor) ? "MUST_PLAY_AFTER_DRAW" : null
-    default:
-      return drew && !holdsSpareCard(actor) ? "MUST_PASS_AFTER_DRAW" : null
-  }
+const drawRefusal = (game: Game): GameErrorCode | null => {
+  if (game.turn.drew) return "ALREADY_DREW"
+  return game.deck.length === 0 ? "DECK_EMPTY" : null
 }
 
 export const applyTurnAction = (
@@ -183,17 +157,12 @@ export const applyTurnAction = (
   playerId: PlayerId,
   action: TurnAction
 ): Result<Game, GameErrorCode> => {
-  const refusal = turnRefusal(game, playerId, action.type)
-  if (refusal) return err(refusal)
+  if (isFinished(game)) return err("GAME_FINISHED")
+  if (game.turn.playerId !== playerId) return err("NOT_YOUR_TURN")
   const actor = getPlayer(game, playerId)
-  switch (action.type) {
-    case "draw":
-      return ok(drawCard(game, actor))
-    case "pass":
-      return ok({ ...game, events: appendEvents(game.events, { type: "passed", playerId }) })
-    default:
-      return playCard(game, actor, action)
-  }
+  if (action.type !== "draw") return playCard(game, actor, action)
+  const refusal = drawRefusal(game)
+  return refusal ? err(refusal) : ok(drawCard(game, actor))
 }
 
 export const anyoneCanScore = (game: Game): boolean => {
