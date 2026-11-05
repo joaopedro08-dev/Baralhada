@@ -1,6 +1,13 @@
 "use client"
 
-import { ArrowUpFromLine, Hand, HandGrab, Layers } from "lucide-react"
+import {
+  ArrowUpFromLine,
+  FastForward,
+  Hand,
+  HandGrab,
+  Layers,
+  PackagePlus,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
@@ -17,12 +24,14 @@ import type {
 } from "@/lib/game/domain/types"
 import { cn } from "@/lib/utils"
 
-const ACTIONS: readonly {
+interface ActionInfo {
   readonly kind: TurnActionKind
   readonly label: string
   readonly explanation: string
   readonly Icon: LucideIcon
-}[] = [
+}
+
+const CARD_ACTIONS: readonly ActionInfo[] = [
   {
     kind: "capture",
     label: "Capturar",
@@ -52,6 +61,22 @@ const ACTIONS: readonly {
   },
 ]
 
+const TURN_ACTIONS: readonly ActionInfo[] = [
+  {
+    kind: "draw",
+    label: "Comprar",
+    explanation:
+      "Compra 1 carta do baralho. Com 5 cartas, faça uma jogada; com até 4, passe a vez.",
+    Icon: PackagePlus,
+  },
+  {
+    kind: "pass",
+    label: "Passar a vez",
+    explanation: "Depois de comprar e ficar com até 4 cartas, passa a vez.",
+    Icon: FastForward,
+  },
+]
+
 export function ActionBar({
   game,
   viewerId,
@@ -67,37 +92,48 @@ export function ActionBar({
   suggested: TurnActionKind | null
   onAction: (kind: TurnActionKind) => void
 }) {
+  const renderAction = (
+    { kind, label, explanation, Icon }: ActionInfo,
+    size: string
+  ) => {
+    const highlighted = isMyTurn && suggested === kind
+    return (
+      <Tooltip key={kind}>
+        <TooltipTrigger asChild>
+          <span className="block">
+            <GameButton
+              tone={highlighted ? "gold" : "felt"}
+              disabled={
+                !isMyTurn || busy || !isActionAvailable(game, viewerId, kind)
+              }
+              data-action={kind}
+              onClick={() => onAction(kind)}
+              className={cn(
+                "w-full min-w-0 px-0 text-xs tracking-tight sm:text-sm short:text-xs",
+                size,
+                highlighted && "suggest-pulse"
+              )}
+            >
+              <Icon aria-hidden />
+              {label}
+            </GameButton>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{explanation}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
-    <div className="grid grid-cols-4 gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
-      {ACTIONS.map(({ kind, label, explanation, Icon }) => {
-        const highlighted = isMyTurn && suggested === kind
-        return (
-          <Tooltip key={kind}>
-            <TooltipTrigger asChild>
-              <span className="block">
-                <GameButton
-                  tone={highlighted ? "gold" : "felt"}
-                  disabled={
-                    !isMyTurn ||
-                    busy ||
-                    !isActionAvailable(game, viewerId, kind)
-                  }
-                  data-action={kind}
-                  onClick={() => onAction(kind)}
-                  className={cn(
-                    "h-13 w-full min-w-0 flex-col gap-0.5 px-0 text-xs tracking-tight sm:text-sm short:text-xs",
-                    highlighted && "suggest-pulse"
-                  )}
-                >
-                  <Icon aria-hidden />
-                  {label}
-                </GameButton>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{explanation}</TooltipContent>
-          </Tooltip>
-        )
-      })}
+    <div className="flex flex-col gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2">
+        {CARD_ACTIONS.map((action) =>
+          renderAction(action, "h-13 flex-col gap-0.5")
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-1 sm:gap-2">
+        {TURN_ACTIONS.map((action) => renderAction(action, "h-11 gap-1.5"))}
+      </div>
     </div>
   )
 }

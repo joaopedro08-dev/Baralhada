@@ -57,6 +57,14 @@ describe("foco da dica", () => {
     expect(handCardHint(focus, "2C")).toBe("best")
   })
 
+  it("destaca o baralho quando a melhor jogada é comprar", () => {
+    const focus = focusOfHints(hintsWith({ type: "draw" }), "eu")
+    expect(focus.best.draw).toBe(true)
+    expect(focusOfHints(hintsWith({ type: "pass" }), "eu").best).toEqual(
+      NO_FOCUS.best
+    )
+  })
+
   it("destaca a carta sugerida para o descarte", () => {
     const focus = focusOfHints(hintsWith({ type: "discard", card: "9S" }), "eu")
     expect(handCardHint(focus, "9S")).toBe("best")

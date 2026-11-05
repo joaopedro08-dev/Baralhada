@@ -253,6 +253,23 @@ describe("partida pela rede", () => {
     expect(after.game?.currentPlayerId).toBe(after.viewerId)
   })
 
+  it("RF-10 comprar e passar a vez chega a todos", async () => {
+    const { activeSocket, activeView, idleSocket } = await startMatch()
+    expect(activeView.game?.canPass).toBe(false)
+    expect(await expectErrorCode(request(activeSocket, "game:action", { type: "pass" }))).toBe(
+      "MUST_DRAW_BEFORE_PASSING"
+    )
+
+    const drawn = nextState(idleSocket, (state) => state.game?.deckSize === 35)
+    await expectData(request(activeSocket, "game:action", { type: "draw" }))
+    expect((await drawn).game?.drewThisTurn).toBe(true)
+
+    const card = activeView.game?.hand[0]
+    const passed = nextState(idleSocket, (state) => state.game?.turnNumber === 2)
+    await expectData(request(activeSocket, "game:action", { type: "discard", card }))
+    expect((await passed).game?.history[0]).toMatch(/descartou/)
+  })
+
   it("RF-01 entrega o estado inicial a quem cria ou entra na sala", async () => {
     const socket = await connect()
     const state = nextState(socket)

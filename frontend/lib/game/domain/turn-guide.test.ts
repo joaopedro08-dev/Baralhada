@@ -19,10 +19,20 @@ describe("guia do turno", () => {
     )
   })
 
-  it("lista as quatro jogadas no começo do turno", () => {
+  it("lista as jogadas e a compra no começo do turno", () => {
     expect(describeNextStep(base)).toBe(
-      "Escolha 1 carta da mão: capture da mesa, ponha no seu monte, roube um monte ou descarte."
+      "Faça 1 jogada: capture, ponha no seu monte, roube, descarte ou compre 1 carta."
     )
+  })
+
+  it("pede para passar a vez depois de comprar com até 4 cartas", () => {
+    const game = buildGame({ drewThisTurn: true, canPass: true })
+    expect(describeNextStep({ ...base, game })).toContain("passe a vez")
+  })
+
+  it("pede uma jogada depois de comprar com 5 cartas", () => {
+    const game = buildGame({ drewThisTurn: true })
+    expect(describeNextStep({ ...base, game })).toContain("para fechar o turno")
   })
 
   it("avisa que a jogada fecha o turno", () => {

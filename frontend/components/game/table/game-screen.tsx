@@ -16,6 +16,7 @@ import { useHints } from "@/components/game/table/use-hints"
 import { useTableEffects } from "@/components/game/table/use-table-effects"
 import { useTurnControls } from "@/components/game/table/use-turn-controls"
 import { focusOfHints } from "@/lib/game/domain/hint-focus"
+import { isActionAvailable } from "@/lib/game/domain/selection"
 import { describeNextStep } from "@/lib/game/domain/turn-guide"
 import type { GameState, RoomState } from "@/lib/game/domain/types"
 
@@ -79,6 +80,8 @@ export function GameScreen({
             selection={selection}
             focus={focus}
             isMyTurn={isMyTurn}
+            canDraw={isActionAvailable(game, room.viewerId, "draw")}
+            onDraw={() => controls.perform("draw")}
             onToggleCard={controls.toggleTable}
           />
           <OwnArea

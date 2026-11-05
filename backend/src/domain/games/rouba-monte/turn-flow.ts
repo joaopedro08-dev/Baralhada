@@ -13,9 +13,9 @@ import {
   replacePlayer,
   seatsAfter,
 } from "./model.js"
-import type { Game, GameEndReason, GameEvent, PlayerId } from "./model.js"
+import type { Game, GameEndReason, GameEvent, GamePlayer, PlayerId } from "./model.js"
 import { replenishTable } from "./table.js"
-import { anyoneCanScore, applyTurnAction } from "./turn-actions.js"
+import { anyoneCanScore, applyTurnAction, turnRefusal } from "./turn-actions.js"
 import type { TurnAction } from "./turn-actions.js"
 
 const refillHand = (game: Game, playerId: PlayerId): Game => {
@@ -47,7 +47,7 @@ const settleTurn = (game: Game, rotation: readonly PlayerId[]): Game => {
   const endReason = endReasonOf(settled)
   if (endReason) return finish(settled, endReason)
   const next = rotation.find((id) => getPlayer(settled, id).hand.length > 0) as PlayerId
-  return { ...settled, turn: { number: game.turn.number + 1, playerId: next } }
+  return { ...settled, turn: { number: game.turn.number + 1, playerId: next, drew: false } }
 }
 
 export const playTurn = (
@@ -56,27 +56,35 @@ export const playTurn = (
   action: TurnAction
 ): Result<Game, GameErrorCode> => {
   const played = applyTurnAction(game, playerId, action)
-  return played.ok ? ok(settleTurn(played.value, seatsAfter(game, playerId))) : played
+  if (!played.ok) return played
+  return ok(
+    action.type === "draw" ? played.value : settleTurn(played.value, seatsAfter(game, playerId))
+  )
 }
 
-export const expireTurn = (game: Game, random: RandomSource): Game => {
-  if (isFinished(game)) return game
-  const player = getPlayer(game, game.turn.playerId)
+const discardAtRandom = (game: Game, player: GamePlayer, random: RandomSource): Game => {
   const card = pickOne(player.hand, random)
-  const timedOut: Game = {
+  return {
     ...game,
     players: replacePlayer(game.players, {
       ...player,
       hand: player.hand.filter((held) => held !== card),
     }),
     table: [...game.table, card],
-    events: appendEvents(
-      game.events,
-      { type: "turnTimedOut", playerId: player.id },
-      { type: "discarded", playerId: player.id, card }
-    ),
+    events: appendEvents(game.events, { type: "discarded", playerId: player.id, card }),
   }
-  return settleTurn(timedOut, seatsAfter(game, player.id))
+}
+
+export const expireTurn = (game: Game, random: RandomSource): Game => {
+  if (isFinished(game)) return game
+  const player = getPlayer(game, game.turn.playerId)
+  const timedOut: Game = {
+    ...game,
+    events: appendEvents(game.events, { type: "turnTimedOut", playerId: player.id }),
+  }
+  const mayPass = turnRefusal(game, player.id, "pass") === null
+  const settled = mayPass ? timedOut : discardAtRandom(timedOut, player, random)
+  return settleTurn(settled, seatsAfter(game, player.id))
 }
 
 export const removePlayer = (game: Game, playerId: PlayerId, random: RandomSource): Game => {

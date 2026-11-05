@@ -36,7 +36,7 @@ describe("RN-02 distribuição", () => {
 
   it("começa no turno 1 com o jogador sorteado", () => {
     const game = unwrap(startGame(seats(3), "p2", seededRandom(7)))
-    expect(game.turn).toEqual({ number: 1, playerId: "p2" })
+    expect(game.turn).toEqual({ number: 1, playerId: "p2", drew: false })
   })
 })
 
