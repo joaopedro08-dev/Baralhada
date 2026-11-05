@@ -40,7 +40,7 @@ export function GameScreen({
   const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
 
   const { selection } = controls
-  const focus = focusOfHints(hints)
+  const focus = focusOfHints(hints, room.viewerId)
   const guide = describeNextStep({
     game,
     selection,
@@ -72,25 +72,28 @@ export function GameScreen({
             game={game}
             selection={selection}
             focus={focus}
-            onToggleTarget={isMyTurn ? controls.toggleTarget : undefined}
+            onTogglePile={isMyTurn ? controls.togglePile : undefined}
           />
           <TableZone
             game={game}
             selection={selection}
             focus={focus}
             isMyTurn={isMyTurn}
-            onDraw={() => controls.perform("draw")}
             onToggleCard={controls.toggleTable}
           />
           <OwnArea
             viewerId={room.viewerId}
             player={game.players.find((player) => player.id === room.viewerId)}
             hints={hints}
+            selection={selection}
+            focus={focus}
+            onTogglePile={isMyTurn ? controls.togglePile : undefined}
           />
         </m.main>
 
         <HandDock
           game={game}
+          viewerId={room.viewerId}
           selection={selection}
           focus={focus}
           isMyTurn={isMyTurn}
@@ -100,7 +103,6 @@ export function GameScreen({
           suggested={controls.suggested}
           onToggleCard={controls.toggleHand}
           onAction={controls.perform}
-          onPass={controls.pass}
         />
 
         <aside

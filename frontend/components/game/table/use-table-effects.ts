@@ -6,21 +6,22 @@ import { toast } from "sonner"
 import { flightBoard } from "@/components/game/table/flight-board"
 import type { FlightPlan } from "@/components/game/table/flight-board"
 import { gsap, prefersReducedMotion } from "@/lib/animation/gsap"
-import { rankName } from "@/lib/game/domain/cards"
+import { plural } from "@/lib/game/domain/cards"
 import {
-  describeEvents,
   describeMoves,
+  describeSteal,
   DECK_ANCHOR,
   playerAnchor,
 } from "@/lib/game/domain/table-changes"
-import type { CardMove, TableEvent } from "@/lib/game/domain/table-changes"
+import type { CardMove, PileStolen } from "@/lib/game/domain/table-changes"
 import type { GameState, PlayerId } from "@/lib/game/domain/types"
 import { gameSession } from "@/lib/game/session"
 
 const rectOfAnchor = (anchor: string): DOMRect | null =>
-  document
-    .querySelector(`[data-anchor="${anchor}"]`)
-    ?.getBoundingClientRect() ?? null
+  (
+    document.querySelector(`[data-anchor="${anchor}"] [data-landing]`) ??
+    document.querySelector(`[data-anchor="${anchor}"]`)
+  )?.getBoundingClientRect() ?? null
 
 const rectOfOrigin = ({ card, from }: CardMove): DOMRect | null =>
   (card &&
@@ -38,45 +39,33 @@ const planFlights = (moves: readonly CardMove[]): readonly FlightPlan[] =>
 const nameOf = (game: GameState, playerId: PlayerId): string =>
   game.players.find((player) => player.id === playerId)?.nickname ?? "Alguém"
 
-const announce = (event: TableEvent, game: GameState, viewerId: PlayerId) => {
-  const rank = event.rank && rankName(event.rank)
-  if (event.kind === "quadCompleted") {
-    if (event.playerId === viewerId)
-      toast.success(`Quadra de ${rank}! +1 ponto`)
-    else toast(`${nameOf(game, event.playerId)} fechou a quadra de ${rank}`)
-  } else if (event.victimId === viewerId) {
+const announce = (steal: PileStolen, game: GameState, viewerId: PlayerId) => {
+  const cards = plural(steal.count, "carta", "cartas")
+  if (steal.victimId === viewerId) {
     toast.warning(
-      `${nameOf(game, event.thiefId)} roubou suas cartas de ${rank}!`
+      `${nameOf(game, steal.thiefId)} roubou seu monte de ${cards}!`
     )
-  } else if (event.thiefId === viewerId) {
-    toast.success(`Você roubou as cartas de ${rank}!`)
+  } else if (steal.thiefId === viewerId) {
+    toast.success(
+      `Você roubou o monte de ${nameOf(game, steal.victimId)}: +${cards}`
+    )
+  } else {
+    toast(
+      `${nameOf(game, steal.thiefId)} roubou o monte de ${nameOf(game, steal.victimId)}`
+    )
   }
 }
 
-const animateEvent = (event: TableEvent) => {
-  if (event.kind === "stolen") {
-    gsap.fromTo(
-      `[data-anchor="${playerAnchor(event.victimId)}"]`,
-      { x: -8 },
-      { x: 0, duration: 0.6, ease: "elastic.out(1.2, 0.25)", clearProps: "x" }
-    )
-    return
-  }
+const shakeVictim = ({ victimId }: PileStolen) =>
   gsap.fromTo(
-    `[data-anchor="${playerAnchor(event.playerId)}"] [data-meld="${event.rank}"]`,
-    { scale: 1.6 },
-    {
-      scale: 1,
-      duration: 0.7,
-      ease: "elastic.out(1.1, 0.4)",
-      clearProps: "scale",
-    }
+    `[data-anchor="${playerAnchor(victimId)}"]`,
+    { x: -8 },
+    { x: 0, duration: 0.6, ease: "elastic.out(1.2, 0.25)", clearProps: "x" }
   )
-}
 
 interface PendingChange {
   readonly flights: readonly FlightPlan[]
-  readonly events: readonly TableEvent[]
+  readonly steal: PileStolen | null
 }
 
 const dealCards = (delaySeconds: number) => {
@@ -97,8 +86,7 @@ const dealCards = (delaySeconds: number) => {
   })
 }
 
-const isFreshDeal = (game: GameState): boolean =>
-  game.turnNumber === 1 && game.usedActions.length === 0
+const isFreshDeal = (game: GameState): boolean => game.turnNumber === 1
 
 export const useTableEffects = (
   game: GameState,
@@ -120,7 +108,7 @@ export const useTableEffects = (
           flights: prefersReducedMotion()
             ? []
             : planFlights(describeMoves(previous, next, viewerId)),
-          events: describeEvents(previous, next),
+          steal: describeSteal(previous, next),
         }
       }),
     [viewerId]
@@ -131,10 +119,9 @@ export const useTableEffects = (
     if (!change) return
     pending.current = null
     flightBoard.launch(change.flights)
-    change.events.forEach((event) => {
-      announce(event, game, viewerId)
-      if (!prefersReducedMotion()) animateEvent(event)
-    })
+    if (!change.steal) return
+    announce(change.steal, game, viewerId)
+    if (!prefersReducedMotion()) shakeVictim(change.steal)
   }, [game, viewerId])
 
   const dealtOnMount = useRef(isFreshDeal(game))

@@ -29,7 +29,6 @@ export interface ClientCommands {
   "room:kick": { input: { playerId: PlayerId }; output: null }
   "game:start": { input: undefined; output: null }
   "game:action": { input: TurnAction; output: null }
-  "game:endTurn": { input: undefined; output: null }
   "game:hints": { input: undefined; output: Hints }
 }
 

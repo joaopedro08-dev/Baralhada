@@ -3,319 +3,167 @@ import { describe, expect, it } from "vitest"
 import {
   currentSelection,
   emptySelection,
-  isActionOpen,
+  isActionAvailable,
   planAction,
   suggestAction,
   toggleHandCard,
-  toggleMeld,
+  togglePile,
   toggleTableCard,
 } from "@/lib/game/domain/selection"
 import { buildGame, buildPlayer } from "@/lib/game/domain/test-fixtures"
 
+const game = buildGame({
+  hand: ["7C", "9D", "3S"],
+  table: ["7H", "7S", "5C"],
+  players: [
+    buildPlayer("eu", { pileSize: 2, pileTop: "3H" }),
+    buildPlayer("ana", { pileSize: 5, pileTop: "9S" }),
+    buildPlayer("bia"),
+  ],
+})
+
+const empty = emptySelection(game.turnNumber)
+
 describe("seleção do turno", () => {
   it("descarta a seleção quando o turno muda", () => {
-    const selection = toggleHandCard(emptySelection(2), "7H")
-    expect(currentSelection(selection, buildGame({ turnNumber: 3 }))).toEqual(
-      emptySelection(3)
-    )
+    const selection = toggleHandCard(emptySelection(2), "7C", game)
+    expect(currentSelection(selection, game)).toEqual(empty)
   })
 
   it("tira da seleção o que saiu de cena", () => {
-    const selection = {
-      turn: 3,
-      hand: ["7H" as const, "8H" as const],
+    const stale = {
+      turn: game.turnNumber,
+      card: "8H" as const,
       tableCards: ["9H" as const],
-      meld: { playerId: "ana", rank: "3" as const },
+      pile: "bia",
     }
-    const current = currentSelection(selection, buildGame({ hand: ["8H"] }))
-    expect(current).toEqual({
-      turn: 3,
-      hand: ["8H"],
+    expect(currentSelection(stale, game)).toEqual(empty)
+  })
+
+  it("mantém o que continua valendo", () => {
+    const selection = { ...empty, card: "9D" as const, pile: "ana" }
+    expect(currentSelection(selection, game)).toEqual(selection)
+  })
+})
+
+describe("escolher cartas e montes", () => {
+  it("seleciona uma carta da mão por vez", () => {
+    const first = toggleHandCard(empty, "7C", game)
+    const second = toggleHandCard(first, "9D", game)
+    expect(second.card).toBe("9D")
+    expect(toggleHandCard(second, "9D", game).card).toBeNull()
+  })
+
+  it("solta as escolhas que não combinam com a nova carta", () => {
+    const capturing = toggleTableCard(empty, "7H", game)
+    expect(toggleHandCard(capturing, "9D", game)).toMatchObject({
+      card: "9D",
       tableCards: [],
-      meld: null,
+    })
+    const stealing = togglePile(empty, "ana", game)
+    expect(toggleHandCard(stealing, "7C", game).pile).toBeNull()
+  })
+
+  it("junta cartas da mesa de mesmo valor e escolhe a carta da mão", () => {
+    const one = toggleTableCard(empty, "7H", game)
+    const both = toggleTableCard(one, "7S", game)
+    expect(both).toMatchObject({ card: "7C", tableCards: ["7H", "7S"] })
+    expect(toggleTableCard(both, "7H", game).tableCards).toEqual(["7S"])
+  })
+
+  it("troca de valor ao tocar numa carta diferente da mesa", () => {
+    const sevens = toggleTableCard(empty, "7H", game)
+    expect(toggleTableCard(sevens, "5C", game)).toMatchObject({
+      card: null,
+      tableCards: ["5C"],
     })
   })
 
-  it("mantém a quadra incompleta do adversário", () => {
-    const target = { playerId: "ana", rank: "3" as const }
-    const game = buildGame({
-      players: [
-        buildPlayer("eu"),
-        buildPlayer("ana", { melds: [{ rank: "3", cards: ["3C", "3D"] }] }),
-      ],
-    })
-    const selection = { ...emptySelection(3), meld: target }
-    expect(currentSelection(selection, game).meld).toEqual(target)
+  it("escolhe o monte e a carta igual ao topo", () => {
+    const selection = togglePile(
+      toggleTableCard(empty, "7H", game),
+      "ana",
+      game
+    )
+    expect(selection).toMatchObject({ card: "9D", tableCards: [], pile: "ana" })
+    expect(togglePile(selection, "ana", game).pile).toBeNull()
   })
 
-  it("não aceita quadra completa como alvo", () => {
-    const target = { playerId: "ana", rank: "3" as const }
-    const game = buildGame({
-      players: [
-        buildPlayer("eu"),
-        buildPlayer("ana", {
-          melds: [{ rank: "3", cards: ["3C", "3D", "3H", "3S"] }],
-        }),
-      ],
-    })
-    const selection = { ...emptySelection(3), meld: target }
-    expect(currentSelection(selection, game).meld).toBeNull()
-  })
-
-  it("ao tocar na mesa, separa as cartas iguais da mão", () => {
-    const selection = toggleTableCard(emptySelection(3), "5H", [
-      "5C",
-      "5D",
-      "9S",
-    ])
-    expect(selection.tableCards).toEqual(["5H"])
-    expect(selection.hand).toEqual(["5C", "5D"])
-  })
-
-  it("junta mais de uma carta igual da mesa", () => {
-    const hand = ["5C", "9S"] as const
-    const first = toggleTableCard(emptySelection(3), "5H", hand)
-    const both = toggleTableCard(first, "5S", hand)
-    expect(both.tableCards).toEqual(["5H", "5S"])
-    expect(both.hand).toEqual(["5C"])
-  })
-
-  it("solta só a carta tocada e mantém a outra da mesa", () => {
-    const hand = ["5C", "9S"] as const
-    const first = toggleTableCard(emptySelection(3), "5H", hand)
-    const both = toggleTableCard(first, "5S", hand)
-    const kept = toggleTableCard(both, "5H", hand)
-    expect(kept.tableCards).toEqual(["5S"])
-    expect(kept.hand).toEqual(["5C"])
-  })
-
-  it("troca a seleção ao tocar em carta de outro valor na mesa", () => {
-    const hand = ["5C", "9S"] as const
-    const onFive = toggleTableCard(emptySelection(3), "5H", hand)
-    const onNine = toggleTableCard(onFive, "9H", hand)
-    expect(onNine.tableCards).toEqual(["9H"])
-    expect(onNine.hand).toEqual(["9S"])
-  })
-
-  it("ao soltar a carta da mesa, solta também as cartas iguais", () => {
-    const hand = ["5C", "9S"] as const
-    const picked = toggleTableCard(emptySelection(3), "5H", hand)
-    const released = toggleTableCard(picked, "5H", hand)
-    expect(released).toEqual(emptySelection(3))
-  })
-
-  it("ao tocar numa quadra, separa as cartas iguais e larga a mesa", () => {
-    const hand = ["3C", "9S"] as const
-    const onTable = toggleTableCard(emptySelection(3), "9H", hand)
-    const target = { playerId: "ana", rank: "3" as const }
-    const selection = toggleMeld(onTable, target, hand)
-    expect(selection.tableCards).toEqual([])
-    expect(selection.meld).toEqual(target)
-    expect(selection.hand).toEqual(["3C"])
+  it("ignora monte vazio", () => {
+    expect(togglePile(empty, "bia", game).pile).toBeNull()
   })
 })
 
-describe("planejamento das ações", () => {
-  it("pede a carta da mesa antes de pegar", () => {
-    expect(planAction("takeFromTable", emptySelection(1))).toEqual({
+describe("planejar a jogada", () => {
+  it("pede a carta da mão antes de tudo", () => {
+    expect(planAction("discard", empty, "eu")).toEqual({
       ready: false,
-      problem: "Toque nas cartas da mesa que quer pegar.",
+      problem: "Selecione 1 carta da sua mão.",
     })
   })
 
-  it("monta a jogada com todas as cartas escolhidas da mesa", () => {
-    const selection = {
-      ...emptySelection(1),
-      hand: ["5C"] as const,
-      tableCards: ["5H", "5S"] as const,
-    }
-    expect(planAction("takeFromTable", selection)).toEqual({
+  it("monta cada jogada a partir da seleção", () => {
+    const capture = toggleTableCard(empty, "7H", game)
+    const steal = togglePile(empty, "ana", game)
+    const own = togglePile(empty, "eu", game)
+
+    expect(planAction("capture", capture, "eu")).toEqual({
       ready: true,
-      action: {
-        type: "takeFromTable",
-        tableCards: ["5H", "5S"],
-        handCards: ["5C"],
-      },
+      action: { type: "capture", card: "7C", tableCards: ["7H"] },
     })
-  })
-
-  it("pede a quadra antes de roubar", () => {
-    expect(planAction("steal", emptySelection(1)).ready).toBe(false)
-  })
-
-  it("só descarta com exatamente uma carta", () => {
-    const two = { ...emptySelection(1), hand: ["5C", "5D"] as const }
-    expect(planAction("discard", two).ready).toBe(false)
-    const one = { ...emptySelection(1), hand: ["5C"] as const }
-    expect(planAction("discard", one)).toEqual({
+    expect(planAction("steal", steal, "eu")).toEqual({
       ready: true,
-      action: { type: "discard", card: "5C" },
+      action: { type: "steal", card: "9D", targetId: "ana" },
     })
-  })
-
-  it("monta o roubo com o alvo e as cartas", () => {
-    const selection = {
-      ...emptySelection(1),
-      hand: ["3C"] as const,
-      meld: { playerId: "ana", rank: "3" as const },
-    }
-    expect(planAction("steal", selection)).toEqual({
+    expect(planAction("stack", own, "eu")).toEqual({
       ready: true,
-      action: {
-        type: "steal",
-        targetId: "ana",
-        rank: "3",
-        handCards: ["3C"],
-      },
+      action: { type: "stack", card: "3S" },
+    })
+    expect(planAction("discard", { ...empty, card: "3S" }, "eu")).toEqual({
+      ready: true,
+      action: { type: "discard", card: "3S" },
     })
   })
 
-  it("deixa o servidor julgar baixar sem cartas", () => {
-    expect(planAction("layDown", emptySelection(1)).ready).toBe(true)
+  it("explica o que falta para capturar ou roubar", () => {
+    const card = { ...empty, card: "7C" as const }
+    expect(planAction("capture", card, "eu")).toMatchObject({ ready: false })
+    expect(planAction("steal", { ...card, pile: "eu" }, "eu")).toMatchObject({
+      ready: false,
+    })
   })
 })
 
-describe("ação sugerida", () => {
-  const withHand = (...hand: readonly ["5C"] | readonly ["5C", "5D"]) => ({
-    ...emptySelection(3),
-    hand: hand as readonly ("5C" | "5D")[],
-  })
-
-  it("sugere comprar no começo do turno", () => {
-    expect(suggestAction(buildGame(), emptySelection(3), "eu")).toBe("draw")
-  })
-
-  it("sugere descartar depois de comprar", () => {
-    const game = buildGame({ canEndTurn: false, usedActions: ["draw"] })
-    expect(suggestAction(game, emptySelection(3), "eu")).toBe("discard")
-  })
-
-  it("depois de comprar, sugere baixar a carta que avança uma quadra sua", () => {
-    const game = buildGame({
-      canEndTurn: false,
-      usedActions: ["draw"],
-      players: [
-        buildPlayer("eu", { melds: [{ rank: "5", cards: ["5H", "5S"] }] }),
-        buildPlayer("ana"),
-      ],
-    })
-    const selection = { ...emptySelection(3), hand: ["5C"] as const }
-    expect(suggestAction(game, selection, "eu")).toBe("layDown")
-  })
-
-  it("depois de comprar, sugere roubar a quadra escolhida", () => {
-    const game = buildGame({ canEndTurn: false, usedActions: ["draw"] })
-    const selection = {
-      ...emptySelection(3),
-      hand: ["3C"] as const,
-      meld: { playerId: "ana", rank: "3" as const },
-    }
-    expect(suggestAction(game, selection, "eu")).toBe("steal")
-  })
-
-  it("sugere pegar da mesa quando a carta comprada combina", () => {
-    const game = buildGame({ canEndTurn: false, usedActions: ["draw"] })
-    const selection = {
-      ...emptySelection(3),
-      hand: ["5C"] as const,
-      tableCards: ["5H"] as const,
-    }
-    expect(suggestAction(game, selection, "eu")).toBe("takeFromTable")
-    expect(suggestAction(game, emptySelection(3), "eu", "takeFromTable")).toBe(
-      "takeFromTable"
+describe("jogadas disponíveis e sugestão", () => {
+  it("libera só o que faz sentido na mesa", () => {
+    const noPiles = buildGame({ hand: ["7C"], table: [] })
+    expect(isActionAvailable(noPiles, "eu", "capture")).toBe(false)
+    expect(isActionAvailable(noPiles, "eu", "stack")).toBe(false)
+    expect(isActionAvailable(noPiles, "eu", "steal")).toBe(false)
+    expect(isActionAvailable(noPiles, "eu", "discard")).toBe(true)
+    expect(isActionAvailable(game, "eu", "steal")).toBe(true)
+    expect(isActionAvailable({ ...game, hand: [] }, "eu", "discard")).toBe(
+      false
     )
   })
 
-  it("sugere roubar quando há alvo e cartas", () => {
-    const selection = {
-      ...emptySelection(3),
-      hand: ["3C"] as const,
-      meld: { playerId: "ana", rank: "3" as const },
-    }
-    expect(suggestAction(buildGame(), selection, "eu")).toBe("steal")
-  })
-
-  it("sugere roubar sem carta na mão quando cada um tem um par igual", () => {
-    const game = buildGame({
-      players: [
-        buildPlayer("eu", { melds: [{ rank: "7", cards: ["7C", "7D"] }] }),
-        buildPlayer("ana", { melds: [{ rank: "7", cards: ["7H", "7S"] }] }),
-      ],
-    })
-    const selection = {
-      ...emptySelection(3),
-      meld: { playerId: "ana", rank: "7" as const },
-    }
-    expect(suggestAction(game, selection, "eu")).toBe("steal")
-  })
-
-  it("não sugere roubar sem carta igual e sem par próprio", () => {
-    const selection = {
-      ...emptySelection(3),
-      meld: { playerId: "ana", rank: "3" as const },
-    }
-    expect(suggestAction(buildGame(), selection, "eu")).toBeNull()
-  })
-
-  it("sugere pegar quando há carta da mesa e da mão", () => {
-    const selection = {
-      ...emptySelection(3),
-      hand: ["5C"] as const,
-      tableCards: ["5H"] as const,
-    }
-    expect(suggestAction(buildGame(), selection, "eu")).toBe("takeFromTable")
-  })
-
-  it("sugere baixar com duas cartas selecionadas", () => {
-    const selection = withHand(...(["5C", "5D"] as const))
-    expect(suggestAction(buildGame(), selection, "eu")).toBe("layDown")
-  })
-
-  it("sugere descartar com uma carta solta", () => {
-    const selection = withHand(...(["5C"] as const))
-    expect(suggestAction(buildGame(), selection, "eu")).toBe("discard")
-  })
-
-  it("sugere baixar a carta que avança uma quadra sua", () => {
-    const game = buildGame({
-      players: [
-        buildPlayer("eu", { melds: [{ rank: "5", cards: ["5H", "5S"] }] }),
-        buildPlayer("ana"),
-      ],
-    })
-    const selection = withHand(...(["5C"] as const))
-    expect(suggestAction(game, selection, "eu")).toBe("layDown")
-  })
-
-  it("segue a melhor jogada das dicas quando não há seleção", () => {
-    expect(suggestAction(buildGame(), emptySelection(3), "eu", "steal")).toBe(
-      "steal"
+  it("sugere a jogada que combina com a seleção", () => {
+    const pick = (card: "7C" | "9D" | "3S") => ({ ...empty, card })
+    expect(suggestAction(game, pick("7C"), "eu")).toBe("capture")
+    expect(suggestAction(game, pick("9D"), "eu")).toBe("steal")
+    expect(suggestAction(game, pick("3S"), "eu")).toBe("stack")
+    expect(suggestAction(game, { ...empty, pile: "eu" }, "eu")).toBe("stack")
+    expect(suggestAction(game, { ...empty, tableCards: ["5C"] }, "eu")).toBe(
+      "capture"
+    )
+    const lonely = buildGame({ hand: ["KC"], table: ["2C"] })
+    expect(suggestAction(lonely, { ...empty, card: "KC" }, "eu")).toBe(
+      "discard"
     )
   })
 
-  it("dá preferência à seleção sobre a dica", () => {
-    const selection = withHand(...(["5C", "5D"] as const))
-    expect(suggestAction(buildGame(), selection, "eu", "steal")).toBe("layDown")
-  })
-
-  it("não sugere nada com o monte vazio e sem seleção", () => {
-    const game = buildGame({ deckSize: 0 })
-    expect(suggestAction(game, emptySelection(3), "eu")).toBeNull()
-  })
-})
-
-describe("jogada do turno", () => {
-  it("abre todas as ações no começo do turno", () => {
-    expect(isActionOpen(buildGame(), "steal")).toBe(true)
-    expect(isActionOpen(buildGame(), "draw")).toBe(true)
-  })
-
-  it("depois de comprar, só comprar de novo fica fechado", () => {
-    const game = buildGame({ usedActions: ["draw"] })
-    expect(isActionOpen(game, "discard")).toBe(true)
-    expect(isActionOpen(game, "takeFromTable")).toBe(true)
-    expect(isActionOpen(game, "layDown")).toBe(true)
-    expect(isActionOpen(game, "steal")).toBe(true)
-    expect(isActionOpen(game, "draw")).toBe(false)
+  it("usa a melhor dica quando nada foi escolhido", () => {
+    expect(suggestAction(game, empty, "eu", "steal")).toBe("steal")
+    expect(suggestAction(game, empty, "eu")).toBeNull()
   })
 })

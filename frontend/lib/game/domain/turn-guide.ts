@@ -9,8 +9,8 @@ interface TurnGuideInput {
   readonly topHint: string | null
 }
 
-const hasPick = ({ hand, tableCards, meld }: Selection): boolean =>
-  hand.length > 0 || tableCards.length > 0 || meld !== null
+const hasPick = ({ card, tableCards, pile }: Selection): boolean =>
+  card !== null || tableCards.length > 0 || pile !== null
 
 export const describeNextStep = ({
   game,
@@ -20,15 +20,12 @@ export const describeNextStep = ({
   topHint,
 }: TurnGuideInput): string => {
   if (!isMyTurn) return `Aguarde: é a vez de ${currentName}.`
-  if (game.usedActions.includes("draw") && !game.canEndTurn) {
-    return "Você comprou: use a carta em uma jogada ou descarte 1 para fechar o turno."
-  }
   if (hasPick(selection)) {
     return "Agora escolha a jogada abaixo. Ela fecha o seu turno."
   }
-  if (game.deckSize === 0 && !game.canEndTurn) {
-    return "O monte acabou: faça uma jogada ou descarte 1 carta. Passar a vez fica bloqueado."
-  }
   if (topHint) return `Dica: ${topHint}`
-  return "Faça 1 jogada: compre, baixe, pegue da mesa, roube ou descarte."
+  if (game.deckSize === 0) {
+    return "O baralho acabou: jogue com as cartas que restam na sua mão."
+  }
+  return "Escolha 1 carta da mão: capture da mesa, ponha no seu monte, roube um monte ou descarte."
 }

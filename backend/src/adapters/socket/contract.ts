@@ -1,10 +1,5 @@
 import type { Card, Rank } from "../../domain/cards/card.js"
-import type {
-  GameEndReason,
-  Meld,
-  PlayerId,
-  TurnActionKind,
-} from "../../domain/games/rouba-monte/model.js"
+import type { GameEndReason, PlayerId } from "../../domain/games/rouba-monte/model.js"
 import type { RoomStatus } from "../../domain/room/room.js"
 import type { RemovalReason } from "../../application/ports.js"
 import type { TurnAction } from "../../domain/games/rouba-monte/turn-actions.js"
@@ -31,7 +26,8 @@ export interface GamePlayerDto {
   readonly id: PlayerId
   readonly nickname: string
   readonly handSize: number
-  readonly melds: readonly Meld[]
+  readonly pileSize: number
+  readonly pileTop: Card | null
 }
 
 export interface GameStateDto {
@@ -41,8 +37,6 @@ export interface GameStateDto {
   readonly players: readonly GamePlayerDto[]
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
-  readonly usedActions: readonly TurnActionKind[]
-  readonly canEndTurn: boolean
   readonly endReason: GameEndReason | null
   readonly winnerIds: readonly PlayerId[]
   readonly history: readonly string[]
@@ -72,13 +66,14 @@ export interface HintsDto {
   readonly highlights: {
     readonly handCards: readonly Card[]
     readonly tableCards: readonly Card[]
-    readonly stealableMelds: readonly { readonly playerId: PlayerId; readonly rank: Rank }[]
+    readonly piles: readonly PlayerId[]
   }
-  readonly risks: readonly {
+  readonly risk: {
     readonly rank: Rank
+    readonly pileSize: number
     readonly unseenCards: number
     readonly sentence: string
-  }[]
+  } | null
   readonly cardCounts: readonly {
     readonly rank: Rank
     readonly visible: number
@@ -97,7 +92,6 @@ export interface ClientCommands {
   "room:kick": { input: { playerId: PlayerId }; output: null }
   "game:start": { input: undefined; output: null }
   "game:action": { input: TurnAction; output: null }
-  "game:endTurn": { input: undefined; output: null }
   "game:hints": { input: undefined; output: HintsDto }
 }
 

@@ -136,7 +136,7 @@ describe("casos de uso", () => {
       unwrap(app.start.execute(hostActor))
       const room = app.rooms.find(host.roomCode)
 
-      expect(room?.game?.table).toHaveLength(10)
+      expect(room?.game?.table).toHaveLength(8)
       expect(room?.turnDeadlineAt).toBe(61_000)
       expect(app.timers.get(host.roomCode)).toEqual({ turnNumber: 1, delayMs: 60_000 })
     })
@@ -225,19 +225,23 @@ describe("casos de uso", () => {
   })
 
   describe("RF-09 e RF-10 jogadas", () => {
-    it("aplica a ação, publica e mantém o cronômetro do mesmo turno", () => {
+    it("recusa jogada inválida sem mexer no cronômetro e fecha o turno com a jogada", () => {
       const { hostActor, guestActor, host } = lobby(app)
       unwrap(app.start.execute(hostActor))
       const loadRoom = () => app.rooms.find(host.roomCode)
       const actor = loadRoom()?.game?.turn.playerId === hostActor.playerId ? hostActor : guestActor
       const deadline = loadRoom()?.turnDeadlineAt
 
-      app.clock.current += 5000
-      unwrap(app.play.perform(actor, { type: "draw" }))
-      expect(loadRoom()?.turnDeadlineAt).toBe(deadline)
-
       const players = loadRoom()?.game?.players ?? []
       const card = players.find((player) => player.id === actor.playerId)?.hand[0] as Card
+
+      app.clock.current += 5000
+      expect(app.play.perform(actor, { type: "stack", card })).toEqual({
+        ok: false,
+        error: "PILE_EMPTY",
+      })
+      expect(loadRoom()?.turnDeadlineAt).toBe(deadline)
+
       unwrap(app.play.perform(actor, { type: "discard", card }))
 
       expect(loadRoom()?.game?.turn.number).toBe(2)
@@ -246,7 +250,7 @@ describe("casos de uso", () => {
 
     it("recusa jogar antes de iniciar", () => {
       const { hostActor } = lobby(app)
-      expect(app.play.perform(hostActor, { type: "draw" })).toEqual({
+      expect(app.play.perform(hostActor, { type: "discard", card: "2C" })).toEqual({
         ok: false,
         error: "GAME_NOT_RUNNING",
       })
@@ -255,7 +259,10 @@ describe("casos de uso", () => {
     it("recusa quem não está na sala", () => {
       const { host } = lobby(app)
       expect(
-        app.play.perform({ roomCode: host.roomCode, playerId: "intruso" }, { type: "draw" })
+        app.play.perform(
+          { roomCode: host.roomCode, playerId: "intruso" },
+          { type: "discard", card: "2C" }
+        )
       ).toEqual({ ok: false, error: "PLAYER_NOT_IN_ROOM" })
     })
   })
@@ -294,10 +301,16 @@ describe("casos de uso", () => {
       expect(counting.timers.get(host.roomCode)?.delayMs).toBe(COUNTDOWN_MS + 60_000)
 
       const currentActor = room?.game?.turn.playerId === host.playerId ? hostActor : guestActor
-      expect(counting.play.finish(currentActor)).toEqual({ ok: false, error: "MATCH_STARTING" })
+      const card = room?.game?.players.find((player) => player.id === currentActor.playerId)
+        ?.hand[0] as Card
+      const discard = { type: "discard", card } as const
+      expect(counting.play.perform(currentActor, discard)).toEqual({
+        ok: false,
+        error: "MATCH_STARTING",
+      })
 
       counting.clock.current += COUNTDOWN_MS
-      expect(counting.play.finish(currentActor).ok).toBe(true)
+      expect(counting.play.perform(currentActor, discard).ok).toBe(true)
       const next = counting.rooms.find(host.roomCode)
       expect(next?.turnDeadlineAt).toBe(counting.clock.current + 60_000)
     })
@@ -312,7 +325,7 @@ describe("casos de uso", () => {
       const firstStarter = room.lastStarterId
       app.rooms.save({
         ...room,
-        game: { ...room.game, endReason: "allQuadsComplete", winnerIds: [hostActor.playerId] },
+        game: { ...room.game, endReason: "noPlaysLeft", winnerIds: [hostActor.playerId] },
       })
 
       unwrap(app.start.execute(hostActor))
@@ -399,7 +412,7 @@ describe("casos de uso", () => {
       expect(app.rooms.find(host.roomCode)?.players).toHaveLength(1)
     })
 
-    it("aplica a RN-20 a quem não voltou na partida", () => {
+    it("aplica a RN-16 a quem não voltou na partida", () => {
       const { hostActor, guestActor, host } = lobby(app)
       unwrap(app.start.execute(hostActor))
       app.disconnect.execute(guestActor)

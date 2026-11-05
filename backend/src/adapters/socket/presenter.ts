@@ -46,11 +46,7 @@ export const presentHints = ({ hints, players }: HintsResult): HintsDto => {
       sentence: describePlay(play, nameOf),
     })),
     highlights: hints.highlights,
-    risks: hints.risks.map((risk) => ({
-      rank: risk.rank,
-      unseenCards: risk.unseenCards,
-      sentence: describeRisk(risk),
-    })),
+    risk: hints.risk && { ...hints.risk, sentence: describeRisk(hints.risk) },
     cardCounts: hints.cardCounts,
   }
 }

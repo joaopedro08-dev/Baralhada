@@ -9,14 +9,13 @@ import {
   planAction,
   suggestAction,
   toggleHandCard,
-  toggleMeld,
+  togglePile,
   toggleTableCard,
 } from "@/lib/game/domain/selection"
 import type { Selection } from "@/lib/game/domain/selection"
 import type {
   Card,
   GameState,
-  MeldTarget,
   PlayerId,
   TurnActionKind,
 } from "@/lib/game/domain/types"
@@ -66,16 +65,14 @@ export const useTurnControls = (
     busy,
     suggested: suggestAction(game, selection, viewerId, bestAction),
     refusal: refusal?.turn === game.turnNumber ? refusal : null,
-    toggleHand: (card: Card) => choose(toggleHandCard(selection, card)),
-    toggleTable: (card: Card) =>
-      choose(toggleTableCard(selection, card, game.hand)),
-    toggleTarget: (target: MeldTarget) =>
-      choose(toggleMeld(selection, target, game.hand)),
+    toggleHand: (card: Card) => choose(toggleHandCard(selection, card, game)),
+    toggleTable: (card: Card) => choose(toggleTableCard(selection, card, game)),
+    togglePile: (ownerId: PlayerId) =>
+      choose(togglePile(selection, ownerId, game)),
     perform(kind: TurnActionKind) {
-      const plan = planAction(kind, selection)
+      const plan = planAction(kind, selection, viewerId)
       if (!plan.ready) return refuse(plan.problem)
       void run(() => gameSession.playAction(plan.action))
     },
-    pass: () => void run(gameSession.endTurn),
   }
 }

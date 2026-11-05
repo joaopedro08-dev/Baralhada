@@ -3,7 +3,7 @@
 import { m } from "framer-motion"
 import { RotateCcw, Trophy } from "lucide-react"
 
-import { MeldChip } from "@/components/game/cards/meld-chip"
+import { PileStack } from "@/components/game/cards/pile-stack"
 import { GameButton } from "@/components/game/game-button"
 import { RefusalMessage } from "@/components/game/refusal-message"
 import { InviteLink } from "@/components/game/room/invite-link"
@@ -13,9 +13,13 @@ import { SeatList } from "@/components/game/room/seat-list"
 import { useRoomCommands } from "@/components/game/room/use-room-commands"
 import { useVictoryShow } from "@/components/game/room/use-victory-show"
 import { Card, CardContent } from "@/components/ui/card"
-import { countCompleteMelds, plural, sortMelds } from "@/lib/game/domain/cards"
+import { plural } from "@/lib/game/domain/cards"
 import { MIN_PLAYERS } from "@/lib/game/domain/room-entry"
-import { describeResult, rankPlayers } from "@/lib/game/domain/scoreboard"
+import {
+  describeResult,
+  explainEnd,
+  rankPlayers,
+} from "@/lib/game/domain/scoreboard"
 import type { GamePlayer, GameState, RoomState } from "@/lib/game/domain/types"
 
 function ScoreRow({
@@ -35,9 +39,9 @@ function ScoreRow({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 + position * 0.1 }}
-      className="flex flex-col gap-1.5 border-b py-2.5 last:border-b-0"
+      className="flex items-center gap-3 border-b py-2.5 last:border-b-0"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <PlayerAvatar playerId={player.id} nickname={player.nickname} />
         <span className="min-w-0 truncate text-base font-semibold">
           {player.nickname}
@@ -45,16 +49,10 @@ function ScoreRow({
         </span>
         {won && <Trophy aria-label="Vencedor" className="size-4 shrink-0" />}
         <span className="ml-auto shrink-0 text-base font-semibold tabular-nums">
-          {plural(countCompleteMelds(player.melds), "quadra", "quadras")}
+          {plural(player.pileSize, "carta", "cartas")}
         </span>
       </div>
-      {player.melds.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {sortMelds(player.melds).map((meld) => (
-            <MeldChip key={meld.rank} meld={meld} />
-          ))}
-        </div>
-      )}
+      <PileStack top={player.pileTop} size={player.pileSize} />
     </m.li>
   )
 }
@@ -92,11 +90,7 @@ export function EndScreen({
           >
             {describeResult(game, room.viewerId)}
           </h1>
-          {game.endReason === "abandoned" && (
-            <p className="text-felt-muted">
-              A partida acabou porque os outros jogadores saíram.
-            </p>
-          )}
+          <p className="text-felt-muted">{explainEnd(game)}</p>
         </header>
 
         <Card className="shadow-xl">

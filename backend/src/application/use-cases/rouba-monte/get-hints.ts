@@ -1,8 +1,8 @@
 import type { GameErrorCode } from "../../../domain/games/rouba-monte/errors.js"
 import { computeHints } from "../../../domain/games/rouba-monte/hints.js"
 import type { Hints } from "../../../domain/games/rouba-monte/hints.js"
-import type { Game, GameEvent } from "../../../domain/games/rouba-monte/model.js"
-import { toPlayerView } from "../../../domain/games/rouba-monte/player-view.js"
+import type { Game } from "../../../domain/games/rouba-monte/model.js"
+import { countRanksInPiles, toPlayerView } from "../../../domain/games/rouba-monte/player-view.js"
 import type { PlayerView } from "../../../domain/games/rouba-monte/player-view.js"
 import type { TurnAction } from "../../../domain/games/rouba-monte/turn-actions.js"
 import { ok } from "../../../domain/shared/result.js"
@@ -15,15 +15,14 @@ export interface HintsResult {
   readonly players: PlayerView["players"]
 }
 
-const NO_EVENTS: readonly GameEvent[] = []
-
 export class GetHints {
   constructor(private readonly session: RoomSession<Game, TurnAction, GameErrorCode>) {}
 
   execute(actor: Actor): Result<HintsResult, ApplicationErrorCode> {
     const running = this.session.loadRunningGame(actor)
     if (!running.ok) return running
-    const view = { ...toPlayerView(running.value.game, actor.playerId), events: NO_EVENTS }
-    return ok({ hints: computeHints(view), players: view.players })
+    const { game } = running.value
+    const view = toPlayerView(game, actor.playerId)
+    return ok({ hints: computeHints(view, countRanksInPiles(game)), players: view.players })
   }
 }

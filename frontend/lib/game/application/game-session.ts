@@ -200,9 +200,6 @@ export const createGameSession = ({
     playAction: async (action: TurnAction): Promise<Refusal> =>
       refusalOf(await gateway.send("game:action", action)),
 
-    endTurn: async (): Promise<Refusal> =>
-      refusalOf(await gateway.send("game:endTurn")),
-
     async fetchHints(): Promise<Hints | null> {
       const result = await gateway.send("game:hints")
       return result.ok ? result.data : null

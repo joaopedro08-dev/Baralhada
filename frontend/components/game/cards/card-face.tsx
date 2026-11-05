@@ -38,6 +38,11 @@ export const CARD_SIZES = {
     rank: "text-xl lg:text-2xl short:text-lg",
     suit: "size-7 lg:size-9 short:size-5",
   },
+  pile: {
+    box: "h-16 w-12 lg:h-20 lg:w-14",
+    rank: "text-lg lg:text-xl",
+    suit: "size-5 lg:size-6",
+  },
   flying: {
     box: "h-[4.75rem] w-14",
     rank: "text-xl",

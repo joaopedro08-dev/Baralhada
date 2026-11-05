@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  describeEvents,
   describeMoves,
+  describeSteal,
   DECK_ANCHOR,
   HAND_ANCHOR,
   playerAnchor,
@@ -11,7 +11,7 @@ import {
 import { buildGame, buildPlayer } from "@/lib/game/domain/test-fixtures"
 
 describe("movimento das cartas", () => {
-  it("compra do jogador vem do monte", () => {
+  it("reposição da mão vem do baralho", () => {
     const previous = buildGame({ hand: ["7H"] })
     const next = buildGame({ hand: ["7H", "8H"] })
     expect(describeMoves(previous, next, "eu")).toEqual([
@@ -42,7 +42,7 @@ describe("movimento das cartas", () => {
     ])
   })
 
-  it("reposição da mesa vem do monte", () => {
+  it("reposição da mesa vem do baralho", () => {
     const previous = buildGame({ table: [] })
     const next = buildGame({ table: ["7H"] })
     expect(describeMoves(previous, next, "eu")).toEqual([
@@ -50,7 +50,7 @@ describe("movimento das cartas", () => {
     ])
   })
 
-  it("compra do adversário não revela a carta", () => {
+  it("reposição do adversário não revela a carta", () => {
     const previous = buildGame()
     const next = buildGame({
       players: [buildPlayer("eu"), buildPlayer("ana", { handSize: 5 })],
@@ -73,62 +73,80 @@ describe("movimento das cartas", () => {
     })
     expect(describeMoves(previous, next, "eu")).toHaveLength(14)
   })
-})
 
-describe("eventos da mesa", () => {
-  it("avisa quando uma quadra fecha", () => {
-    const previous = buildGame({
-      players: [
-        buildPlayer("eu", {
-          melds: [{ rank: "7", cards: ["7C", "7D", "7H"] }],
-        }),
-        buildPlayer("ana"),
-      ],
-    })
+  it("captura leva as cartas da mesa e da mão para o monte", () => {
+    const previous = buildGame({ hand: ["7C", "2D"], table: ["7H", "9S"] })
     const next = buildGame({
+      hand: ["2D"],
+      table: ["9S"],
       players: [
-        buildPlayer("eu", {
-          melds: [{ rank: "7", cards: ["7C", "7D", "7H", "7S"] }],
-        }),
+        buildPlayer("eu", { pileSize: 2, pileTop: "7C" }),
         buildPlayer("ana"),
       ],
     })
-    expect(describeEvents(previous, next)).toEqual([
-      { kind: "quadCompleted", playerId: "eu", rank: "7" },
+    expect(describeMoves(previous, next, "eu")).toEqual([
+      { card: "7H", from: TABLE_ANCHOR, to: playerAnchor("eu") },
+      { card: "7C", from: HAND_ANCHOR, to: playerAnchor("eu") },
     ])
   })
 
-  it("avisa quem roubou de quem", () => {
+  it("roubo leva o topo do adversário para quem roubou", () => {
     const previous = buildGame({
       currentPlayerId: "ana",
       players: [
-        buildPlayer("eu", { melds: [{ rank: "3", cards: ["3C", "3D"] }] }),
-        buildPlayer("ana"),
+        buildPlayer("eu", { pileSize: 3, pileTop: "9C" }),
+        buildPlayer("ana", { pileSize: 1, pileTop: "4D" }),
       ],
     })
     const next = buildGame({
-      currentPlayerId: "ana",
+      currentPlayerId: "eu",
       players: [
         buildPlayer("eu"),
-        buildPlayer("ana", {
-          melds: [{ rank: "3", cards: ["3C", "3D", "3H"] }],
-        }),
+        buildPlayer("ana", { handSize: 3, pileSize: 5, pileTop: "9H" }),
       ],
     })
-    expect(describeEvents(previous, next)).toEqual([
-      { kind: "stolen", thiefId: "ana", victimId: "eu", rank: "3" },
+    expect(describeMoves(previous, next, "eu")).toEqual([
+      { card: "9C", from: playerAnchor("eu"), to: playerAnchor("ana") },
     ])
   })
+})
 
-  it("não acusa roubo quando a quadra só some", () => {
-    const previous = buildGame({
-      currentPlayerId: "ana",
+describe("roubo de monte", () => {
+  const previous = buildGame({
+    players: [
+      buildPlayer("eu", { pileSize: 1, pileTop: "4D" }),
+      buildPlayer("ana", { pileSize: 6, pileTop: "9C" }),
+    ],
+  })
+
+  it("identifica ladrão, vítima e tamanho do monte", () => {
+    const next = buildGame({
       players: [
-        buildPlayer("eu", { melds: [{ rank: "3", cards: ["3C", "3D"] }] }),
+        buildPlayer("eu", { handSize: 3, pileSize: 8, pileTop: "9H" }),
         buildPlayer("ana"),
       ],
     })
-    const next = buildGame({ currentPlayerId: "ana" })
-    expect(describeEvents(previous, next)).toEqual([])
+    expect(describeSteal(previous, next)).toEqual({
+      thiefId: "eu",
+      victimId: "ana",
+      count: 6,
+    })
+  })
+
+  it("não confunde com quem saiu da partida", () => {
+    const next = buildGame({
+      players: [buildPlayer("eu", { pileSize: 1, pileTop: "4D" })],
+    })
+    expect(describeSteal(previous, next)).toBeNull()
+  })
+
+  it("não acusa roubo numa captura", () => {
+    const next = buildGame({
+      players: [
+        buildPlayer("eu", { pileSize: 3, pileTop: "7C" }),
+        buildPlayer("ana", { pileSize: 6, pileTop: "9C" }),
+      ],
+    })
+    expect(describeSteal(previous, next)).toBeNull()
   })
 })

@@ -1,19 +1,11 @@
-import type {
-  Card,
-  Hints,
-  MeldTarget,
-  PlayerId,
-  Rank,
-  TurnAction,
-} from "@/lib/game/domain/types"
+import type { Card, Hints, PlayerId, TurnAction } from "@/lib/game/domain/types"
 
 export type HintLevel = "best" | "possible" | null
 
 interface BestPlay {
-  readonly draw: boolean
-  readonly handCards: readonly Card[]
+  readonly card: Card | null
   readonly tableCards: readonly Card[]
-  readonly meld: MeldTarget | null
+  readonly pile: PlayerId | null
 }
 
 export interface HintFocus {
@@ -21,45 +13,31 @@ export interface HintFocus {
   readonly possible: Hints["highlights"]
 }
 
-const NO_BEST_PLAY: BestPlay = {
-  draw: false,
-  handCards: [],
-  tableCards: [],
-  meld: null,
-}
-
 export const NO_FOCUS: HintFocus = {
-  best: NO_BEST_PLAY,
-  possible: { handCards: [], tableCards: [], stealableMelds: [] },
+  best: { card: null, tableCards: [], pile: null },
+  possible: { handCards: [], tableCards: [], piles: [] },
 }
 
-const bestPlayOf = (action: TurnAction): BestPlay => {
+const bestPlayOf = (action: TurnAction, viewerId: PlayerId): BestPlay => {
   switch (action.type) {
-    case "draw":
-      return { ...NO_BEST_PLAY, draw: true }
-    case "layDown":
-      return { ...NO_BEST_PLAY, handCards: action.cards }
-    case "discard":
-      return { ...NO_BEST_PLAY, handCards: [action.card] }
-    case "takeFromTable":
-      return {
-        ...NO_BEST_PLAY,
-        handCards: action.handCards,
-        tableCards: action.tableCards,
-      }
+    case "capture":
+      return { card: action.card, tableCards: action.tableCards, pile: null }
+    case "stack":
+      return { card: action.card, tableCards: [], pile: viewerId }
     case "steal":
-      return {
-        ...NO_BEST_PLAY,
-        handCards: action.handCards,
-        meld: { playerId: action.targetId, rank: action.rank },
-      }
+      return { card: action.card, tableCards: [], pile: action.targetId }
+    case "discard":
+      return { card: action.card, tableCards: [], pile: null }
   }
 }
 
-export const focusOfHints = (hints: Hints | null): HintFocus => {
+export const focusOfHints = (
+  hints: Hints | null,
+  viewerId: PlayerId
+): HintFocus => {
   const best = hints?.plays[0]
   if (!hints || !best) return NO_FOCUS
-  return { best: bestPlayOf(best.action), possible: hints.highlights }
+  return { best: bestPlayOf(best.action, viewerId), possible: hints.highlights }
 }
 
 const levelOf = (isBest: boolean, isPossible: boolean): HintLevel => {
@@ -68,10 +46,7 @@ const levelOf = (isBest: boolean, isPossible: boolean): HintLevel => {
 }
 
 export const handCardHint = (focus: HintFocus, card: Card): HintLevel =>
-  levelOf(
-    focus.best.handCards.includes(card),
-    focus.possible.handCards.includes(card)
-  )
+  levelOf(focus.best.card === card, focus.possible.handCards.includes(card))
 
 export const tableCardHint = (focus: HintFocus, card: Card): HintLevel =>
   levelOf(
@@ -79,14 +54,5 @@ export const tableCardHint = (focus: HintFocus, card: Card): HintLevel =>
     focus.possible.tableCards.includes(card)
   )
 
-export const meldHint = (
-  focus: HintFocus,
-  playerId: PlayerId,
-  rank: Rank
-): HintLevel =>
-  levelOf(
-    focus.best.meld?.playerId === playerId && focus.best.meld.rank === rank,
-    focus.possible.stealableMelds.some(
-      (meld) => meld.playerId === playerId && meld.rank === rank
-    )
-  )
+export const pileHint = (focus: HintFocus, ownerId: PlayerId): HintLevel =>
+  levelOf(focus.best.pile === ownerId, focus.possible.piles.includes(ownerId))

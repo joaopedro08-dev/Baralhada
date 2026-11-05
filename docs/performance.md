@@ -71,14 +71,16 @@ Medido em 1 thread na máquina de desenvolvimento, sem limite de CPU.
 
 | Operação | Operações/s | Tempo |
 | --- | --- | --- |
-| Visão de um jogador | 1.675.752 | 0,6 µs |
-| Aplicar uma ação | 559.032 | 1,8 µs |
-| Embaralhar e distribuir | 54.913 | 18 µs |
-| Calcular dicas | 24.038 | 42 µs |
-| Montar e serializar estado para 6 jogadores | 13.815 | 72 µs |
-| Partida inteira | 233 | 4,3 ms |
+| Visão de um jogador | 1.564.813 | 0,6 µs |
+| Aplicar uma ação | 531.185 | 1,9 µs |
+| Embaralhar e distribuir | 53.145 | 19 µs |
+| Calcular dicas | 53.080 | 19 µs |
+| Montar e serializar estado para 6 jogadores | 12.950 | 77 µs |
+| Partida inteira | 584 | 1,7 ms |
 
-O motor não é o gargalo: montar o estado da sala leva 72 µs. O custo dominante está fora dele, provavelmente no envio por WebSocket. Um perfil de CPU confirmaria isso.
+Medido de novo em 2026-11-05, com as regras do monte. As dicas ficaram 2 vezes mais rápidas e a partida inteira 2,5 vezes, porque cada turno tem uma jogada só e não há mais reciclagem da mesa.
+
+O motor não é o gargalo: montar o estado da sala leva 77 µs. O custo dominante está fora dele, provavelmente no envio por WebSocket. Um perfil de CPU confirmaria isso.
 
 O estado enviado a cada jogador tem cerca de 1 KB no início da partida e cresce com o histórico, limitado a 50 frases.
 
