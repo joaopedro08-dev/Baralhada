@@ -7,7 +7,8 @@ export const buildPlayer = (
   id,
   nickname: id.toUpperCase(),
   handSize: 4,
-  melds: [],
+  pileSize: 0,
+  pileTop: null,
   ...changes,
 })
 
@@ -18,8 +19,6 @@ export const buildGame = (changes: Partial<GameState> = {}): GameState => ({
   players: [buildPlayer("eu"), buildPlayer("ana")],
   currentPlayerId: "eu",
   turnNumber: 3,
-  usedActions: [],
-  canEndTurn: true,
   endReason: null,
   winnerIds: [],
   history: [],

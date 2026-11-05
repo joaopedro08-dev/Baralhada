@@ -4,7 +4,7 @@ Encontrou uma falha? Não abra uma issue pública. Use **Security > Report a vul
 
 ## O que está no escopo
 
-- Ver a mão de outro jogador ou a ordem do monte
+- Ver a mão de outro jogador, as cartas abaixo do topo dos montes ou a ordem do baralho de compra
 - Agir no lugar de outra pessoa ou entrar no lugar dela em uma sala
 - Derrubar o servidor ou deixar as salas indisponíveis para os outros
 

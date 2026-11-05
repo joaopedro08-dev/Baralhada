@@ -3,9 +3,9 @@ import type { RandomSource } from "../../shared/random.js"
 import { shuffle } from "../../shared/random.js"
 import { err, ok } from "../../shared/result.js"
 import type { Result } from "../../shared/result.js"
+import type { Seat } from "../../shared/seat.js"
 import type { GameErrorCode } from "./errors.js"
 import { HAND_SIZE, MAX_PLAYERS, MIN_PLAYERS, TABLE_SIZE } from "./model.js"
-import type { Seat } from "../../shared/seat.js"
 import type { Game, GamePlayer, PlayerId } from "./model.js"
 
 export const startGame = (
@@ -19,7 +19,7 @@ export const startGame = (
   const players: GamePlayer[] = seats.map((seat, index) => ({
     id: seat.id,
     hand: deck.slice(index * HAND_SIZE, (index + 1) * HAND_SIZE),
-    melds: [],
+    pile: [],
   }))
   const dealt = seats.length * HAND_SIZE
 
@@ -28,7 +28,7 @@ export const startGame = (
     players,
     table: deck.slice(dealt, dealt + TABLE_SIZE),
     deck: deck.slice(dealt + TABLE_SIZE),
-    turn: { number: 1, playerId: startingPlayerId, usedActions: [] },
+    turn: { number: 1, playerId: startingPlayerId },
     events: [],
     endReason: null,
     winnerIds: [],

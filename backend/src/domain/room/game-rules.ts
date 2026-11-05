@@ -21,7 +21,6 @@ export interface GameRules<State, Action, ErrorCode extends string> extends Play
     action: Action,
     random: RandomSource
   ): Result<State, ErrorCode>
-  pass(state: State, playerId: PlayerId, random: RandomSource): Result<State, ErrorCode>
   expireTurn(state: State, random: RandomSource): State
   removePlayer(state: State, playerId: PlayerId, random: RandomSource): State
   turnOf(state: State): TurnInfo

@@ -1,24 +1,20 @@
 import { describe, expect, it } from "vitest"
 
-import { describeResult, rankPlayers } from "@/lib/game/domain/scoreboard"
+import {
+  describeResult,
+  explainEnd,
+  rankPlayers,
+} from "@/lib/game/domain/scoreboard"
 import { buildGame, buildPlayer } from "@/lib/game/domain/test-fixtures"
-import type { GamePlayer } from "@/lib/game/domain/types"
-
-const withQuad = (id: string): GamePlayer =>
-  buildPlayer(id, { melds: [{ rank: "7", cards: ["7C", "7D", "7H", "7S"] }] })
 
 describe("placar", () => {
-  it("ordena por quadras completas", () => {
-    const ranking = rankPlayers([buildPlayer("eu"), withQuad("ana")])
-    expect(ranking.map((player) => player.id)).toEqual(["ana", "eu"])
-  })
-
-  it("ignora quadra incompleta", () => {
-    const partial = buildPlayer("eu", {
-      melds: [{ rank: "7", cards: ["7C", "7D", "7H"] }],
-    })
-    const ranking = rankPlayers([partial, withQuad("ana")])
-    expect(ranking[0]?.id).toBe("ana")
+  it("ordena pelo tamanho do monte", () => {
+    const ranking = rankPlayers([
+      buildPlayer("eu", { pileSize: 3 }),
+      buildPlayer("ana", { pileSize: 12 }),
+      buildPlayer("bia"),
+    ])
+    expect(ranking.map((player) => player.id)).toEqual(["ana", "eu", "bia"])
   })
 })
 
@@ -49,5 +45,20 @@ describe("título do resultado", () => {
   it("mantém o resultado para quem entrou depois da partida", () => {
     const game = buildGame({ winnerIds: ["ana"] })
     expect(describeResult(game, "recem-chegado")).toBe("ANA venceu")
+  })
+})
+
+describe("motivo do fim", () => {
+  it("explica cada forma de terminar", () => {
+    expect(explainEnd(buildGame({ endReason: "noPlaysLeft" }))).toContain(
+      "O baralho acabou"
+    )
+    expect(explainEnd(buildGame({ endReason: "handsEmpty" }))).toContain(
+      "Todas as cartas"
+    )
+    expect(explainEnd(buildGame({ endReason: "abandoned" }))).toContain(
+      "saíram"
+    )
+    expect(explainEnd(buildGame())).toBeNull()
   })
 })

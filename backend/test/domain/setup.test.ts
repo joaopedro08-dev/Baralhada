@@ -4,7 +4,7 @@ import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
 import { chooseStartingPlayer } from "../../src/domain/room/turn-order.js"
 import type { Seat } from "../../src/domain/shared/seat.js"
 import { shuffle } from "../../src/domain/shared/random.js"
-import { allCardsOf, seededRandom } from "../support/game-builder.js"
+import { allCardsOf, seededRandom, unwrap } from "../support/game-builder.js"
 
 const seats = (count: number): Seat[] =>
   Array.from({ length: count }, (_, index) => ({ id: `p${index}`, nickname: `P${index}` }))
@@ -22,16 +22,21 @@ describe("RN-01 quantidade de jogadores", () => {
 
 describe("RN-02 distribuição", () => {
   it.each([
-    [2, 34],
-    [6, 18],
-  ])("com %i jogadores deixa %i no monte", (count, deckSize) => {
-    const game = startGame(seats(count), "p0", seededRandom(7))
-    if (!game.ok) throw new Error(game.error)
+    [2, 36],
+    [6, 20],
+  ])("com %i jogadores deixa %i no baralho de compra", (count, deckSize) => {
+    const game = unwrap(startGame(seats(count), "p0", seededRandom(7)))
 
-    expect(game.value.deck).toHaveLength(deckSize)
-    expect(game.value.table).toHaveLength(10)
-    expect(game.value.players.every((player) => player.hand.length === 4)).toBe(true)
-    expect(new Set(allCardsOf(game.value)).size).toBe(52)
+    expect(game.deck).toHaveLength(deckSize)
+    expect(game.table).toHaveLength(8)
+    expect(game.players.every((player) => player.hand.length === 4)).toBe(true)
+    expect(game.players.every((player) => player.pile.length === 0)).toBe(true)
+    expect(new Set(allCardsOf(game)).size).toBe(52)
+  })
+
+  it("começa no turno 1 com o jogador sorteado", () => {
+    const game = unwrap(startGame(seats(3), "p2", seededRandom(7)))
+    expect(game.turn).toEqual({ number: 1, playerId: "p2" })
   })
 })
 

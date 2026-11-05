@@ -135,7 +135,6 @@ export class SocketController {
     member("game:action", turnActionSchema, (actor, action: TurnAction) =>
       playTurn.perform(actor, action)
     )
-    member("game:endTurn", emptySchema, (actor) => playTurn.finish(actor))
     member("game:hints", emptySchema, (actor) => {
       const hints = getHints.execute(actor)
       return hints.ok ? ok(presentHints(hints.value)) : hints

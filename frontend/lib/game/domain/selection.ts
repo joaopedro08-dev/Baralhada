@@ -1,19 +1,18 @@
-import { isCompleteMeld, rankOf } from "@/lib/game/domain/cards"
+import { sameRank, sortCards } from "@/lib/game/domain/cards"
 import type {
   Card,
+  GamePlayer,
   GameState,
-  MeldTarget,
   PlayerId,
-  Rank,
   TurnAction,
   TurnActionKind,
 } from "@/lib/game/domain/types"
 
 export interface Selection {
   readonly turn: number
-  readonly hand: readonly Card[]
+  readonly card: Card | null
   readonly tableCards: readonly Card[]
-  readonly meld: MeldTarget | null
+  readonly pile: PlayerId | null
 }
 
 export type ActionPlan =
@@ -22,159 +21,144 @@ export type ActionPlan =
 
 export const emptySelection = (turn: number): Selection => ({
   turn,
-  hand: [],
+  card: null,
   tableCards: [],
-  meld: null,
+  pile: null,
 })
 
-const isStealable = (game: GameState, target: MeldTarget | null): boolean => {
-  if (!target) return false
-  const owner = game.players.find((player) => player.id === target.playerId)
-  return (
-    owner?.melds.some(
-      (meld) => meld.rank === target.rank && !isCompleteMeld(meld)
-    ) ?? false
-  )
-}
+const pileTopOf = (game: GameState, ownerId: PlayerId | null): Card | null =>
+  game.players.find((player) => player.id === ownerId)?.pileTop ?? null
+
+const handCardMatching = (game: GameState, target: Card): Card | null =>
+  sortCards(game.hand).find((card) => sameRank(card, target)) ?? null
+
+const keepMatching = (card: Card | null, target: Card): Card | null =>
+  card && sameRank(card, target) ? card : null
 
 export const currentSelection = (
   selection: Selection,
   game: GameState
 ): Selection => {
   if (selection.turn !== game.turnNumber) return emptySelection(game.turnNumber)
-  const { tableCards, meld } = selection
+  const { card, tableCards, pile } = selection
   return {
     turn: selection.turn,
-    hand: selection.hand.filter((card) => game.hand.includes(card)),
-    tableCards: tableCards.filter((card) => game.table.includes(card)),
-    meld: isStealable(game, meld) ? meld : null,
+    card: card && game.hand.includes(card) ? card : null,
+    tableCards: tableCards.filter((onTable) => game.table.includes(onTable)),
+    pile: pileTopOf(game, pile) ? pile : null,
   }
 }
 
-const withoutRank = (cards: readonly Card[], rank: Rank): readonly Card[] =>
-  cards.filter((card) => rankOf(card) !== rank)
-
-const ofRank = (cards: readonly Card[], rank: Rank): readonly Card[] =>
-  cards.filter((card) => rankOf(card) === rank)
-
 export const toggleHandCard = (
   selection: Selection,
-  card: Card
-): Selection => ({
-  ...selection,
-  hand: selection.hand.includes(card)
-    ? selection.hand.filter((held) => held !== card)
-    : [...selection.hand, card],
-})
+  card: Card,
+  game: GameState
+): Selection => {
+  if (selection.card === card) return { ...selection, card: null }
+  const top = pileTopOf(game, selection.pile)
+  return {
+    ...selection,
+    card,
+    tableCards: selection.tableCards.filter((onTable) =>
+      sameRank(onTable, card)
+    ),
+    pile: top && sameRank(top, card) ? selection.pile : null,
+  }
+}
 
 export const toggleTableCard = (
   selection: Selection,
   card: Card,
-  hand: readonly Card[]
+  game: GameState
 ): Selection => {
-  const rank = rankOf(card)
   if (selection.tableCards.includes(card)) {
-    const tableCards = selection.tableCards.filter((held) => held !== card)
     return {
       ...selection,
-      tableCards,
-      hand:
-        tableCards.length > 0
-          ? selection.hand
-          : withoutRank(selection.hand, rank),
+      tableCards: selection.tableCards.filter((held) => held !== card),
     }
   }
-  const sameRank = ofRank(selection.tableCards, rank)
   return {
     ...selection,
-    tableCards: [...sameRank, card],
-    meld: null,
-    hand: sameRank.length > 0 ? selection.hand : ofRank(hand, rank),
+    card: keepMatching(selection.card, card) ?? handCardMatching(game, card),
+    tableCards: [
+      ...selection.tableCards.filter((held) => sameRank(held, card)),
+      card,
+    ],
+    pile: null,
   }
 }
 
-const isSameTarget = (a: MeldTarget | null, b: MeldTarget): boolean =>
-  a?.playerId === b.playerId && a.rank === b.rank
-
-export const toggleMeld = (
+export const togglePile = (
   selection: Selection,
-  target: MeldTarget,
-  hand: readonly Card[]
+  ownerId: PlayerId,
+  game: GameState
 ): Selection => {
-  const released = isSameTarget(selection.meld, target)
+  const top = pileTopOf(game, ownerId)
+  if (selection.pile === ownerId || !top) return { ...selection, pile: null }
   return {
     ...selection,
-    meld: released ? null : target,
+    card: keepMatching(selection.card, top) ?? handCardMatching(game, top),
     tableCards: [],
-    hand: released
-      ? withoutRank(selection.hand, target.rank)
-      : ofRank(hand, target.rank),
+    pile: ownerId,
   }
 }
 
 export const planAction = (
   kind: TurnActionKind,
-  { hand, tableCards, meld }: Selection
+  { card, tableCards, pile }: Selection,
+  viewerId: PlayerId
 ): ActionPlan => {
+  if (!card) {
+    return { ready: false, problem: "Selecione 1 carta da sua mão." }
+  }
   switch (kind) {
-    case "draw":
-      return { ready: true, action: { type: "draw" } }
-    case "layDown":
-      return { ready: true, action: { type: "layDown", cards: hand } }
-    case "takeFromTable":
+    case "capture":
       return tableCards.length > 0
-        ? {
-            ready: true,
-            action: { type: "takeFromTable", tableCards, handCards: hand },
+        ? { ready: true, action: { type: "capture", card, tableCards } }
+        : {
+            ready: false,
+            problem: "Toque nas cartas da mesa que quer capturar.",
           }
-        : { ready: false, problem: "Toque nas cartas da mesa que quer pegar." }
+    case "stack":
+      return { ready: true, action: { type: "stack", card } }
     case "steal":
-      return meld
-        ? {
-            ready: true,
-            action: {
-              type: "steal",
-              targetId: meld.playerId,
-              rank: meld.rank,
-              handCards: hand,
-            },
-          }
+      return pile && pile !== viewerId
+        ? { ready: true, action: { type: "steal", card, targetId: pile } }
         : {
             ready: false,
-            problem: "Toque na quadra incompleta que quer roubar.",
+            problem: "Toque no monte do adversário que quer roubar.",
           }
-    case "discard": {
-      const [card, ...others] = hand
-      return card && others.length === 0
-        ? { ready: true, action: { type: "discard", card } }
-        : {
-            ready: false,
-            problem: "Selecione 1 carta da sua mão para descartar.",
-          }
-    }
+    case "discard":
+      return { ready: true, action: { type: "discard", card } }
   }
 }
 
-export const isActionOpen = (
-  { usedActions }: GameState,
-  kind: TurnActionKind
-): boolean => {
-  if (usedActions.length === 0) return true
-  return (
-    kind !== "draw" && usedActions.length === 1 && usedActions[0] === "draw"
-  )
-}
+const hasPile = (player: GamePlayer): boolean => player.pileSize > 0
 
-const holdsOpenMeld = (
+export const isActionAvailable = (
   game: GameState,
   viewerId: PlayerId,
-  rank: Rank
+  kind: TurnActionKind
 ): boolean => {
-  const melds = game.players.find((player) => player.id === viewerId)?.melds
-  return (
-    melds?.some((meld) => meld.rank === rank && !isCompleteMeld(meld)) ?? false
-  )
+  if (game.hand.length === 0) return false
+  switch (kind) {
+    case "capture":
+      return game.table.length > 0
+    case "stack":
+      return game.players.some(
+        (player) => player.id === viewerId && hasPile(player)
+      )
+    case "steal":
+      return game.players.some(
+        (player) => player.id !== viewerId && hasPile(player)
+      )
+    case "discard":
+      return true
+  }
 }
+
+const matchesAny = (card: Card, others: readonly (Card | null)[]): boolean =>
+  others.some((other) => other !== null && sameRank(card, other))
 
 export const suggestAction = (
   game: GameState,
@@ -182,26 +166,14 @@ export const suggestAction = (
   viewerId: PlayerId,
   bestAction: TurnActionKind | null = null
 ): TurnActionKind | null => {
-  const { hand, meld, tableCards } = selection
-  const [first] = hand
-  if (game.usedActions.includes("draw")) {
-    if (meld && first) return "steal"
-    if (tableCards.length > 0 && first) return "takeFromTable"
-    if (first) {
-      return holdsOpenMeld(game, viewerId, rankOf(first))
-        ? "layDown"
-        : "discard"
-    }
-    return bestAction ?? "discard"
-  }
-  if (meld && hand.length > 0) return "steal"
-  if (meld && holdsOpenMeld(game, viewerId, meld.rank)) return "steal"
-  if (tableCards.length > 0 && hand.length > 0) return "takeFromTable"
-  if (hand.length >= 2) return "layDown"
-  if (first) {
-    return holdsOpenMeld(game, viewerId, rankOf(first)) ? "layDown" : "discard"
-  }
-  if (tableCards.length > 0 || meld) return null
-  if (bestAction) return bestAction
-  return game.deckSize > 0 ? "draw" : null
+  const { card, tableCards, pile } = selection
+  if (pile) return pile === viewerId ? "stack" : "steal"
+  if (tableCards.length > 0) return "capture"
+  if (!card) return bestAction
+  if (matchesAny(card, game.table)) return "capture"
+  const opponentTops = game.players
+    .filter((player) => player.id !== viewerId)
+    .map((player) => player.pileTop)
+  if (matchesAny(card, opponentTops)) return "steal"
+  return matchesAny(card, [pileTopOf(game, viewerId)]) ? "stack" : "discard"
 }

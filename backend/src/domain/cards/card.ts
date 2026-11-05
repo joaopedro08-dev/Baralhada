@@ -5,13 +5,12 @@ export type Rank = (typeof RANKS)[number]
 export type Suit = (typeof SUITS)[number]
 export type Card = `${Rank}${Suit}`
 
-export const QUAD_SIZE = 4
-export const TOTAL_QUADS = RANKS.length
+export const COPIES_PER_RANK = SUITS.length
+export const DECK_SIZE = RANKS.length * COPIES_PER_RANK
 
 export const createFullDeck = (): readonly Card[] =>
   RANKS.flatMap((rank) => SUITS.map((suit): Card => `${rank}${suit}`))
 
 export const rankOf = (card: Card): Rank => card.slice(0, -1) as Rank
 
-export const shareRank = (cards: readonly Card[]): boolean =>
-  cards.every((card) => rankOf(card) === rankOf(cards[0] as Card))
+export const sameRank = (first: Card, second: Card): boolean => rankOf(first) === rankOf(second)

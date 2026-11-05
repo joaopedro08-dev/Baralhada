@@ -1,23 +1,21 @@
-import { QUAD_SIZE, RANKS, rankOf } from "../../cards/card.js"
+import { COPIES_PER_RANK, RANKS, rankOf } from "../../cards/card.js"
 import type { Card, Rank } from "../../cards/card.js"
 import type { PlayerId } from "./model.js"
-import type { PlayerView } from "./player-view.js"
-import { closesPurchase } from "./turn-actions.js"
-import type { TurnAction } from "./turn-actions.js"
-
-export type PlayKind = "complete" | "steal" | "advance" | "open" | "draw" | "discard"
+import type { PlayerView, PublicPlayer } from "./player-view.js"
+import type { TurnAction, TurnActionKind } from "./turn-actions.js"
 
 export interface Play {
   readonly action: TurnAction
-  readonly kind: PlayKind
-  readonly rank: Rank | null
+  readonly kind: TurnActionKind
+  readonly rank: Rank
   readonly targetId: PlayerId | null
+  readonly gainedCards: number
   readonly score: number
 }
 
 export interface RiskAlert {
   readonly rank: Rank
-  readonly cardsInMeld: number
+  readonly pileSize: number
   readonly unseenCards: number
 }
 
@@ -32,186 +30,162 @@ export interface Hints {
   readonly highlights: {
     readonly handCards: readonly Card[]
     readonly tableCards: readonly Card[]
-    readonly stealableMelds: readonly { readonly playerId: PlayerId; readonly rank: Rank }[]
+    readonly piles: readonly PlayerId[]
   }
-  readonly risks: readonly RiskAlert[]
+  readonly risk: RiskAlert | null
   readonly cardCounts: readonly CardCount[]
 }
 
-const COMPLETION_BONUS = 100
-const STEAL_BONUS = 30
-const TABLE_BONUS = 5
 const POINTS_PER_CARD = 10
-const DRAW_SCORE = 15
-const DISCARD_BASE_SCORE = 10
-const DISCARD_PAIR_PENALTY = 3
+const POINTS_PER_STOLEN_CARD = 10
+const EXPOSURE_PER_CARD = 6
+const DISCARD_EXPOSURE = 4
+const DISCARD_MATCHING_TABLE_PENALTY = 8
+const DISCARD_HELD_PAIR_BONUS = 3
 
-const countVisibleCards = (view: PlayerView): ReadonlyMap<Rank, number> => {
+interface Context {
+  readonly view: PlayerView
+  readonly viewer: PublicPlayer | undefined
+  readonly unseen: (rank: Rank) => number
+}
+
+const countByRank = (cards: readonly Card[]): Map<Rank, number> => {
   const counts = new Map<Rank, number>()
-  const add = (card: Card) => {
+  for (const card of cards) {
     const rank = rankOf(card)
     counts.set(rank, (counts.get(rank) ?? 0) + 1)
   }
-  view.hand.forEach(add)
-  view.table.forEach(add)
-  view.players.forEach((player) => player.melds.forEach((meld) => meld.cards.forEach(add)))
   return counts
 }
 
-const cardsOfRank = (cards: readonly Card[], rank: Rank): readonly Card[] =>
-  cards.filter((card) => rankOf(card) === rank)
-
-const ownMeldSize = (view: PlayerView, rank: Rank): number =>
-  view.players
-    .find((player) => player.id === view.viewerId)
-    ?.melds.find((meld) => meld.rank === rank)?.cards.length ?? 0
-
-const buildKind = (size: number, opening: boolean): PlayKind => {
-  if (size === QUAD_SIZE) return "complete"
-  return opening ? "open" : "advance"
+const seenCounts = (
+  view: PlayerView,
+  ranksInPiles: ReadonlyMap<Rank, number>
+): ReadonlyMap<Rank, number> => {
+  const seen = countByRank([...view.hand, ...view.table])
+  for (const [rank, count] of ranksInPiles) seen.set(rank, (seen.get(rank) ?? 0) + count)
+  return seen
 }
 
-const scoreBySize = (size: number, bonus: number): number =>
-  size * POINTS_PER_CARD + bonus + (size === QUAD_SIZE ? COMPLETION_BONUS : 0)
+const exposure = (context: Context, rank: Rank, pileSize: number): number =>
+  (pileSize * context.unseen(rank) * EXPOSURE_PER_CARD) / COPIES_PER_RANK
 
-const handRanks = (view: PlayerView): readonly Rank[] => [...new Set(view.hand.map(rankOf))]
-
-const layDownPlays = (view: PlayerView): readonly Play[] =>
-  handRanks(view).flatMap((rank) => {
-    const cards = cardsOfRank(view.hand, rank)
-    const existing = ownMeldSize(view, rank)
-    const size = existing + cards.length
-    if (size < 2) return []
-    return [
-      {
-        action: { type: "layDown", cards },
-        kind: buildKind(size, existing === 0),
-        rank,
-        targetId: null,
-        score: scoreBySize(size, 0),
-      } satisfies Play,
-    ]
-  })
-
-const takeFromTablePlays = (view: PlayerView): readonly Play[] =>
-  handRanks(view).flatMap((rank) => {
-    const tableCards = cardsOfRank(view.table, rank)
-    if (tableCards.length === 0) return []
-    const handCards = cardsOfRank(view.hand, rank)
-    const existing = ownMeldSize(view, rank)
-    const size = existing + handCards.length + tableCards.length
-    return [
-      {
-        action: { type: "takeFromTable", tableCards, handCards },
-        kind: buildKind(size, existing === 0),
-        rank,
-        targetId: null,
-        score: scoreBySize(size, TABLE_BONUS),
-      } satisfies Play,
-    ]
-  })
-
-const stealPlays = (view: PlayerView): readonly Play[] =>
-  view.players
-    .filter((player) => player.id !== view.viewerId)
-    .flatMap((player) =>
-      player.melds
-        .filter((meld) => meld.cards.length < QUAD_SIZE)
-        .flatMap((meld) => {
-          const handCards = cardsOfRank(view.hand, meld.rank)
-          const existing = ownMeldSize(view, meld.rank)
-          if (handCards.length === 0 && existing === 0) return []
-          const size = existing + meld.cards.length + handCards.length
-          return [
-            {
-              action: { type: "steal", targetId: player.id, rank: meld.rank, handCards },
-              kind: size === QUAD_SIZE ? "complete" : "steal",
-              rank: meld.rank,
-              targetId: player.id,
-              score: scoreBySize(size, STEAL_BONUS),
-            } satisfies Play,
-          ]
-        })
-    )
-
-const drawPlays = (view: PlayerView): readonly Play[] =>
-  view.deckSize > 0
-    ? [{ action: { type: "draw" }, kind: "draw", rank: null, targetId: null, score: DRAW_SCORE }]
-    : []
-
-const discardPlays = (view: PlayerView, visible: ReadonlyMap<Rank, number>): readonly Play[] =>
-  view.hand.map((card) => {
-    const rank = rankOf(card)
-    const unseen = QUAD_SIZE - (visible.get(rank) ?? 0)
-    const pairs = cardsOfRank(view.hand, rank).length - 1
-    return {
-      action: { type: "discard", card },
-      kind: "discard",
-      rank,
-      targetId: null,
-      score: DISCARD_BASE_SCORE - pairs * DISCARD_PAIR_PENALTY - unseen,
-    }
-  })
-
-const isPlayAvailable = (play: Play, view: PlayerView): boolean => {
-  const { usedActions } = view
-  if (usedActions.length === 0) return true
-  if (usedActions.length > 1 || usedActions[0] !== "draw") return false
-  const ownMelds = view.players.find((player) => player.id === view.viewerId)?.melds ?? []
-  return closesPurchase(ownMelds, play.action)
+const currentExposure = (context: Context): number => {
+  const top = context.viewer?.pileTop
+  return top ? exposure(context, rankOf(top), context.viewer?.pileSize ?? 0) : 0
 }
 
-const availablePlays = (view: PlayerView, visible: ReadonlyMap<Rank, number>): readonly Play[] => {
-  if (view.currentPlayerId !== view.viewerId || view.endReason !== null) return []
-  return [
-    ...layDownPlays(view),
-    ...takeFromTablePlays(view),
-    ...stealPlays(view),
-    ...drawPlays(view),
-    ...discardPlays(view, visible),
-  ]
-    .filter((play) => isPlayAvailable(play, view))
-    .toSorted((first, second) => second.score - first.score)
-}
-
-const highlightsOf = (plays: readonly Play[]): Hints["highlights"] => {
-  const handCards = new Set<Card>()
-  const tableCards = new Set<Card>()
-  const stealableMelds: { playerId: PlayerId; rank: Rank }[] = []
-  for (const { action } of plays) {
-    if (action.type === "layDown") action.cards.forEach((card) => handCards.add(card))
-    if (action.type === "takeFromTable") {
-      action.tableCards.forEach((card) => tableCards.add(card))
-      action.handCards.forEach((card) => handCards.add(card))
-    }
-    if (action.type === "steal") {
-      stealableMelds.push({ playerId: action.targetId, rank: action.rank })
-      action.handCards.forEach((card) => handCards.add(card))
-    }
+const scoringPlay = (
+  context: Context,
+  action: TurnAction,
+  targetId: PlayerId | null,
+  gainedCards: number,
+  stolenCards: number
+): Play => {
+  const rank = rankOf(action.card)
+  const pileAfter = (context.viewer?.pileSize ?? 0) + gainedCards
+  const risk = exposure(context, rank, pileAfter) - currentExposure(context)
+  return {
+    action,
+    kind: action.type,
+    rank,
+    targetId,
+    gainedCards,
+    score: gainedCards * POINTS_PER_CARD + stolenCards * POINTS_PER_STOLEN_CARD - risk,
   }
-  return { handCards: [...handCards], tableCards: [...tableCards], stealableMelds }
 }
 
-const risksOf = (view: PlayerView, visible: ReadonlyMap<Rank, number>): readonly RiskAlert[] =>
-  (view.players.find((player) => player.id === view.viewerId)?.melds ?? [])
-    .filter((meld) => meld.cards.length < QUAD_SIZE)
-    .map((meld) => ({
-      rank: meld.rank,
-      cardsInMeld: meld.cards.length,
-      unseenCards: QUAD_SIZE - (visible.get(meld.rank) ?? 0),
-    }))
-    .filter((risk) => risk.unseenCards > 0)
+const playsWith = (context: Context, card: Card): readonly Play[] => {
+  const { view, viewer } = context
+  const rank = rankOf(card)
+  const plays: Play[] = []
+  const tableCards = view.table.filter((onTable) => rankOf(onTable) === rank)
+  if (tableCards.length > 0) {
+    const action: TurnAction = { type: "capture", card, tableCards }
+    plays.push(scoringPlay(context, action, null, tableCards.length + 1, 0))
+  }
+  if (viewer?.pileTop && rankOf(viewer.pileTop) === rank) {
+    plays.push(scoringPlay(context, { type: "stack", card }, null, 1, 0))
+  }
+  for (const target of view.players) {
+    if (target.id === view.viewerId || !target.pileTop || rankOf(target.pileTop) !== rank) continue
+    const action: TurnAction = { type: "steal", card, targetId: target.id }
+    plays.push(scoringPlay(context, action, target.id, target.pileSize + 1, target.pileSize))
+  }
+  return plays
+}
 
-export const computeHints = (view: PlayerView): Hints => {
-  const visible = countVisibleCards(view)
-  const plays = availablePlays(view, visible)
+const discardPlay = (context: Context, card: Card): Play => {
+  const rank = rankOf(card)
+  const held = context.view.hand.filter((inHand) => rankOf(inHand) === rank).length
+  const onTable = context.view.table.some((inTable) => rankOf(inTable) === rank)
+  return {
+    action: { type: "discard", card },
+    kind: "discard",
+    rank,
+    targetId: null,
+    gainedCards: 0,
+    score:
+      (held - 1) * DISCARD_HELD_PAIR_BONUS -
+      context.unseen(rank) * DISCARD_EXPOSURE -
+      (onTable ? DISCARD_MATCHING_TABLE_PENALTY : 0),
+  }
+}
+
+const oneCardPerRank = (hand: readonly Card[]): readonly Card[] => [
+  ...new Map(hand.map((card) => [rankOf(card), card])).values(),
+]
+
+const availablePlays = (context: Context): readonly Play[] => {
+  const { view } = context
+  if (view.currentPlayerId !== view.viewerId || view.endReason !== null) return []
+  const cards = oneCardPerRank(view.hand)
+  return [
+    ...cards.flatMap((card) => playsWith(context, card)),
+    ...cards.map((card) => discardPlay(context, card)),
+  ].toSorted((first, second) => second.score - first.score)
+}
+
+const highlightsOf = (view: PlayerView, plays: readonly Play[]): Hints["highlights"] => {
+  const scoring = plays.filter((play) => play.kind !== "discard")
+  const ranks = new Set(scoring.map((play) => play.rank))
+  const piles = new Set<PlayerId>()
+  for (const play of scoring) {
+    if (play.kind === "stack") piles.add(view.viewerId)
+    if (play.targetId) piles.add(play.targetId)
+  }
+  return {
+    handCards: view.hand.filter((card) => ranks.has(rankOf(card))),
+    tableCards: scoring.flatMap((play) =>
+      play.action.type === "capture" ? play.action.tableCards : []
+    ),
+    piles: [...piles],
+  }
+}
+
+const riskOf = (context: Context): RiskAlert | null => {
+  const top = context.viewer?.pileTop
+  if (!top) return null
+  const rank = rankOf(top)
+  const unseenCards = context.unseen(rank)
+  return unseenCards > 0 ? { rank, pileSize: context.viewer?.pileSize ?? 0, unseenCards } : null
+}
+
+export const computeHints = (view: PlayerView, ranksInPiles: ReadonlyMap<Rank, number>): Hints => {
+  const seen = seenCounts(view, ranksInPiles)
+  const context: Context = {
+    view,
+    viewer: view.players.find((player) => player.id === view.viewerId),
+    unseen: (rank) => Math.max(0, COPIES_PER_RANK - (seen.get(rank) ?? 0)),
+  }
+  const plays = availablePlays(context)
   return {
     plays,
-    highlights: highlightsOf(plays),
-    risks: risksOf(view, visible),
+    highlights: highlightsOf(view, plays),
+    risk: riskOf(context),
     cardCounts: RANKS.map((rank) => {
-      const seen = visible.get(rank) ?? 0
-      return { rank, visible: seen, missing: QUAD_SIZE - seen }
+      const visible = seen.get(rank) ?? 0
+      return { rank, visible, missing: COPIES_PER_RANK - visible }
     }),
   }
 }

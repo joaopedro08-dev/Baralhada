@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { createFullDeck, QUAD_SIZE, RANKS } from "../../domain/cards/card.js"
+import { COPIES_PER_RANK, createFullDeck } from "../../domain/cards/card.js"
 import type { Card } from "../../domain/cards/card.js"
 
 export const ROOM_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
@@ -23,7 +23,10 @@ const playerId = z.string().min(1).max(64)
 
 const card = z.enum(createFullDeck() as readonly [Card, ...Card[]])
 
-const cardGroup = z.array(card).max(QUAD_SIZE)
+const tableCards = z
+  .array(card)
+  .min(1)
+  .max(COPIES_PER_RANK - 1)
 
 export const createRoomSchema = z.strictObject({ nickname })
 
@@ -40,18 +43,8 @@ export const kickSchema = z.strictObject({ playerId })
 export const emptySchema = z.undefined()
 
 export const turnActionSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("draw") }),
-  z.strictObject({ type: z.literal("layDown"), cards: cardGroup }),
-  z.strictObject({
-    type: z.literal("takeFromTable"),
-    tableCards: cardGroup,
-    handCards: cardGroup,
-  }),
-  z.strictObject({
-    type: z.literal("steal"),
-    targetId: playerId,
-    rank: z.enum(RANKS),
-    handCards: cardGroup,
-  }),
+  z.strictObject({ type: z.literal("capture"), card, tableCards }),
+  z.strictObject({ type: z.literal("stack"), card }),
+  z.strictObject({ type: z.literal("steal"), card, targetId: playerId }),
   z.strictObject({ type: z.literal("discard"), card }),
 ])

@@ -1,21 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { createFullDeck, RANKS } from "../../src/domain/cards/card.js"
+import { createFullDeck, DECK_SIZE } from "../../src/domain/cards/card.js"
 import type { Card } from "../../src/domain/cards/card.js"
 import { computeHints } from "../../src/domain/games/rouba-monte/hints.js"
 import { isFinished } from "../../src/domain/games/rouba-monte/model.js"
 import type { Game, PlayerId } from "../../src/domain/games/rouba-monte/model.js"
-import { toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
+import { countRanksInPiles, toPlayerView } from "../../src/domain/games/rouba-monte/player-view.js"
 import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
 import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
 import { applyTurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
-import {
-  endTurn,
-  expireTurn,
-  playTurn,
-  removePlayer,
-} from "../../src/domain/games/rouba-monte/turn-flow.js"
+import { expireTurn, playTurn, removePlayer } from "../../src/domain/games/rouba-monte/turn-flow.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
-import { allCardsOf, seededRandom } from "../support/game-builder.js"
+import { allCardsOf, seededRandom, unwrap } from "../support/game-builder.js"
 
 const STEPS_PER_GAME = 800
 const TIMEOUT_MS = 120_000
@@ -29,52 +24,38 @@ const someCards = (random: RandomSource): readonly Card[] =>
   Array.from({ length: random.nextInt(4) }, () => pick(DECK, random))
 
 const randomAction = (game: Game, random: RandomSource): TurnAction => {
+  const card = pick(DECK, random)
   const actions: readonly TurnAction[] = [
-    { type: "draw" },
-    { type: "layDown", cards: someCards(random) },
-    { type: "takeFromTable", tableCards: someCards(random), handCards: someCards(random) },
-    {
-      type: "steal",
-      targetId: pick(game.players, random).id,
-      rank: pick(RANKS, random),
-      handCards: someCards(random),
-    },
-    { type: "discard", card: pick(DECK, random) },
+    { type: "capture", card, tableCards: someCards(random) },
+    { type: "stack", card },
+    { type: "steal", card, targetId: pick(game.players, random).id },
+    { type: "discard", card },
   ]
   return pick(actions, random)
 }
 
 const assertInvariants = (game: Game) => {
   const cards = allCardsOf(game)
-  expect(cards).toHaveLength(52)
-  expect(new Set(cards).size).toBe(52)
-  for (const player of game.players) {
-    const ranks = player.melds.map((meld) => meld.rank)
-    expect(new Set(ranks).size).toBe(ranks.length)
-    for (const meld of player.melds) {
-      expect(meld.cards.length).toBeGreaterThanOrEqual(2)
-      expect(meld.cards.length).toBeLessThanOrEqual(4)
-    }
-  }
+  expect(cards).toHaveLength(DECK_SIZE)
+  expect(new Set(cards).size).toBe(DECK_SIZE)
   if (!isFinished(game)) {
-    expect(game.players.some((player) => player.id === game.turn.playerId)).toBe(true)
+    const current = game.players.find((player) => player.id === game.turn.playerId)
+    expect(current?.hand.length).toBeGreaterThan(0)
   }
 }
 
 const assertHintsAreTruthful = (game: Game) => {
   const playerId = game.turn.playerId
-  const view = toPlayerView(game, playerId)
-  const { plays } = computeHints(view)
+  const { plays } = computeHints(toPlayerView(game, playerId), countRanksInPiles(game))
   for (const { action } of plays) {
     expect(applyTurnAction(game, playerId, action).ok).toBe(true)
   }
-  expect(plays.length > 0 || view.canEndTurn).toBe(true)
-  expect(view.canEndTurn).toBe(endTurn(game, playerId, seededRandom(1)).ok)
+  expect(plays.length).toBeGreaterThan(0)
 }
 
 const assertRefusalChangesNothing = (game: Game, playerId: PlayerId, action: TurnAction) => {
   const before = structuredClone(game)
-  const result = playTurn(game, playerId, action, seededRandom(1))
+  const result = playTurn(game, playerId, action)
   if (!result.ok) expect(game).toEqual(before)
   return result
 }
@@ -82,20 +63,14 @@ const assertRefusalChangesNothing = (game: Game, playerId: PlayerId, action: Tur
 const step = (game: Game, random: RandomSource): Game => {
   const roll = random.nextInt(100)
   const current = game.turn.playerId
-  if (roll < 40) {
-    const legal = computeHints(toPlayerView(game, current)).plays
-    if (legal.length === 0) return game
-    const result = playTurn(game, current, pick(legal, random).action, random)
-    if (!result.ok) throw new Error(`Dica recusada: ${result.error}`)
-    return result.value
-  }
-  if (roll < 80) {
-    const actor = pick(game.players, random).id
-    const result = assertRefusalChangesNothing(game, actor, randomAction(game, random))
-    return result.ok ? result.value : game
+  if (roll < 45) {
+    const view = toPlayerView(game, current)
+    const legal = computeHints(view, countRanksInPiles(game)).plays
+    return unwrap(playTurn(game, current, pick(legal, random).action))
   }
   if (roll < 90) {
-    const result = endTurn(game, current, random)
+    const actor = pick(game.players, random).id
+    const result = assertRefusalChangesNothing(game, actor, randomAction(game, random))
     return result.ok ? result.value : game
   }
   if (roll < 99) return expireTurn(game, random)
@@ -107,9 +82,7 @@ const newGame = (players: number, random: RandomSource): Game => {
     id: `p${index}`,
     nickname: `P${index}`,
   }))
-  const started = startGame(seats, "p0", random)
-  if (!started.ok) throw new Error(started.error)
-  return started.value
+  return unwrap(startGame(seats, "p0", random))
 }
 
 describe("partidas caóticas com jogadas válidas e inválidas", () => {
@@ -124,6 +97,7 @@ describe("partidas caóticas com jogadas válidas e inválidas", () => {
           game = step(game, random)
           assertInvariants(game)
         }
+        expect(isFinished(game)).toBe(true)
       }
     },
     TIMEOUT_MS
