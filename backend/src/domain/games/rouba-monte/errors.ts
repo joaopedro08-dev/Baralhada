@@ -12,6 +12,3 @@ export type GameErrorCode =
   | "TARGET_NOT_FOUND"
   | "DECK_EMPTY"
   | "ALREADY_DREW"
-  | "MUST_DRAW_BEFORE_PASSING"
-  | "MUST_PLAY_AFTER_DRAW"
-  | "MUST_PASS_AFTER_DRAW"

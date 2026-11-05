@@ -18,6 +18,8 @@ describe("RN-04 e RF-10 uma jogada fecha o turno", () => {
   it("passa a vez para a direita e volta ao primeiro", () => {
     const game = buildGame({
       players: { a: { hand: ["2C", "2D"] }, b: { hand: ["3C", "3D"] }, c: { hand: ["4C"] } },
+      deck: [],
+      table: ["2H", "3H", "4H"],
     })
     const b = discardFirst(game)
     const c = discardFirst(b)
@@ -36,43 +38,91 @@ describe("RN-04 e RF-10 uma jogada fecha o turno", () => {
   })
 })
 
-describe("RN-10 reposição da mão", () => {
-  it("entrega 4 cartas quando a mão fica vazia", () => {
+describe("RN-10 a mão sempre volta a 4 cartas", () => {
+  it("compra automaticamente a carta que falta ao fechar o turno", () => {
     const game = buildGame({
-      players: { a: { hand: ["2C"] }, b: { hand: ["3C"] } },
+      players: { a: { hand: ["2C", "5D", "6H", "7S"] }, b: { hand: ["3C", "4C", "8C", "JC"] } },
+      deck: ["KC", "KD", "KH"],
+    })
+    const next = discardFirst(game)
+
+    expect(getPlayer(next, "a").hand).toEqual(["5D", "6H", "7S", "KC"])
+    expect(next.deck).toEqual(["KD", "KH"])
+    expect(next.events).toContainEqual({ type: "handRefilled", playerId: "a", count: 1 })
+  })
+
+  it("completa até 4 qualquer mão menor", () => {
+    const game = buildGame({
+      players: { a: { hand: ["2C"] }, b: { hand: ["3C", "4C", "8C", "JC"] } },
       deck: ["KC", "KD", "KH", "KS", "QC"],
     })
     const next = discardFirst(game)
 
     expect(getPlayer(next, "a").hand).toEqual(["KC", "KD", "KH", "KS"])
-    expect(next.deck).toEqual(["QC"])
     expect(next.events).toContainEqual({ type: "handRefilled", playerId: "a", count: 4 })
   })
 
   it("entrega só as que restam no baralho", () => {
     const game = buildGame({
-      players: { a: { hand: ["2C"] }, b: { hand: ["3C"] } },
+      players: { a: { hand: ["2C"] }, b: { hand: ["3C", "4C", "8C", "JC"] } },
       deck: ["KC", "KD"],
     })
     expect(getPlayer(discardFirst(game), "a").hand).toEqual(["KC", "KD"])
   })
+})
 
-  it("não completa a mão que ainda tem cartas", () => {
-    const game = buildGame({ players: { a: { hand: ["2C", "5D"] }, b: { hand: ["3C"] } } })
-    expect(getPlayer(discardFirst(game), "a").hand).toEqual(["5D"])
+describe("comprar 1 carta", () => {
+  const scene = (deck: readonly Card[] = ["KC", "KD", "KH"]) =>
+    buildGame({
+      players: { a: { hand: ["2C", "5D", "6H", "7S"] }, b: { hand: ["3C", "4C", "8C", "JC"] } },
+      deck,
+    })
+
+  it("compra sem fechar o turno e fica com 5 cartas", () => {
+    const next = play(scene(), { type: "draw" })
+
+    expect(getPlayer(next, "a").hand).toEqual(["2C", "5D", "6H", "7S", "KC"])
+    expect(next.deck).toEqual(["KD", "KH"])
+    expect(next.turn).toEqual({ number: 1, playerId: "a", drew: true })
+    expect(next.events.at(-1)).toEqual({ type: "drew", playerId: "a" })
+  })
+
+  it("com 5 cartas, a jogada fecha o turno e a mão fica com 4", () => {
+    const drew = play(scene(), { type: "draw" })
+    const next = play(drew, { type: "discard", card: "2C" })
+
+    expect(getPlayer(next, "a").hand).toEqual(["5D", "6H", "7S", "KC"])
+    expect(next.turn).toEqual({ number: 2, playerId: "b", drew: false })
+    expect(next.deck).toEqual(["KD", "KH"])
+  })
+
+  it("não deixa comprar duas vezes no mesmo turno", () => {
+    const drew = play(scene(), { type: "draw" })
+    expect(playTurn(drew, "a", { type: "draw" })).toEqual({ ok: false, error: "ALREADY_DREW" })
+  })
+
+  it("não compra com o baralho vazio", () => {
+    expect(playTurn(scene([]), "a", { type: "draw" })).toEqual({
+      ok: false,
+      error: "DECK_EMPTY",
+    })
   })
 })
 
 describe("RN-11 reposição da mesa", () => {
-  it("volta a 8 cartas quando fica com menos de 3", () => {
+  it("volta a 8 cartas quando fica com menos de 3, depois de completar a mão", () => {
     const game = buildGame({
-      players: { a: { hand: ["9C", "2D"] }, b: { hand: ["3C"] } },
+      players: {
+        a: { hand: ["9C", "2D", "3D", "4D"] },
+        b: { hand: ["3C", "4C", "8C", "JC"] },
+      },
       table: ["9H", "4S", "5S"],
       deck: ["KC", "KD", "KH", "KS", "QC", "QD", "QH", "QS"],
     })
     const next = play(game, { type: "capture", card: "9C", tableCards: ["9H"] })
 
-    expect(next.table).toEqual(["4S", "5S", "KC", "KD", "KH", "KS", "QC", "QD"])
+    expect(getPlayer(next, "a").hand).toEqual(["2D", "3D", "4D", "KC"])
+    expect(next.table).toEqual(["4S", "5S", "KD", "KH", "KS", "QC", "QD", "QH"])
     expect(next.events).toContainEqual({ type: "tableReplenished", count: 6 })
   })
 
@@ -158,22 +208,31 @@ describe("RN-13 e RN-14 fim da partida", () => {
 })
 
 describe("RN-17 tempo de turno", () => {
-  it("descarta 1 carta aleatória e passa a vez", () => {
-    const game = buildGame({ players: { a: { hand: ["2C", "3D"] }, b: { hand: ["4C"] } } })
+  const game = buildGame({
+    players: { a: { hand: ["2C", "3D", "4H", "5S"] }, b: { hand: ["4C", "6C", "7C", "8C"] } },
+  })
+
+  it("descarta 1 carta aleatória, completa a mão e passa a vez", () => {
     const next = expireTurn(game, random)
     const discarded = next.table.at(-1) as Card
 
-    expect(["2C", "3D"]).toContain(discarded)
-    expect(getPlayer(next, "a").hand).toHaveLength(1)
+    expect(["2C", "3D", "4H", "5S"]).toContain(discarded)
+    expect(getPlayer(next, "a").hand).toHaveLength(4)
+    expect(getPlayer(next, "a").hand).not.toContain(discarded)
     expect(next.turn).toEqual({ number: 2, playerId: "b", drew: false })
-    expect(next.events.slice(-2)).toEqual([
-      { type: "turnTimedOut", playerId: "a" },
-      { type: "discarded", playerId: "a", card: discarded },
-    ])
+    expect(next.events).toContainEqual({ type: "turnTimedOut", playerId: "a" })
+  })
+
+  it("depois de comprar, descarta 1 das 5 cartas", () => {
+    const drew = play(game, { type: "draw" })
+    const next = expireTurn(drew, random)
+
+    expect(getPlayer(next, "a").hand).toHaveLength(4)
+    expect(next.table).toHaveLength(drew.table.length + 1)
+    expect(next.deck).toEqual(drew.deck)
   })
 
   it("não mexe em partida encerrada", () => {
-    const game = buildGame({ players: { a: { hand: ["2C"] }, b: {} } })
     const finished: Game = { ...game, endReason: "abandoned" }
     expect(expireTurn(finished, random)).toBe(finished)
   })
@@ -199,7 +258,11 @@ describe("RN-16 jogador sai no meio da partida", () => {
   })
 
   it("passa a vez quando quem saiu era o jogador da vez", () => {
-    expect(removePlayer(game, "a", random).turn).toEqual({ number: 2, playerId: "b", drew: false })
+    expect(removePlayer(game, "a", random).turn).toEqual({
+      number: 2,
+      playerId: "b",
+      drew: false,
+    })
   })
 
   it("encerra como abandonada quando sobra 1 jogador", () => {
@@ -210,7 +273,7 @@ describe("RN-16 jogador sai no meio da partida", () => {
     expect(next.winnerIds).toEqual(["b"])
   })
 
-  it("repõe a mão de quem estava sem cartas quando o baralho volta a ter cartas", () => {
+  it("completa as mãos quando o baralho volta a ter cartas", () => {
     const stuck = buildGame({
       players: { a: { hand: ["2C"], pile: ["8C"] }, b: { hand: ["3C"] }, c: {} },
       table: ["3S", "5S", "6S"],
@@ -218,91 +281,13 @@ describe("RN-16 jogador sai no meio da partida", () => {
     })
     const next = removePlayer(stuck, "a", random)
 
-    expect(getPlayer(next, "c").hand).toHaveLength(2)
+    expect(getPlayer(next, "b").hand.length + getPlayer(next, "c").hand.length).toBe(3)
+    expect(next.deck).toEqual([])
     expect(next.turn.playerId).toBe("b")
   })
 
   it("ignora saídas depois do fim", () => {
     const finished: Game = { ...game, endReason: "handsEmpty" }
     expect(removePlayer(finished, "a", random)).toBe(finished)
-  })
-})
-
-describe("comprar e passar a vez", () => {
-  const scene = (hand: readonly Card[], deck: readonly Card[] = ["KC", "KD"]) =>
-    buildGame({ players: { a: { hand }, b: { hand: ["3C"] } }, deck })
-
-  it("compra 1 carta sem fechar o turno", () => {
-    const next = play(scene(["2C", "5D", "6H"]), { type: "draw" })
-
-    expect(getPlayer(next, "a").hand).toEqual(["2C", "5D", "6H", "KC"])
-    expect(next.deck).toEqual(["KD"])
-    expect(next.turn).toEqual({ number: 1, playerId: "a", drew: true })
-    expect(next.events.at(-1)).toEqual({ type: "drew", playerId: "a" })
-  })
-
-  it("com até 4 cartas depois de comprar, só deixa passar a vez", () => {
-    const drew = play(scene(["2C", "5D", "6H"]), { type: "draw" })
-
-    expect(playTurn(drew, "a", { type: "discard", card: "2C" })).toEqual({
-      ok: false,
-      error: "MUST_PASS_AFTER_DRAW",
-    })
-    const passed = play(drew, { type: "pass" })
-    expect(passed.turn).toEqual({ number: 2, playerId: "b", drew: false })
-    expect(getPlayer(passed, "a").hand).toHaveLength(4)
-    expect(passed.events).toContainEqual({ type: "passed", playerId: "a" })
-  })
-
-  it("com 5 cartas depois de comprar, exige uma jogada que fecha o turno", () => {
-    const drew = play(scene(["2C", "5D", "6H", "7S"]), { type: "draw" })
-
-    expect(playTurn(drew, "a", { type: "pass" })).toEqual({
-      ok: false,
-      error: "MUST_PLAY_AFTER_DRAW",
-    })
-    const discarded = play(drew, { type: "discard", card: "2C" })
-    expect(discarded.turn.playerId).toBe("b")
-    expect(getPlayer(discarded, "a").hand).toHaveLength(4)
-  })
-
-  it("não deixa passar sem comprar nem comprar duas vezes", () => {
-    const game = scene(["2C", "5D"])
-    expect(playTurn(game, "a", { type: "pass" })).toEqual({
-      ok: false,
-      error: "MUST_DRAW_BEFORE_PASSING",
-    })
-    const drew = play(game, { type: "draw" })
-    expect(playTurn(drew, "a", { type: "draw" })).toEqual({ ok: false, error: "ALREADY_DREW" })
-  })
-
-  it("com o baralho vazio não compra e obriga a jogar", () => {
-    const empty = buildGame({
-      players: { a: { hand: ["2C"] }, b: { hand: ["2D"] } },
-      table: ["4S", "5S", "6S"],
-      deck: [],
-    })
-    expect(playTurn(empty, "a", { type: "draw" })).toEqual({ ok: false, error: "DECK_EMPTY" })
-    expect(playTurn(empty, "a", { type: "pass" })).toEqual({
-      ok: false,
-      error: "MUST_DRAW_BEFORE_PASSING",
-    })
-  })
-
-  it("quando o tempo acaba depois de comprar com até 4 cartas, só passa a vez", () => {
-    const drew = play(scene(["2C", "5D"]), { type: "draw" })
-    const next = expireTurn(drew, random)
-
-    expect(getPlayer(next, "a").hand).toEqual(["2C", "5D", "KC"])
-    expect(next.table).toEqual(drew.table)
-    expect(next.turn.playerId).toBe("b")
-  })
-
-  it("quando o tempo acaba com 5 cartas, descarta 1 aleatória", () => {
-    const drew = play(scene(["2C", "5D", "6H", "7S"]), { type: "draw" })
-    const next = expireTurn(drew, random)
-
-    expect(getPlayer(next, "a").hand).toHaveLength(4)
-    expect(next.table).toHaveLength(drew.table.length + 1)
   })
 })

@@ -19,13 +19,12 @@ describe("RF-13 frases do histórico", () => {
     ],
     [{ type: "stacked", playerId: "ana", card: "QD" }, "Ana pôs a dama de ouros no próprio monte"],
     [{ type: "drew", playerId: "ana" }, "Ana comprou 1 carta"],
-    [{ type: "passed", playerId: "ana" }, "Ana passou a vez"],
     [
       { type: "stole", playerId: "ana", targetId: "beto", card: "9C", stolenCount: 12 },
       "Ana roubou o monte de Beto (12 cartas)",
     ],
     [{ type: "discarded", playerId: "beto", card: "AS" }, "Beto descartou o ás de espadas"],
-    [{ type: "handRefilled", playerId: "beto", count: 4 }, "Beto recebeu 4 cartas"],
+    [{ type: "handRefilled", playerId: "beto", count: 4 }, "Beto completou a mão com 4 cartas"],
     [{ type: "tableReplenished", count: 1 }, "A mesa recebeu 1 carta do baralho"],
     [{ type: "turnTimedOut", playerId: "ana" }, "O tempo de Ana acabou"],
     [{ type: "playerLeft", playerId: "beto", returnedCount: 3 }, "Beto saiu da partida"],
@@ -57,7 +56,6 @@ describe("RF-17 e RF-18 frases das dicas", () => {
     [{ action: { type: "stack", card: "4C" } }, "Põe o 4 no seu monte, que mantém o mesmo topo."],
     [{}, "Descarta o rei, a carta que menos ajuda os adversários agora."],
     [{ action: { type: "draw" } }, "Compra 1 carta do baralho para ter mais opções."],
-    [{ action: { type: "pass" } }, "Passa a vez e guarda as cartas da mão."],
   ])("descreve %j", (changes, sentence) => {
     expect(describePlay(play(changes), nameOf)).toBe(sentence)
   })

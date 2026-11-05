@@ -38,7 +38,6 @@ export interface GameStateDto {
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
   readonly drewThisTurn: boolean
-  readonly canPass: boolean
   readonly endReason: GameEndReason | null
   readonly winnerIds: readonly PlayerId[]
   readonly history: readonly string[]
