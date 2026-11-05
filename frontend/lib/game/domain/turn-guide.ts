@@ -20,9 +20,6 @@ export const describeNextStep = ({
   topHint,
 }: TurnGuideInput): string => {
   if (!isMyTurn) return `Aguarde: é a vez de ${currentName}.`
-  if (game.canPass) {
-    return "Você comprou e está com até 4 cartas: passe a vez."
-  }
   if (game.drewThisTurn && !hasPick(selection)) {
     return "Você comprou: descarte, capture, ponha no monte ou roube para fechar o turno."
   }

@@ -73,11 +73,6 @@ describe("RF-16 e RF-17 jogadas possíveis", () => {
     expect(new Set(kinds)).toEqual(new Set(["steal", "capture", "stack", "discard", "draw"]))
   })
 
-  it("só sugere passar depois de comprar ficando com até 4 cartas", () => {
-    const drew: Game = { ...scene, turn: { ...scene.turn, drew: true } }
-    expect(hintsOf(drew, "a").plays.map((play) => play.action)).toEqual([{ type: "pass" }])
-  })
-
   it("não sugere comprar de novo com 5 cartas", () => {
     const five = buildGame({
       players: { a: { hand: ["5C", "3C", "KS", "2D", "9H"] }, b: {} },
@@ -85,7 +80,6 @@ describe("RF-16 e RF-17 jogadas possíveis", () => {
     })
     const kinds = hintsOf(five, "a").plays.map((play) => play.kind)
     expect(kinds).not.toContain("draw")
-    expect(kinds).not.toContain("pass")
     expect(kinds).toContain("discard")
   })
 

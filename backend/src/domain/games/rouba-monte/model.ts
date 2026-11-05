@@ -18,7 +18,6 @@ export interface GamePlayer {
 
 export type GameEvent =
   | { readonly type: "drew"; readonly playerId: PlayerId }
-  | { readonly type: "passed"; readonly playerId: PlayerId }
   | {
       readonly type: "captured"
       readonly playerId: PlayerId

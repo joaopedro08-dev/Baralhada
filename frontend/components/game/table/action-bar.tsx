@@ -2,7 +2,6 @@
 
 import {
   ArrowUpFromLine,
-  FastForward,
   Hand,
   HandGrab,
   Layers,
@@ -31,7 +30,14 @@ interface ActionInfo {
   readonly Icon: LucideIcon
 }
 
-const CARD_ACTIONS: readonly ActionInfo[] = [
+const ACTIONS: readonly ActionInfo[] = [
+  {
+    kind: "draw",
+    label: "Comprar",
+    explanation:
+      "Compra 1 carta do baralho. Com 5 cartas, descarte, capture, ponha no monte ou roube para fechar o turno.",
+    Icon: PackagePlus,
+  },
   {
     kind: "capture",
     label: "Capturar",
@@ -61,22 +67,6 @@ const CARD_ACTIONS: readonly ActionInfo[] = [
   },
 ]
 
-const TURN_ACTIONS: readonly ActionInfo[] = [
-  {
-    kind: "draw",
-    label: "Comprar",
-    explanation:
-      "Compra 1 carta do baralho. Com 5 cartas, faça uma jogada; com até 4, passe a vez.",
-    Icon: PackagePlus,
-  },
-  {
-    kind: "pass",
-    label: "Passar a vez",
-    explanation: "Depois de comprar e ficar com até 4 cartas, passa a vez.",
-    Icon: FastForward,
-  },
-]
-
 export function ActionBar({
   game,
   viewerId,
@@ -92,10 +82,7 @@ export function ActionBar({
   suggested: TurnActionKind | null
   onAction: (kind: TurnActionKind) => void
 }) {
-  const renderAction = (
-    { kind, label, explanation, Icon }: ActionInfo,
-    size: string
-  ) => {
+  const renderAction = ({ kind, label, explanation, Icon }: ActionInfo) => {
     const highlighted = isMyTurn && suggested === kind
     return (
       <Tooltip key={kind}>
@@ -109,8 +96,7 @@ export function ActionBar({
               data-action={kind}
               onClick={() => onAction(kind)}
               className={cn(
-                "w-full min-w-0 px-0 text-xs tracking-tight sm:text-sm short:text-xs",
-                size,
+                "h-13 w-full min-w-0 flex-col gap-0.5 px-0 text-xs tracking-tight sm:text-sm short:text-xs",
                 highlighted && "suggest-pulse"
               )}
             >
@@ -125,15 +111,8 @@ export function ActionBar({
   }
 
   return (
-    <div className="flex flex-col gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
-      <div className="grid grid-cols-4 gap-1 sm:gap-2">
-        {CARD_ACTIONS.map((action) =>
-          renderAction(action, "h-13 flex-col gap-0.5")
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-1 sm:gap-2">
-        {TURN_ACTIONS.map((action) => renderAction(action, "h-11 gap-1.5"))}
-      </div>
+    <div className="grid grid-cols-5 gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
+      {ACTIONS.map(renderAction)}
     </div>
   )
 }

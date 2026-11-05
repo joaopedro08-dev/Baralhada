@@ -125,14 +125,10 @@ describe("planejar a jogada", () => {
     })
   })
 
-  it("monta comprar e passar sem precisar de carta", () => {
+  it("monta a compra sem precisar de carta", () => {
     expect(planAction("draw", empty, "eu")).toEqual({
       ready: true,
       action: { type: "draw" },
-    })
-    expect(planAction("pass", empty, "eu")).toEqual({
-      ready: true,
-      action: { type: "pass" },
     })
   })
 
@@ -158,21 +154,14 @@ describe("jogadas disponíveis e sugestão", () => {
     )
   })
 
-  it("libera comprar uma vez e passar só quando o servidor permite", () => {
+  it("libera comprar uma vez por turno e com baralho", () => {
     expect(isActionAvailable(game, "eu", "draw")).toBe(true)
-    expect(isActionAvailable(game, "eu", "pass")).toBe(false)
-    const drew = { ...game, drewThisTurn: true, canPass: true }
+    const drew = { ...game, drewThisTurn: true }
     expect(isActionAvailable(drew, "eu", "draw")).toBe(false)
-    expect(isActionAvailable(drew, "eu", "pass")).toBe(true)
-    expect(isActionAvailable(drew, "eu", "discard")).toBe(false)
+    expect(isActionAvailable(drew, "eu", "discard")).toBe(true)
     expect(isActionAvailable({ ...game, deckSize: 0 }, "eu", "draw")).toBe(
       false
     )
-  })
-
-  it("sugere passar quando é a única saída", () => {
-    const drew = { ...game, drewThisTurn: true, canPass: true }
-    expect(suggestAction(drew, { ...empty, card: "7C" }, "eu")).toBe("pass")
   })
 
   it("sugere a jogada que combina com a seleção", () => {

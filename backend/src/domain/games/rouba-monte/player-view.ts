@@ -1,7 +1,6 @@
 import { rankOf } from "../../cards/card.js"
 import type { Card, Rank } from "../../cards/card.js"
 import { findPlayer, topOf } from "./model.js"
-import { turnRefusal } from "./turn-actions.js"
 import type { Game, GameEndReason, GameEvent, PlayerId } from "./model.js"
 
 export interface PublicPlayer {
@@ -21,7 +20,6 @@ export interface PlayerView {
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
   readonly drewThisTurn: boolean
-  readonly canPass: boolean
   readonly endReason: GameEndReason | null
   readonly winnerIds: readonly PlayerId[]
   readonly events: readonly GameEvent[]
@@ -42,7 +40,6 @@ export const toPlayerView = (game: Game, viewerId: PlayerId): PlayerView => ({
   currentPlayerId: game.turn.playerId,
   turnNumber: game.turn.number,
   drewThisTurn: game.turn.drew,
-  canPass: turnRefusal(game, viewerId, "pass") === null,
   endReason: game.endReason,
   winnerIds: game.winnerIds,
   events: game.events,

@@ -29,9 +29,6 @@ const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   TARGET_NOT_FOUND: "Esse jogador não está na partida.",
   DECK_EMPTY: "O baralho de compra acabou.",
   ALREADY_DREW: "Você já comprou neste turno.",
-  MUST_DRAW_BEFORE_PASSING: "Para passar a vez, compre 1 carta antes.",
-  MUST_PLAY_AFTER_DRAW: "Com 5 cartas, descarte, capture, ponha no monte ou roube.",
-  MUST_PASS_AFTER_DRAW: "Você comprou e está com até 4 cartas: passe a vez.",
   ROOM_FULL: "A sala está cheia.",
   GAME_ALREADY_STARTED: "A partida está em andamento. Entre quando ela terminar.",
   NICKNAME_TAKEN: "Esse apelido já está em uso na sala.",
@@ -86,8 +83,6 @@ export const describeEvent = (event: GameEvent, nameOf: (id: PlayerId) => string
   switch (event.type) {
     case "drew":
       return `${nameOf(event.playerId)} comprou 1 carta`
-    case "passed":
-      return `${nameOf(event.playerId)} passou a vez`
     case "captured":
       return `${nameOf(event.playerId)} capturou ${cardCount(event.tableCards.length)} da mesa com ${cardName(event.card)}`
     case "stacked":
@@ -97,7 +92,7 @@ export const describeEvent = (event: GameEvent, nameOf: (id: PlayerId) => string
     case "discarded":
       return `${nameOf(event.playerId)} descartou ${cardName(event.card)}`
     case "handRefilled":
-      return `${nameOf(event.playerId)} recebeu ${cardCount(event.count)}`
+      return `${nameOf(event.playerId)} completou a mão com ${cardCount(event.count)}`
     case "tableReplenished":
       return `A mesa recebeu ${cardCount(event.count)} do baralho`
     case "turnTimedOut":
@@ -131,8 +126,6 @@ export const describePlay = (
       return `Descarta ${rankLabel(rankOf(action.card))}, a carta que menos ajuda os adversários agora.`
     case "draw":
       return "Compra 1 carta do baralho para ter mais opções."
-    case "pass":
-      return "Passa a vez e guarda as cartas da mão."
   }
 }
 

@@ -31,7 +31,6 @@ const randomAction = (game: Game, random: RandomSource): TurnAction => {
     { type: "steal", card, targetId: pick(game.players, random).id },
     { type: "discard", card },
     { type: "draw" },
-    { type: "pass" },
   ]
   return pick(actions, random)
 }

@@ -34,7 +34,6 @@ export type TurnAction =
     }
   | { readonly type: "discard"; readonly card: Card }
   | { readonly type: "draw" }
-  | { readonly type: "pass" }
 
 export type TurnActionKind = TurnAction["type"]
 
@@ -63,7 +62,6 @@ export interface GameState {
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
   readonly drewThisTurn: boolean
-  readonly canPass: boolean
   readonly endReason: GameEndReason | null
   readonly winnerIds: readonly PlayerId[]
   readonly history: readonly string[]
