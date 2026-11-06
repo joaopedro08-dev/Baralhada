@@ -1,11 +1,10 @@
-import type { TrucoAction, TrucoHints } from "@/lib/game/domain/truco/types"
 import type {
+  AnyAction,
+  AnyHints,
   GameId,
-  Hints,
   PlayerId,
   RoomState,
   Seat,
-  TurnAction,
 } from "@/lib/game/domain/types"
 
 export type Ack<T> =
@@ -37,8 +36,8 @@ export interface ClientCommands {
   "room:teams-draw": { input: undefined; output: null }
   "room:hints": { input: { allowed: boolean }; output: null }
   "game:start": { input: undefined; output: null }
-  "game:action": { input: TurnAction | TrucoAction; output: null }
-  "game:hints": { input: undefined; output: Hints | TrucoHints }
+  "game:action": { input: AnyAction; output: null }
+  "game:hints": { input: undefined; output: AnyHints }
 }
 
 export type ClientCommand = keyof ClientCommands

@@ -77,7 +77,7 @@ export function HomeHero() {
       </h1>
       <p className="max-w-md text-base/relaxed text-balance text-felt-muted sm:text-lg short:hidden">
         Monte a mesa em segundos: crie uma sala, mande o link e jogue Rouba
-        Monte ou Truco Paulista com quem você quiser.
+        Monte, Truco Paulista ou Três Trincas com quem você quiser.
       </p>
       <CardFanArt />
       <ul className="flex flex-wrap justify-center gap-2 lg:justify-start">
