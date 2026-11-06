@@ -34,6 +34,7 @@ const playGame = (
   const seats = Array.from({ length: playerCount }, (_, index) => ({
     id: `p${index}`,
     nickname: `P${index}`,
+    team: null,
   }))
   let game = unwrap(startGame(seats, "p0", random))
   let turns = 0

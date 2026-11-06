@@ -1,52 +1,57 @@
-import type { HintsResult } from "../../application/use-cases/rouba-monte/get-hints.js"
-import { toPlayerView } from "../../domain/games/rouba-monte/player-view.js"
-import { roubaMonteRules } from "../../domain/games/rouba-monte/rules.js"
-import { canStart, hostIdOf, statusOf } from "../../domain/room/room.js"
+import type { GameCatalog } from "../../domain/room/game-catalog.js"
+import type { AnyGameRules } from "../../domain/room/game-rules.js"
+import { hostIdOf, startProblemOf, statusOf } from "../../domain/room/room.js"
+import type { Room } from "../../domain/room/room.js"
+import { teamsOf } from "../../domain/room/teams.js"
 import type { PlayerId } from "../../domain/shared/seat.js"
-import type { GameStateDto, HintsDto, RoomStateDto } from "./contract.js"
-import type { GameRoom } from "./game.js"
-import { describeHistory, describePlay, describeRisk } from "./messages.js"
+import type { GameStateDto, RoomStateDto } from "./contract.js"
+import type { GameAdapter, GameAdapters } from "./game-adapter.js"
 
-const HISTORY_LIMIT = 50
+export type RoomStatePresenter = (viewerId: PlayerId) => RoomStateDto
 
-const presentGame = (
-  room: GameRoom,
-  viewerId: PlayerId,
-  history: readonly string[]
-): GameStateDto | null => {
-  if (!room.game) return null
-  const { viewerId: _viewer, events: _events, ...view } = toPlayerView(room.game, viewerId)
-  return { ...view, history }
+export interface ResolvedGame {
+  readonly rules: AnyGameRules
+  readonly adapter: GameAdapter
 }
 
-export const createRoomStatePresenter = (
-  room: GameRoom,
-  serverNow: number
-): ((viewerId: PlayerId) => RoomStateDto) => {
-  const history = room.game ? describeHistory(room.game, HISTORY_LIMIT) : []
-  const shared = {
-    code: room.code,
-    version: room.version,
-    serverNow,
-    status: statusOf(room, roubaMonteRules),
-    hostId: hostIdOf(room),
-    canStart: canStart(room, roubaMonteRules),
-    players: room.players.map(({ id, nickname, connected }) => ({ id, nickname, connected })),
-    turnDeadlineAt: room.turnDeadlineAt,
-    matchStartsAt: room.matchStartsAt,
+export class RoomPresenter {
+  constructor(
+    private readonly catalog: GameCatalog,
+    private readonly adapters: GameAdapters,
+    private readonly turnDurationOverrideMs: number | null
+  ) {}
+
+  resolve(gameId: string): ResolvedGame {
+    const rules = this.catalog.find(gameId)
+    const adapter = this.adapters.find(gameId)
+    if (!rules || !adapter) throw new Error(`Jogo sem adaptador: ${gameId}`)
+    return { rules, adapter }
   }
-  return (viewerId) => ({ ...shared, viewerId, game: presentGame(room, viewerId, history) })
-}
 
-export const presentHints = ({ hints, players }: HintsResult): HintsDto => {
-  const nameOf = (id: PlayerId) => players.find((player) => player.id === id)?.nickname ?? "Jogador"
-  return {
-    plays: hints.plays.map((play) => ({
-      action: play.action,
-      sentence: describePlay(play, nameOf),
-    })),
-    highlights: hints.highlights,
-    risk: hints.risk && { ...hints.risk, sentence: describeRisk(hints.risk) },
-    cardCounts: hints.cardCounts,
+  present(room: Room, serverNow: number): RoomStatePresenter {
+    const { rules, adapter } = this.resolve(room.gameId)
+    const problem = startProblemOf(room, rules)
+    const presentGame =
+      room.game === null
+        ? null
+        : (adapter.presenter(room.game) as (viewerId: PlayerId) => GameStateDto)
+    const shared = {
+      code: room.code,
+      version: room.version,
+      gameId: room.gameId,
+      serverNow,
+      status: statusOf(room, rules),
+      hostId: hostIdOf(room),
+      canStart: problem === null,
+      startProblem: problem,
+      players: room.players.map(({ id, nickname, connected }) => ({ id, nickname, connected })),
+      teams: rules.teamCount === null ? null : teamsOf(room, rules.teamCount),
+      hintsAllowed: room.hintsAllowed,
+      turnDurationMs: this.turnDurationOverrideMs ?? rules.turnDurationMs,
+      turnDeadlineAt: room.turnDeadlineAt,
+      matchStartsAt: room.matchStartsAt,
+      pausedUntil: room.pausedUntil,
+    }
+    return (viewerId) => ({ ...shared, viewerId, game: presentGame?.(viewerId) ?? null })
   }
 }

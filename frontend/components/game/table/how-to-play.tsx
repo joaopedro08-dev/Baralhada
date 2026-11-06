@@ -6,10 +6,19 @@ import {
 } from "@/components/ui/accordion"
 import { RULE_SECTIONS } from "@/lib/game/domain/how-to-play"
 
-export function HowToPlay() {
+export interface RuleSection {
+  readonly title: string
+  readonly text: string
+}
+
+export function HowToPlay({
+  sections = RULE_SECTIONS,
+}: {
+  sections?: readonly RuleSection[]
+}) {
   return (
     <Accordion type="single" collapsible>
-      {RULE_SECTIONS.map(({ title, text }) => (
+      {sections.map(({ title, text }) => (
         <AccordionItem key={title} value={title}>
           <AccordionTrigger className="min-h-11 items-center px-3 text-sm">
             {title}

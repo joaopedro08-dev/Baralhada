@@ -1,7 +1,17 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { io } from "socket.io-client"
 import type { Socket } from "socket.io-client"
-import type { Ack, HintsDto, RoomStateDto, SeatDto } from "../../src/adapters/socket/contract.js"
+import type {
+  Ack,
+  RoomStateDto as AnyRoomStateDto,
+  SeatDto,
+} from "../../src/adapters/socket/contract.js"
+import type {
+  RoubaMonteHintsDto as HintsDto,
+  RoubaMonteStateDto,
+} from "../../src/adapters/socket/games/rouba-monte/contract.js"
+
+type RoomStateDto = Omit<AnyRoomStateDto, "game"> & { readonly game: RoubaMonteStateDto | null }
 import { startApp } from "../../src/main/app.js"
 import type { RunningApp } from "../../src/main/app.js"
 import { loadConfig } from "../../src/main/config.js"
@@ -68,7 +78,7 @@ beforeAll(async () => {
     METRICS_PORT: "0",
     LOG_LEVEL: "silent",
     NODE_ENV: "test",
-    PUBLIC_URL: "https://roubamonte.test",
+    PUBLIC_URL: "https://baralhada.test",
     ROOM_CREATIONS_PER_MINUTE: "100000",
     ROOM_JOINS_PER_MINUTE: "100000",
     MAX_CONNECTIONS_PER_IP: "100000",
@@ -99,7 +109,7 @@ describe("HTTP", () => {
     await createLobby()
     const metrics = await (await fetch(`http://127.0.0.1:${app.metricsPort}/metrics`)).text()
 
-    expect(metrics).toContain("roubamonte_commands_total")
+    expect(metrics).toContain("baralhada_commands_total")
     expect(metrics).toContain("nodejs_eventloop_lag_p99_seconds")
     expect((await fetch(`${url}/metrics`)).status).toBe(404)
   })
@@ -111,7 +121,7 @@ describe("RF-01 a RF-03 sala", () => {
     const seat = await expectData(request<SeatDto>(socket, "room:create", { nickname: "Ana" }))
 
     expect(seat.code).toMatch(/^[2-9A-HJ-NP-Z]{6}$/)
-    expect(seat.inviteUrl).toBe(`https://roubamonte.test/?sala=${seat.code}`)
+    expect(seat.inviteUrl).toBe(`https://baralhada.test/?sala=${seat.code}`)
   })
 
   it("avisa todos quando alguém entra e sai", async () => {

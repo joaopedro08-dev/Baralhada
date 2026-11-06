@@ -9,7 +9,7 @@ const hintsOf = (game: Game, viewerId: string) =>
   computeHints(toPlayerView(game, viewerId), countRanksInPiles(game))
 
 describe("RN-15 e RNF-04 visibilidade", () => {
-  const seats = ["a", "b", "c"].map((id) => ({ id, nickname: id }))
+  const seats = ["a", "b", "c"].map((id) => ({ id, nickname: id, team: null }))
   const game = unwrap(startGame(seats, "a", seededRandom(5)))
   const withPiles = buildGame({
     players: { a: { hand: ["2C"] }, b: { hand: ["3C"], pile: ["5C", "6D", "7H"] } },

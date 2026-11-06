@@ -7,7 +7,11 @@ import { shuffle } from "../../src/domain/shared/random.js"
 import { allCardsOf, seededRandom, unwrap } from "../support/game-builder.js"
 
 const seats = (count: number): Seat[] =>
-  Array.from({ length: count }, (_, index) => ({ id: `p${index}`, nickname: `P${index}` }))
+  Array.from({ length: count }, (_, index) => ({
+    id: `p${index}`,
+    nickname: `P${index}`,
+    team: null,
+  }))
 
 describe("RN-01 quantidade de jogadores", () => {
   it.each([0, 1, 7])("recusa %i jogadores", (count) => {

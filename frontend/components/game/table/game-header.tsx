@@ -65,7 +65,10 @@ export function GameHeader({
           onHintsChange={onHintsChange}
         />
       </div>
-      <TurnProgress deadlineAt={room.turnDeadlineAt} />
+      <TurnProgress
+        deadlineAt={room.turnDeadlineAt}
+        durationMs={room.turnDurationMs}
+      />
     </header>
   )
 }

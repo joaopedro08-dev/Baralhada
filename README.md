@@ -1,8 +1,13 @@
-# Rouba Monte
+# Baralhada
 
-Jogo de cartas online para 2 a 6 amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala e manda o código ou o link para os outros. Jogue em [rouba-monte.vercel.app](https://rouba-monte.vercel.app).
+Site para jogar baralho online com os amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala, escolhe o jogo e manda o código ou o link para os outros. Jogue em [baralhada.vercel.app](https://baralhada.vercel.app).
 
-O objetivo é terminar com o maior monte: capture cartas da mesa com cartas de mesmo valor da mão e roube o monte dos adversários quando tiver uma carta igual ao topo. Cada turno tem 1 jogada e 60 segundos, e as regras completas ficam na página `/informacoes` do jogo.
+| Jogo | Jogadores | Resumo |
+| --- | --- | --- |
+| Rouba Monte | 2 a 6 | Capture cartas da mesa e roube o monte dos adversários. Vence o maior monte. Turno de 60 s |
+| Truco Paulista | 2, 4 ou 6, em times | 40 cartas, manilha pela vira, truco, seis, nove e doze. Vence quem chega a 12 pontos. Jogada de 30 s |
+
+Cada jogo é um módulo registrado num catálogo; a sala, o tempo real e o relógio são comuns. As regras completas ficam na página `/informacoes`.
 
 ## Estrutura
 

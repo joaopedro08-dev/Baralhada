@@ -9,6 +9,7 @@ export const HAND_SIZE = 4
 export const TABLE_SIZE = 8
 export const TABLE_MINIMUM = 3
 export const EVENT_LOG_LIMIT = 200
+export const TURN_DURATION_MS = 60_000
 
 export interface GamePlayer {
   readonly id: PlayerId

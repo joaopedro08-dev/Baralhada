@@ -1,8 +1,8 @@
-# Rouba Monte: arquitetura do backend
+# Baralhada: arquitetura do backend
 
 O backend é um único processo Node.js 24 que mantém todo o estado em memória e fala com o navegador por Socket.io. Ele segue a Arquitetura Limpa: as regras do jogo não conhecem rede, tela, relógio nem aleatoriedade.
 
-O código é dividido em plataforma e jogos. A plataforma cuida de sala, convite, entrada, saída, reconexão, prazo do turno e contagem regressiva, e não sabe qual jogo está rodando. Cada jogo entra por uma interface comum, a `GameRules`. Hoje o único jogo é o Rouba Monte.
+O código é dividido em plataforma e jogos. A plataforma cuida de sala, convite, entrada, saída, reconexão, times, prazo do turno e contagem regressiva, e não sabe qual jogo está rodando. Cada jogo entra por uma interface comum, a `GameRules`, registrada num catálogo (`GameCatalog`). Cada sala guarda o `gameId` escolhido pelo anfitrião (RF-25), e o mesmo servidor roda salas de jogos diferentes ao mesmo tempo. Hoje há dois jogos: Rouba Monte e Truco Paulista.
 
 Em produção, a tela fica na Vercel e o servidor no Render, como serviços separados. Localmente, o `docker compose` sobe os dois num processo só.
 
@@ -44,7 +44,7 @@ flowchart TB
 
 | Camada | Pasta | Pode importar | Responsabilidade |
 | --- | --- | --- | --- |
-| Domínio | `src/domain` | só ela mesma, sem pacotes | Sala e `GameRules` em `room`; regras RN-01 a RN-17, visão por jogador e dicas em `games/rouba-monte` |
+| Domínio | `src/domain` | só ela mesma, sem pacotes | Sala, times, catálogo e `GameRules` em `room`; regras RN-01 a RN-17 em `games/rouba-monte`; TR-RN-01 a TR-RN-16 em `games/truco` |
 | Aplicação | `src/application` | domínio | Casos de uso e portas |
 | Adaptadores | `src/adapters` | aplicação, domínio, `zod` | Contrato, validação, tradução para pt-BR |
 | Infraestrutura | `src/infrastructure` | camadas internas e bibliotecas | Socket.io, HTTP, Next, métricas, logs, relógio |
@@ -56,26 +56,29 @@ A regra de dependência é verificada em `test/architecture.test.ts`. O mesmo te
 
 | Parte | Pasta | Conhece o jogo? |
 | --- | --- | --- |
-| Contrato de um jogo | `src/domain/room/game-rules.ts` | Não. Define o que todo jogo precisa ter |
-| Sala, ordem de início | `src/domain/room` | Não |
-| Sessão e casos de uso comuns | `src/application/room-session.ts`, `src/application/use-cases` | Não |
+| Contrato de um jogo e catálogo | `src/domain/room/game-rules.ts`, `game-catalog.ts` | Não. Define o que todo jogo precisa ter |
+| Sala, times, ordem de início | `src/domain/room` | Não |
+| Sessão e casos de uso comuns | `src/application/room-session.ts`, `src/application/use-cases` | Não. Resolve as regras pelo `gameId` da sala |
 | Regras do Rouba Monte | `src/domain/games/rouba-monte` | Sim |
-| Dicas do Rouba Monte | `src/application/use-cases/rouba-monte` | Sim |
-| Contrato do Socket.io, mensagens e telas | `src/adapters/socket` | Sim, ligado ao Rouba Monte por `game.ts` |
-| Escolha do jogo | `src/main/container.ts` | Sim, é onde as regras são ligadas |
+| Regras do Truco Paulista | `src/domain/games/truco` | Sim |
+| Contrato comum do Socket.io | `src/adapters/socket` | Não. Despacha para o adaptador do jogo da sala |
+| Adaptador de cada jogo | `src/adapters/socket/games/<jogo>` | Sim: esquema Zod das ações, visão, dicas e frases em pt-BR |
+| Catálogo de jogos | `src/main/container.ts` | Sim, é onde regras e adaptadores são registrados |
 
-A `GameRules` pede limites de jogadores e seis operações: começar, jogar, estourar o tempo, tirar um jogador, dizer de quem é o turno e dizer se a partida acabou. A sala usa esses limites para aceitar ou recusar entradas, e a sessão usa o número do turno para o relógio.
+A `GameRules` declara o formato do jogo (`playerCounts`, `teamCount`, `turnDurationMs`) e seis operações: começar, jogar, estourar o tempo, tirar um jogador, dizer de quem é o turno e dizer se a partida acabou. A sala usa o formato para aceitar entradas, bloquear o início com número de jogadores não aceito ou times desiguais, e marcar o relógio de cada jogo.
 
-`test/application/second-game.test.ts` prova a separação: um jogo de mentira, a corrida até 5, roda pela mesma sala e pelos mesmos casos de uso, sem nenhuma mudança neles.
+Os times são da plataforma, não do Truco: um jogo com `teamCount` recebe em cada assento o time do jogador. Sem mudança do anfitrião, vale a ordem de entrada alternando; ao iniciar, os times ficam fixos na sala, e quem entra depois vai para o time menor.
+
+`test/application/second-game.test.ts` prova a separação: um jogo de mentira, a corrida até 5, roda pela mesma sala e pelos mesmos casos de uso, inclusive ao mesmo tempo que uma sala de Rouba Monte.
 
 ### Como adicionar um jogo
 
-1. Criar `src/domain/games/<jogo>` com o estado, as ações e um objeto `GameRules`.
-2. Criar a visão por jogador e, se o jogo tiver, as dicas.
-3. Criar no adaptador o esquema Zod das ações, o presenter e as mensagens em pt-BR.
-4. Ligar as regras no `container.ts`.
+1. Criar `src/domain/games/<jogo>` com o estado, as ações, a visão por jogador e um objeto `GameRules`.
+2. Criar `src/adapters/socket/games/<jogo>` com o contrato, o esquema Zod das ações, o presenter, as dicas e as mensagens em pt-BR, num objeto `GameAdapter`.
+3. Registrar as regras e o adaptador no `container.ts` e o tipo do estado na união de `contract.ts`.
+4. No frontend, registrar o jogo em `lib/game/domain/catalog.ts` e a mesa em `components/game/room/room-screens.tsx`.
 
-O passo 3 ainda é por jogo: o contrato do Socket.io só conhece o Rouba Monte. Rodar dois jogos no mesmo servidor exige escolher o jogo ao criar a sala e despachar `game:action` para o adaptador certo. Isso fica para quando o segundo jogo for escolhido.
+Nenhum arquivo da sala ou dos casos de uso muda (RNF-13).
 
 ## Decisões
 
@@ -83,7 +86,10 @@ O passo 3 ainda é por jogo: o contrato do Socket.io só conhece o Rouba Monte. 
 | --- | --- | --- |
 | Estado imutável no motor | Ação inválida não muda nada (RF-09) | Mutação com rollback manual |
 | Carta como texto (`"7H"`) | Comparação e serialização diretas, mensagens pequenas | Objetos com valor e naipe |
-| Dicas recebem só `PlayerView` | RF-20 garantido pelo tipo: a função não tem acesso às outras mãos | Filtrar o estado completo |
+| Dicas recebem só `PlayerView` ou `TrucoView` | RF-20 garantido pelo tipo: a função não tem acesso às outras mãos | Filtrar o estado completo |
+| Ação decodificada pelo adaptador do jogo da sala | O Zod de cada jogo valida dentro do mesmo comando que carrega a sala, sem janela entre ler e jogar | Um esquema único com a união de todos os jogos |
+| Times na plataforma | Outros jogos de dupla reaproveitam formação, sorteio e balanceamento | Times dentro do estado do Truco |
+| Truco carregado sob demanda no frontend | Quem joga Rouba Monte não baixa a mesa do Truco | Um pacote único com todas as mesas |
 | Conexão abstraída em `ClientConnection` | Socket.io fica só na infraestrutura | Controller acoplado ao `Socket` |
 | Dicas sob demanda (`game:hints`) | Não gasta CPU com quem deixou as dicas desligadas | Calcular a cada atualização |
 | Prazo do turno enviado uma vez | O cliente conta o tempo sozinho, sem mensagem por segundo | Enviar o relógio pela rede |
@@ -97,18 +103,21 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 
 | Comando | Entrada | Resposta | Requisito |
 | --- | --- | --- | --- |
-| `room:create` | `{ nickname }` | código, jogador, token, convite | RF-01 |
+| `room:create` | `{ nickname, gameId? }` | código, jogador, token, convite | RF-01, RF-25 |
 | `room:join` | `{ code, nickname }` | igual | RF-02 |
 | `room:reconnect` | `{ code, nickname, reconnectToken }` | igual | RF-06 |
 | `room:leave` | nenhuma | `null` | RN-16 |
 | `room:kick` | `{ playerId }` | `null` | RF-05 |
+| `room:game` | `{ gameId }` | `null` | RF-25 |
+| `room:team` | `{ playerId, team }` | `null` | TR-RF-09 |
+| `room:teams-draw` | nenhuma | `null` | TR-RF-09 |
 | `game:start` | nenhuma | `null` | RF-04, RF-15 |
-| `game:action` | `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }` ou `draw`. A jogada com carta fecha o turno; `draw` não fecha | `null` | RF-09, RF-10 |
-| `game:hints` | nenhuma | jogadas, destaques, risco do monte, contador | RF-16 a RF-19 |
+| `game:action` | Rouba Monte: `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }` ou `draw`. Truco: `play { card }`, `playBlind { slot }`, `raise`, `accept` ou `run` | `null` | RF-09, RF-10, TR-RF-02 a TR-RF-08 |
+| `game:hints` | nenhuma | Rouba Monte: jogadas, destaques, risco e contador. Truco: régua de força e sugestões | RF-16 a RF-19, TR-RF-13, TR-RF-14 |
 
 | Evento do servidor | Conteúdo |
 | --- | --- |
-| `room:state` | Estado da sala e visão da partida daquele jogador, com `version` crescente |
+| `room:state` | Estado da sala (`gameId`, `teams`, `startProblem`, `turnDurationMs`) e a visão da partida daquele jogador, com o `kind` do jogo e `version` crescente |
 | `room:removed` | `{ reason: "kicked" }` |
 
 | HTTP | Porta | Uso |
@@ -119,7 +128,7 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 
 O contrato HTTP tem só esses três caminhos sem regra de negócio, então não há coleção Postman nem OpenAPI: o contrato real é o de Socket.io, validado por `test/integration/socket.test.ts`.
 
-## Regras confirmadas
+## Regras confirmadas do Rouba Monte
 
 As regras seguem a atualização do documento de requisitos de 2026-11-05: o Rouba-monte tradicional, em que vence quem termina com o maior monte. A compra foi mantida a pedido do autor no mesmo dia, com a mão sempre voltando a 4 cartas e sem passar a vez.
 
@@ -169,3 +178,29 @@ O documento de requisitos do projeto não está neste repositório; os códigos 
 - Código de sala com 6 caracteres de um alfabeto de 32 (cerca de 1 bilhão de combinações).
 - Apelido nunca é registrado em log (RNF-11).
 - Contêiner sem root, sistema de arquivos somente leitura e sem capabilities.
+
+## Regras do Truco Paulista
+
+Seguem a seção 3 do documento de requisitos (TR-RN-01 a TR-RN-16), com as questões da seção 8 já aprovadas.
+
+| Regra | Como funciona |
+| --- | --- |
+| Jogadores e times (TR-RN-01) | 2, 4 ou 6 jogadores em dois times do mesmo tamanho, sentados alternados. Com 3 ou 5, o início fica bloqueado |
+| Baralho e vira (TR-RN-02, TR-RN-03) | 40 cartas sem 8, 9 e 10; 3 cartas por jogador e a vira. A manilha é o valor seguinte à vira, e entre manilhas vale paus, copas, espadas e ouros |
+| Quem abre (TR-RN-04) | A primeira mão é aberta por quem a plataforma sorteia; as seguintes, pelo jogador à direita de quem abriu |
+| Rodadas e empates (TR-RN-05 a TR-RN-07) | Quem joga a carta mais forte abre a próxima rodada. Cartas iguais do mesmo time não empatam. Os empates seguem a tabela do documento, e três empates não dão ponto |
+| Pedidos (TR-RN-08 a TR-RN-10) | Só o jogador da vez pede, e só se o time dele não fez o último pedido aceito. Responde o adversário seguinte: aceitar, correr (o outro time marca o valor anterior) ou aumentar até 12 |
+| Mão de onze (TR-RN-11) | Decide o primeiro jogador do time com 11 na ordem da mão. Os parceiros veem as cartas uns dos outros durante a mão. Jogar vale 3, sem pedidos; correr dá 1 ponto |
+| Mão de ferro (TR-RN-12) | Ninguém recebe as próprias cartas: cada um escolhe uma posição (`playBlind`). Vale 1, sem pedidos, e quem vence a mão chega a 12 |
+| Fim e saída (TR-RN-13, TR-RN-15) | O placar para em 12. Quem sai pelo botão, ou não volta em 2 minutos, faz o próprio time perder |
+| Tempo (TR-RN-16) | 30 s por decisão: jogar carta, responder ou decidir a mão de onze. Cada decisão ganha um novo número de turno para o relógio |
+
+### Decisões onde os requisitos do Truco eram omissos
+
+| Ponto | Lacuna | O que foi implementado |
+| --- | --- | --- |
+| Quem decide a mão de onze | "O time decide" | O primeiro jogador do time com 11 na ordem da mão. Os parceiros veem as cartas para orientar |
+| Visibilidade na mão de onze | A TR-RN-14 fala em cartas viradas | Só os parceiros do time com 11 veem as mãos uns dos outros. Na mão de ferro, nem o dono vê a própria mão |
+| Quem abre ao jogar de novo | Não há regra | O jogador seguinte a quem abriu a partida anterior, como no Rouba Monte |
+| Times depois de uma saída | "Ao jogar de novo, os times se mantêm" | Os times ficam fixos no início da partida; quem sai deixa o time, e quem entra vai para o time menor |
+| Fim da mão | Não há pausa definida | A mão seguinte é distribuída na hora, e a visão traz o resumo da anterior (`lastHand`) para a tela anunciar o resultado |

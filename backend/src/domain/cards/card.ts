@@ -13,4 +13,6 @@ export const createFullDeck = (): readonly Card[] =>
 
 export const rankOf = (card: Card): Rank => card.slice(0, -1) as Rank
 
+export const suitOf = (card: Card): Suit => card.slice(-1) as Suit
+
 export const sameRank = (first: Card, second: Card): boolean => rankOf(first) === rankOf(second)

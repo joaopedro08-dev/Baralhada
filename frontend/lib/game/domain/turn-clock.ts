@@ -10,5 +10,26 @@ export const withLocalDeadline = (
     ...room,
     turnDeadlineAt: toLocal(room.turnDeadlineAt),
     matchStartsAt: toLocal(room.matchStartsAt),
+    pausedUntil: toLocal(room.pausedUntil),
+  }
+}
+
+export const keepLocalClock = (
+  previousServer: RoomState,
+  previousLocal: RoomState,
+  nextServer: RoomState,
+  nextLocal: RoomState
+): RoomState => {
+  const keep = (
+    field: "turnDeadlineAt" | "matchStartsAt" | "pausedUntil"
+  ): number | null =>
+    previousServer[field] === nextServer[field]
+      ? previousLocal[field]
+      : nextLocal[field]
+  return {
+    ...nextLocal,
+    turnDeadlineAt: keep("turnDeadlineAt"),
+    matchStartsAt: keep("matchStartsAt"),
+    pausedUntil: keep("pausedUntil"),
   }
 }

@@ -6,9 +6,9 @@ import type { Clock } from "../ports.js"
 import type { RoomSession } from "../room-session.js"
 import type { SeatGrant } from "./create-room.js"
 
-export class ReconnectPlayer<State, Action, GameCode extends string> {
+export class ReconnectPlayer {
   constructor(
-    private readonly session: RoomSession<State, Action, GameCode>,
+    private readonly session: RoomSession,
     private readonly clock: Clock
   ) {}
 
@@ -16,7 +16,7 @@ export class ReconnectPlayer<State, Action, GameCode extends string> {
     code: string
     nickname: string
     reconnectToken: string
-  }): Result<SeatGrant<State>, ApplicationErrorCode> {
+  }): Result<SeatGrant, ApplicationErrorCode> {
     const room = this.session.load(input.code)
     if (!room.ok) return room
 

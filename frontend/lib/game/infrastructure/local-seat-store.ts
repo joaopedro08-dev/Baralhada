@@ -1,7 +1,9 @@
 import type { SeatStore } from "@/lib/game/application/ports"
 import type { Seat } from "@/lib/game/domain/types"
 
-const STORAGE_KEY = "rouba-monte:assento"
+const STORAGE_KEY = "baralhada:assento"
+
+export const SEAT_BOOT_SCRIPT = `try{if(localStorage.getItem("${STORAGE_KEY}"))document.documentElement.dataset.seat=""}catch(e){}`
 
 const isSeat = (value: unknown): value is Seat => {
   if (typeof value !== "object" || value === null) return false

@@ -29,7 +29,7 @@ const roomWith = (...ids: string[]): Room<Game> =>
       if (!joined.ok) throw new Error(joined.error)
       return joined.value
     },
-    createRoom<Game>("ABC234", player(ids[0] as string))
+    createRoom<Game>("ABC234", rules.id, player(ids[0] as string))
   )
 
 describe("RF-02 entrada na sala", () => {

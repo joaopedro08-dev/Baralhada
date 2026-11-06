@@ -7,10 +7,11 @@ import type {
   TurnScheduler,
 } from "../../src/application/ports.js"
 import { RoomSession } from "../../src/application/room-session.js"
+import type { Actor } from "../../src/application/room-session.js"
 import { CreateRoom } from "../../src/application/use-cases/create-room.js"
 import { DisconnectPlayer } from "../../src/application/use-cases/disconnect-player.js"
 import { ExpireTurn } from "../../src/application/use-cases/expire-turn.js"
-import { GetHints } from "../../src/application/use-cases/rouba-monte/get-hints.js"
+import { ReadGame } from "../../src/application/use-cases/read-game.js"
 import { JoinRoom } from "../../src/application/use-cases/join-room.js"
 import { KickPlayer } from "../../src/application/use-cases/kick-player.js"
 import { LeaveRoom } from "../../src/application/use-cases/leave-room.js"
@@ -18,15 +19,21 @@ import { PlayTurn } from "../../src/application/use-cases/play-turn.js"
 import { ReconnectPlayer } from "../../src/application/use-cases/reconnect-player.js"
 import { StartMatch } from "../../src/application/use-cases/start-match.js"
 import { SweepRooms } from "../../src/application/use-cases/sweep-rooms.js"
+import { roubaMonteAdapter } from "../../src/adapters/socket/games/rouba-monte/adapter.js"
 import type { Card } from "../../src/domain/cards/card.js"
+import { TURN_DURATION_MS } from "../../src/domain/games/rouba-monte/model.js"
 import type { Game } from "../../src/domain/games/rouba-monte/model.js"
+import type { TurnAction } from "../../src/domain/games/rouba-monte/turn-actions.js"
+import { createGameCatalog } from "../../src/domain/room/game-catalog.js"
 import { roubaMonteRules } from "../../src/domain/games/rouba-monte/rules.js"
+import { ok } from "../../src/domain/shared/result.js"
 import type { Result } from "../../src/domain/shared/result.js"
 import { InMemoryRoomRepository } from "../../src/infrastructure/in-memory-room-repository.js"
 import { seededRandom } from "../support/game-builder.js"
 
 const settings: GameSettings = {
-  turnDurationMs: 60_000,
+  turnDurationOverrideMs: null,
+  pauseOverrideMs: null,
   matchCountdownMs: 0,
   reconnectGraceMs: 120_000,
   emptyRoomTtlMs: 150_000,
@@ -48,7 +55,7 @@ const setup = (custom: Partial<GameSettings> = {}) => {
   } satisfies Clock & { current: number }
   const published: number[] = []
   const removed: string[] = []
-  const notifier: RoomNotifier<Game> = {
+  const notifier: RoomNotifier = {
     publish: (room) => published.push(room.version),
     notifyRemoved: (playerId) => removed.push(playerId),
   }
@@ -65,10 +72,11 @@ const setup = (custom: Partial<GameSettings> = {}) => {
   }
   const random = seededRandom(42)
   const session = new RoomSession(
-    roubaMonteRules,
+    createGameCatalog([roubaMonteRules]),
     { rooms, notifier, scheduler, clock, random },
     { ...settings, ...custom }
   )
+  const playTurn = new PlayTurn(session, random)
   return {
     rooms,
     clock,
@@ -82,10 +90,12 @@ const setup = (custom: Partial<GameSettings> = {}) => {
     kick: new KickPlayer(session, notifier),
     disconnect: new DisconnectPlayer(session, clock),
     start: new StartMatch(session, random),
-    play: new PlayTurn(session, random),
+    play: {
+      perform: (actor: Actor, action: TurnAction) => playTurn.perform(actor, () => ok(action)),
+    },
     expire: new ExpireTurn(session, random),
     sweep: new SweepRooms(rooms, session, clock, settings),
-    hints: new GetHints(session),
+    read: new ReadGame(session),
   }
 }
 
@@ -245,7 +255,7 @@ describe("casos de uso", () => {
       unwrap(app.play.perform(actor, { type: "discard", card }))
 
       expect(loadRoom()?.game?.turn.number).toBe(2)
-      expect(loadRoom()?.turnDeadlineAt).toBe(app.clock.current + settings.turnDurationMs)
+      expect(loadRoom()?.turnDeadlineAt).toBe(app.clock.current + TURN_DURATION_MS)
     })
 
     it("recusa jogar antes de iniciar", () => {
@@ -430,7 +440,8 @@ describe("casos de uso", () => {
       const actor = game?.turn.playerId === hostActor.playerId ? hostActor : guestActor
       const other = actor === hostActor ? guestActor : hostActor
 
-      const { hints } = unwrap(app.hints.execute(actor))
+      const snapshot = unwrap(app.read.execute(actor))
+      const hints = roubaMonteAdapter.hints(snapshot.game as Game, snapshot.viewerId)
       const othersHand = game?.players.find((p) => p.id === other.playerId)?.hand ?? []
 
       expect(hints.plays.length).toBeGreaterThan(0)

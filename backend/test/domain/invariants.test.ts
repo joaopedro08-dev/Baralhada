@@ -82,6 +82,7 @@ const newGame = (players: number, random: RandomSource): Game => {
   const seats = Array.from({ length: players }, (_, index) => ({
     id: `p${index}`,
     nickname: `P${index}`,
+    team: null,
   }))
   return unwrap(startGame(seats, "p0", random))
 }

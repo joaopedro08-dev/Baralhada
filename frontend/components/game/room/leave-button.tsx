@@ -16,7 +16,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { gameSession } from "@/lib/game/session"
 
-export function LeaveMatchButton({ className }: { className?: string }) {
+const ROUBA_MONTE_LEAVE_NOTICE =
+  "Sua mão e seu monte voltam para o baralho de compra. Você só pode entrar de novo quando esta partida terminar."
+
+export function LeaveMatchButton({
+  className,
+  notice = ROUBA_MONTE_LEAVE_NOTICE,
+}: {
+  className?: string
+  notice?: string
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -31,8 +40,7 @@ export function LeaveMatchButton({ className }: { className?: string }) {
             Sair da partida?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm/relaxed">
-            Sua mão e seu monte voltam para o baralho de compra. Você só pode
-            entrar de novo quando esta partida terminar.
+            {notice}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
