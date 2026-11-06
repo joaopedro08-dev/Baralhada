@@ -1,0 +1,11 @@
+export type PokerErrorCode =
+  | "INVALID_PLAYER_COUNT"
+  | "GAME_FINISHED"
+  | "NOT_YOUR_TURN"
+  | "CANNOT_FOLD"
+  | "CANNOT_CHECK"
+  | "NOTHING_TO_CALL"
+  | "CANNOT_BET"
+  | "CANNOT_RAISE"
+  | "AMOUNT_TOO_SMALL"
+  | "AMOUNT_TOO_LARGE"
