@@ -2,15 +2,11 @@
 
 import { m } from "framer-motion"
 
-import { PlayerAvatar } from "@/components/game/room/player-avatar"
 import { HistoryList } from "@/components/game/table/history-list"
 import { LiveScore, useTrucoNotice } from "@/components/game/table/live-score"
+import { MatchHeader } from "@/components/game/table/match-header"
 import { MatchCountdown } from "@/components/game/table/match-countdown"
-import {
-  TurnClock,
-  TurnProgress,
-  useSecondsLeft,
-} from "@/components/game/table/turn-timer"
+import { useSecondsLeft } from "@/components/game/table/turn-timer"
 import { useHints } from "@/components/game/table/use-hints"
 import { CallBanner, useTrucoCall } from "@/components/game/truco/call-banner"
 import { TrucoHand } from "@/components/game/truco/truco-hand"
@@ -24,7 +20,6 @@ import { describeTurn } from "@/lib/game/domain/truco/guide"
 import { nicknameOf } from "@/lib/game/domain/truco/teams"
 import type { TrucoState } from "@/lib/game/domain/truco/types"
 import type { RoomState } from "@/lib/game/domain/types"
-import { cn } from "@/lib/utils"
 
 export function TrucoScreen({
   room,
@@ -49,30 +44,14 @@ export function TrucoScreen({
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="shrink-0 bg-felt-deep">
-        <div className="flex h-13 items-center gap-2 px-3">
-          <PlayerAvatar
-            playerId={game.actorId}
-            nickname={nicknameOf(game, game.actorId)}
-          />
-          <div className="min-w-0 flex-1">
-            <p
-              aria-live="polite"
-              className={cn(
-                "truncate font-heading text-base leading-tight font-bold",
-                isMyTurn && "text-gold"
-              )}
-            >
-              {describeTurn(game, room.viewerId)}
-            </p>
-            <p className="truncate text-xs text-felt-muted">
-              {lastEvent ?? "A partida começou"}
-            </p>
-          </div>
-          <TurnClock
-            deadlineAt={room.turnDeadlineAt}
-            durationMs={room.turnDurationMs}
-          />
+      <MatchHeader
+        room={room}
+        actorId={game.actorId}
+        actorName={nicknameOf(game, game.actorId)}
+        title={describeTurn(game, room.viewerId)}
+        highlight={isMyTurn}
+        lastEvent={lastEvent}
+        menu={
           <TrucoMenu
             room={room}
             game={game}
@@ -80,12 +59,8 @@ export function TrucoScreen({
             hintsEnabled={enabled}
             onHintsChange={setEnabled}
           />
-        </div>
-        <TurnProgress
-          deadlineAt={room.turnDeadlineAt}
-          durationMs={room.turnDurationMs}
-        />
-      </header>
+        }
+      />
 
       <TrucoScoreboard game={game} />
 

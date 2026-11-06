@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react"
 
-import type { TrucoHints } from "@/lib/game/domain/truco/types"
-import type { Hints, RoomState } from "@/lib/game/domain/types"
+import type { AnyHints, RoomState } from "@/lib/game/domain/types"
 import {
   readHintsPreference,
   subscribeToHintsPreference,
@@ -11,7 +10,6 @@ import {
 } from "@/lib/game/infrastructure/hints-preference"
 import { gameSession } from "@/lib/game/session"
 
-type AnyHints = Hints | TrucoHints
 type HintsKind = AnyHints["kind"]
 
 const defaultPreference = (): boolean => true

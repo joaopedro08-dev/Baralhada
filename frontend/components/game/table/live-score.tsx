@@ -57,18 +57,24 @@ export const useScoreNotice = () => {
   return { notice, show: setNotice, dismiss }
 }
 
-export const useTrucoNotice = (game: TrucoState) => {
+export const useStateNotice = <State,>(
+  state: State,
+  compute: (previous: State, next: State) => ScoreNotice | null
+) => {
   const { notice, show, dismiss } = useScoreNotice()
-  const [seen, setSeen] = useState(game)
+  const [seen, setSeen] = useState(state)
 
-  if (seen !== game) {
-    setSeen(game)
-    const next = trucoNotice(seen, game)
+  if (seen !== state) {
+    setSeen(state)
+    const next = compute(seen, state)
     if (next) show(next)
   }
 
   return { notice, dismiss }
 }
+
+export const useTrucoNotice = (game: TrucoState) =>
+  useStateNotice(game, trucoNotice)
 
 function CountingNumber({ from, to }: { from: number; to: number }) {
   const calm = useReducedMotion()

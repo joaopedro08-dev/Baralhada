@@ -6,6 +6,7 @@ Site para jogar baralho online com os amigos, no PC ou no celular. Não há cada
 | --- | --- | --- |
 | Rouba Monte | 2 a 6 | Capture cartas da mesa e roube o monte dos adversários. Vence o maior monte. Turno de 60 s |
 | Truco Paulista | 2, 4 ou 6, em times | 40 cartas, manilha pela vira, truco, seis, nove e doze. Vence quem chega a 12 pontos. Jogada de 30 s |
+| Três Trincas | 2 a 4 | 52 cartas, 2 como coringa e o valor do vira morto. Compre, descarte e vença baixando 3 trincas primeiro. Vez de 30 s |
 
 Cada jogo é um módulo registrado num catálogo; a sala, o tempo real e o relógio são comuns. As regras completas ficam na página `/informacoes`.
 

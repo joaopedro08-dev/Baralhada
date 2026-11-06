@@ -61,9 +61,9 @@ ROOM_STEPS=10,50,100 LABEL=capacidade docker compose --profile perf run --rm --n
 | `PUBLIC_URL` | `http://localhost:3000` | Base do link de convite |
 | `CORS_ORIGIN` | vazio | Origens permitidas com o frontend em outro endereço, separadas por vírgula |
 | `FRONTEND_DIR` | vazio | Pasta do Next.js servida pelo mesmo processo |
-| `TURN_SECONDS` | vazio | Substitui o tempo de turno de todos os jogos. Vazio usa o de cada jogo: 60 s no Rouba Monte (RN-17) e 30 s no Truco (TR-RN-16) |
+| `TURN_SECONDS` | vazio | Substitui o tempo de turno de todos os jogos. Vazio usa o de cada jogo: 60 s no Rouba Monte (RN-17), 30 s no Truco (TR-RN-16) e no Três Trincas (TT-RN-17) |
 | `MATCH_COUNTDOWN_SECONDS` | `3` | Contagem antes da partida. Jogadas só valem depois dela |
-| `TABLE_PAUSE_MS` | regra de cada jogo | Pausa da mesa depois de pedidos, rodadas e mãos no Truco. `0` desliga as pausas (usado nos testes) |
+| `TABLE_PAUSE_MS` | regra de cada jogo | Pausa da mesa depois de pedidos, rodadas e mãos no Truco e da última trinca no Três Trincas. `0` desliga as pausas (usado nos testes) |
 | `RECONNECT_GRACE_SECONDS` | `120` | Prazo de reconexão (RF-06) |
 | `EMPTY_ROOM_TTL_SECONDS` | `150` | Tempo até apagar sala sem ninguém conectado (RNF-07). Mantenha acima de `RECONNECT_GRACE_SECONDS`, senão a sala some antes do prazo de reconexão |
 | `MAX_ROOMS` | `10` | Limite de salas em memória. 10 é o que o plano gratuito sustentou com a meta de 1 s |

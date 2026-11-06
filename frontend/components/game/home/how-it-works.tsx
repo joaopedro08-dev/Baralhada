@@ -13,7 +13,7 @@ const STEPS = [
   {
     icon: PlayCircle,
     title: "Crie a sala e o jogo",
-    text: "Escolha Rouba Monte ou Truco Paulista. Você pode trocar de jogo no saguão.",
+    text: "Escolha Rouba Monte, Truco Paulista ou Três Trincas. Você pode trocar de jogo no saguão.",
   },
   {
     icon: Link2,
