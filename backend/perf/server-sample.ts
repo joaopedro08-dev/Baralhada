@@ -25,7 +25,7 @@ export const readServerSample = async (url: string): Promise<ServerSample> => {
     rssBytes: readMetric(body, "process_resident_memory_bytes"),
     heapBytes: readMetric(body, "nodejs_heap_size_used_bytes"),
     eventLoopLagP99Seconds: readMetric(body, "nodejs_eventloop_lag_p99_seconds"),
-    connections: readMetric(body, "roubamonte_connections"),
-    stateMessages: readMetric(body, "roubamonte_state_messages_total"),
+    connections: readMetric(body, "baralhada_connections"),
+    stateMessages: readMetric(body, "baralhada_state_messages_total"),
   }
 }

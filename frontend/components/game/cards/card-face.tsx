@@ -43,6 +43,11 @@ export const CARD_SIZES = {
     rank: "text-lg lg:text-xl",
     suit: "size-5 lg:size-6",
   },
+  hero: {
+    box: "h-28 w-20 sm:h-36 sm:w-[6.5rem]",
+    rank: "text-2xl sm:text-3xl",
+    suit: "size-9 sm:size-12",
+  },
   flying: {
     box: "h-[4.75rem] w-14",
     rank: "text-xl",

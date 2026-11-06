@@ -1,7 +1,7 @@
 import type { RoomRepository } from "../application/ports.js"
 import type { Room } from "../domain/room/room.js"
 
-export class InMemoryRoomRepository<State> implements RoomRepository<State> {
+export class InMemoryRoomRepository<State = unknown> implements RoomRepository<State> {
   private readonly rooms = new Map<string, Room<State>>()
 
   find(code: string): Room<State> | undefined {

@@ -6,17 +6,18 @@ import { GameButton } from "@/components/game/game-button"
 import { SiteFooter } from "@/components/game/site-footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { RULE_SECTIONS } from "@/lib/game/domain/how-to-play"
+import { TRUCO_RULE_SECTIONS } from "@/lib/game/domain/truco/how-to-play"
 
 export const metadata: Metadata = {
-  title: "Regras e informações · Rouba Monte",
+  title: "Regras e informações · Baralhada",
   description:
-    "Como jogar Rouba Monte, o que você precisa para começar e como o sistema funciona.",
+    "Como jogar Rouba Monte e Truco Paulista, o que você precisa para começar e como o sistema funciona.",
 }
 
 const GENERAL_INFO = [
   {
     title: "O que é",
-    text: "Rouba Monte é um jogo de cartas online para 2 a 6 amigos, com um baralho de 52 cartas.",
+    text: "Baralhada é um site para jogar baralho online com os amigos. Hoje há o Rouba Monte, para 2 a 6 jogadores com 52 cartas, e o Truco Paulista, para 2, 4 ou 6 jogadores com 40 cartas.",
   },
   {
     title: "O que você precisa",
@@ -24,7 +25,7 @@ const GENERAL_INFO = [
   },
   {
     title: "Como começar",
-    text: "Uma pessoa cria a sala e manda o código ou o link para os amigos. Quando todos entrarem, ela inicia a partida.",
+    text: "Uma pessoa cria a sala, escolhe o jogo e manda o código ou o link para os amigos. No Truco, ela também forma os times ou sorteia. Quando todos entrarem, ela inicia a partida.",
   },
 ] as const
 
@@ -39,7 +40,7 @@ const SYSTEM_INFO = [
   },
   {
     title: "Dicas",
-    text: "O jogo destaca a melhor jogada e as outras possíveis. Você pode desligar as dicas no menu da partida.",
+    text: "No Rouba Monte, o jogo destaca a melhor jogada e as outras possíveis. No Truco, mostra a força das suas cartas e sugere o que jogar ou responder. Você pode desligar as dicas no menu da partida.",
   },
   {
     title: "Seus dados",
@@ -96,7 +97,16 @@ export default function InformationPage() {
           heading="Informações gerais"
           items={GENERAL_INFO}
         />
-        <InfoSection id="regras" heading="Regras" items={RULE_SECTIONS} />
+        <InfoSection
+          id="regras-rouba-monte"
+          heading="Regras do Rouba Monte"
+          items={RULE_SECTIONS}
+        />
+        <InfoSection
+          id="regras-truco"
+          heading="Regras do Truco Paulista"
+          items={TRUCO_RULE_SECTIONS}
+        />
         <InfoSection
           id="sobre-o-sistema"
           heading="Sobre o sistema"

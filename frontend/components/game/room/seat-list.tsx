@@ -6,7 +6,7 @@ import { Crown, WifiOff, X } from "lucide-react"
 import { GameButton } from "@/components/game/game-button"
 import { PlayerAvatar } from "@/components/game/room/player-avatar"
 import { Badge } from "@/components/ui/badge"
-import { MAX_PLAYERS } from "@/lib/game/domain/room-entry"
+import { gameInfo, maxPlayersOf } from "@/lib/game/domain/catalog"
 import type { PlayerId, RoomPlayer, RoomState } from "@/lib/game/domain/types"
 
 const BADGE_TEXT = "h-6 text-xs"
@@ -77,7 +77,7 @@ export function SeatList({
   return (
     <section aria-labelledby="titulo-jogadores">
       <h2 id="titulo-jogadores" className="font-heading text-lg font-semibold">
-        Na sala ({room.players.length} de {MAX_PLAYERS})
+        Na sala ({room.players.length} de {maxPlayersOf(gameInfo(room.gameId))})
       </h2>
       <ul aria-live="polite">
         <AnimatePresence initial={false}>

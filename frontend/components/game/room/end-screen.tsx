@@ -5,16 +5,17 @@ import { RotateCcw, Trophy } from "lucide-react"
 
 import { PileStack } from "@/components/game/cards/pile-stack"
 import { GameButton } from "@/components/game/game-button"
+import { GamePicker } from "@/components/game/game-picker"
 import { RefusalMessage } from "@/components/game/refusal-message"
 import { InviteLink } from "@/components/game/room/invite-link"
 import { LeaveRoomButton } from "@/components/game/room/leave-button"
 import { PlayerAvatar } from "@/components/game/room/player-avatar"
 import { SeatList } from "@/components/game/room/seat-list"
+import { HintsSetting } from "@/components/game/room/hints-setting"
 import { useRoomCommands } from "@/components/game/room/use-room-commands"
 import { useVictoryShow } from "@/components/game/room/use-victory-show"
 import { Card, CardContent } from "@/components/ui/card"
 import { plural } from "@/lib/game/domain/cards"
-import { MIN_PLAYERS } from "@/lib/game/domain/room-entry"
 import {
   describeResult,
   explainEnd,
@@ -66,12 +67,13 @@ export function EndScreen({
   game: GameState
   inviteUrl: string | null
 }) {
-  const { refusal, busy, startMatch, kickPlayer } = useRoomCommands()
+  const commands = useRoomCommands()
+  const { refusal, busy, startMatch, kickPlayer } = commands
   const viewerWon = game.winnerIds.includes(room.viewerId)
   const { stage, title } = useVictoryShow(viewerWon)
   const viewerIsHost = room.hostId === room.viewerId
   const host = room.players.find((player) => player.id === room.hostId)
-  const needsPlayers = room.players.length < MIN_PLAYERS
+  const needsPlayers = room.startProblem === "NOT_ENOUGH_PLAYERS"
 
   return (
     <div ref={stage} className="relative overflow-hidden">
@@ -116,6 +118,22 @@ export function EndScreen({
             </section>
 
             <SeatList room={room} onKick={kickPlayer} />
+
+            {viewerIsHost && (
+              <GamePicker
+                value={room.gameId}
+                onChange={commands.chooseGame}
+                disabled={busy}
+                label="Jogo da próxima partida"
+              />
+            )}
+
+            <HintsSetting
+              allowed={room.hintsAllowed}
+              editable={viewerIsHost}
+              busy={busy}
+              onChange={commands.allowHints}
+            />
 
             {needsPlayers && inviteUrl && (
               <div className="flex flex-col gap-2">

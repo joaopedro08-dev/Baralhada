@@ -1,6 +1,13 @@
-import type { GameRules } from "../domain/room/game-rules.js"
-import { canStart, dropPlayer, findRoomPlayer, statusOf } from "../domain/room/room.js"
-import type { Room, RoomStatus } from "../domain/room/room.js"
+import type { GameCatalog } from "../domain/room/game-catalog.js"
+import type { AnyGameRules } from "../domain/room/game-rules.js"
+import {
+  dropPlayer,
+  findRoomPlayer,
+  isHost,
+  startProblemOf,
+  statusOf,
+} from "../domain/room/room.js"
+import type { Room, RoomStatus, StartProblem } from "../domain/room/room.js"
 import type { RandomSource } from "../domain/shared/random.js"
 import { err, ok } from "../domain/shared/result.js"
 import type { Result } from "../domain/shared/result.js"
@@ -13,29 +20,30 @@ export interface Actor {
   readonly playerId: PlayerId
 }
 
-export interface RunningGame<State> {
-  readonly room: Room<State>
-  readonly game: State
+export interface RunningGame {
+  readonly room: Room
+  readonly game: unknown
+  readonly rules: AnyGameRules
 }
 
-export interface SessionPorts<State> {
-  readonly rooms: RoomRepository<State>
-  readonly notifier: RoomNotifier<State>
+export interface SessionPorts {
+  readonly rooms: RoomRepository
+  readonly notifier: RoomNotifier
   readonly scheduler: TurnScheduler
   readonly clock: Clock
   readonly random: RandomSource
 }
 
-export class RoomSession<State, Action, GameCode extends string> {
-  private readonly rooms: RoomRepository<State>
-  private readonly notifier: RoomNotifier<State>
+export class RoomSession {
+  private readonly rooms: RoomRepository
+  private readonly notifier: RoomNotifier
   private readonly scheduler: TurnScheduler
   private readonly clock: Clock
   private readonly random: RandomSource
 
   constructor(
-    readonly rules: GameRules<State, Action, GameCode>,
-    ports: SessionPorts<State>,
+    readonly catalog: GameCatalog,
+    ports: SessionPorts,
     private readonly settings: GameSettings
   ) {
     this.rooms = ports.rooms
@@ -45,47 +53,68 @@ export class RoomSession<State, Action, GameCode extends string> {
     this.random = ports.random
   }
 
-  statusOf(room: Room<State>): RoomStatus {
-    return statusOf(room, this.rules)
+  rulesOf(room: Room): AnyGameRules {
+    const rules = this.catalog.find(room.gameId)
+    if (!rules) throw new Error(`Jogo desconhecido: ${room.gameId}`)
+    return rules
   }
 
-  canStart(room: Room<State>): boolean {
-    return canStart(room, this.rules)
+  statusOf(room: Room): RoomStatus {
+    return statusOf(room, this.rulesOf(room))
   }
 
-  load(code: string): Result<Room<State>, ApplicationErrorCode> {
+  startProblemOf(room: Room): StartProblem | null {
+    return startProblemOf(room, this.rulesOf(room))
+  }
+
+  load(code: string): Result<Room, ApplicationErrorCode> {
     const room = this.rooms.find(code)
     return room ? ok(room) : err("ROOM_NOT_FOUND")
   }
 
-  loadAsMember(actor: Actor): Result<Room<State>, ApplicationErrorCode> {
+  loadAsMember(actor: Actor): Result<Room, ApplicationErrorCode> {
     const room = this.load(actor.roomCode)
     if (!room.ok) return room
     return findRoomPlayer(room.value, actor.playerId) ? room : err("PLAYER_NOT_IN_ROOM")
   }
 
-  loadRunningGame(actor: Actor): Result<RunningGame<State>, ApplicationErrorCode> {
+  loadAsIdleHost(actor: Actor): Result<Room, ApplicationErrorCode> {
+    const room = this.loadAsMember(actor)
+    if (!room.ok) return room
+    if (!isHost(room.value, actor.playerId)) return err("NOT_HOST")
+    return this.statusOf(room.value) === "playing" ? err("GAME_ALREADY_STARTED") : room
+  }
+
+  loadRunningGame(actor: Actor): Result<RunningGame, ApplicationErrorCode> {
     const room = this.loadAsMember(actor)
     if (!room.ok) return room
     const game = room.value.game
     return game !== null && this.statusOf(room.value) === "playing"
-      ? ok({ room: room.value, game })
+      ? ok({ room: room.value, game, rules: this.rulesOf(room.value) })
       : err("GAME_NOT_RUNNING")
   }
 
-  loadPlayableGame(actor: Actor): Result<RunningGame<State>, ApplicationErrorCode> {
+  loadPlayableGame(actor: Actor, duringPause = false): Result<RunningGame, ApplicationErrorCode> {
     const running = this.loadRunningGame(actor)
     if (!running.ok) return running
-    return (running.value.room.matchStartsAt ?? 0) > this.clock.now()
-      ? err("MATCH_STARTING")
-      : running
+    const { room } = running.value
+    const now = this.clock.now()
+    if ((room.matchStartsAt ?? 0) > now) return err("MATCH_STARTING")
+    return !duringPause && (room.pausedUntil ?? 0) > now ? err("TABLE_PAUSED") : running
+  }
+
+  advance(room: Room, game: unknown): Room {
+    const rules = this.rulesOf(room)
+    const ruled = room.game === null ? 0 : (rules.pauseAfter?.(room.game, game) ?? 0)
+    const pause = ruled > 0 ? (this.settings.pauseOverrideMs ?? ruled) : 0
+    return pause > 0 ? { ...room, game, pausedUntil: this.clock.now() + pause } : { ...room, game }
   }
 
   countdownEnd(): number {
     return this.clock.now() + this.settings.matchCountdownMs
   }
 
-  commit(room: Room<State>): Room<State> {
+  commit(room: Room): Room {
     const saved = { ...this.syncTurnTimer(room), version: room.version + 1 }
     this.rooms.save(saved)
     this.notifier.publish(saved)
@@ -97,22 +126,27 @@ export class RoomSession<State, Action, GameCode extends string> {
     this.rooms.remove(code)
   }
 
-  remove(room: Room<State>, playerId: PlayerId): Room<State> {
+  remove(room: Room, playerId: PlayerId): Room {
     const game =
-      room.game === null ? null : this.rules.removePlayer(room.game, playerId, this.random)
+      room.game === null ? null : this.rulesOf(room).removePlayer(room.game, playerId, this.random)
     return this.commit(dropPlayer(room, playerId, game, this.clock.now()))
   }
 
-  private syncTurnTimer(room: Room<State>): Room<State> {
+  private turnDurationOf(rules: AnyGameRules): number {
+    return this.settings.turnDurationOverrideMs ?? rules.turnDurationMs
+  }
+
+  private syncTurnTimer(room: Room): Room {
     if (room.game === null || this.statusOf(room) !== "playing") {
       this.scheduler.cancel(room.code)
       return { ...room, timedTurnNumber: null, turnDeadlineAt: null }
     }
-    const turnNumber = this.rules.turnOf(room.game).number
+    const rules = this.rulesOf(room)
+    const turnNumber = rules.turnOf(room.game).number
     if (room.timedTurnNumber === turnNumber) return room
     const now = this.clock.now()
-    const countdownLeft = Math.max(0, (room.matchStartsAt ?? 0) - now)
-    const delay = countdownLeft + this.settings.turnDurationMs
+    const waitLeft = Math.max(0, (room.matchStartsAt ?? 0) - now, (room.pausedUntil ?? 0) - now)
+    const delay = waitLeft + this.turnDurationOf(rules)
     this.scheduler.schedule(room.code, turnNumber, delay)
     return {
       ...room,

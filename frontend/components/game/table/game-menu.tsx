@@ -1,10 +1,11 @@
 "use client"
 
-import { Lightbulb, LightbulbOff, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
 import { LeaveMatchButton } from "@/components/game/room/leave-button"
 import { HistoryList } from "@/components/game/table/history-list"
+import { HintsToggle } from "@/components/game/table/hints-toggle"
 import { HowToPlay } from "@/components/game/table/how-to-play"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -17,7 +18,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Toggle } from "@/components/ui/toggle"
 import type { GameState, Hints, RoomState } from "@/lib/game/domain/types"
 
 function MenuSection({
@@ -93,19 +93,11 @@ export function GameMenu({
 
         <div className="flex flex-col gap-4 p-4 pt-2">
           <MenuSection title="Dicas">
-            <Toggle
-              variant="outline"
-              pressed={hintsEnabled}
-              onPressedChange={onHintsChange}
-              className="h-11 w-full justify-start gap-2 px-3 text-sm"
-            >
-              {hintsEnabled ? (
-                <Lightbulb aria-hidden className="size-4" />
-              ) : (
-                <LightbulbOff aria-hidden className="size-4" />
-              )}
-              {hintsEnabled ? "Dicas ligadas" : "Dicas desligadas"}
-            </Toggle>
+            <HintsToggle
+              allowed={room.hintsAllowed}
+              enabled={hintsEnabled}
+              onChange={onHintsChange}
+            />
             {hints && hints.plays.length > 0 && (
               <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm">
                 {hints.plays.map((play) => (

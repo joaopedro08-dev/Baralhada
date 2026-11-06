@@ -208,6 +208,19 @@ describe("sessão do jogo", () => {
     expect(session.getState().room?.version).toBe(5)
   })
 
+  it("não redesenha a mesa quando chega a mesma versão de novo", () => {
+    const { session, server } = setup()
+    session.start()
+    server().onRoomState(buildRoom({ version: 5 }))
+    const shown = session.getState().room
+    let renders = 0
+    session.subscribe(() => renders++)
+    server().onRoomState(buildRoom({ version: 5, canStart: true }))
+
+    expect(session.getState().room).toBe(shown)
+    expect(renders).toBe(0)
+  })
+
   it("aceita estado de versão menor quando a sala é outra", () => {
     const { session, server } = setup()
     session.start()
@@ -262,9 +275,25 @@ describe("sessão do jogo", () => {
   it("guarda o apelido junto do lugar concedido", async () => {
     const { session, send, seats, address } = setup()
     send.mockResolvedValue({ ok: true, data: grantedSeat })
-    expect(await session.createRoom("Ana")).toBeNull()
+    expect(await session.createRoom("Ana", "rouba-monte")).toBeNull()
 
     expect(seats.save).toHaveBeenCalledWith(SEAT)
     expect(address.showRoom).toHaveBeenCalledWith(SEAT.code)
+  })
+
+  it("envia a escolha do jogo e a formação dos times ao servidor", async () => {
+    const { session, send } = setup()
+    send.mockResolvedValue({ ok: true, data: null })
+    expect(await session.chooseGame("truco-paulista")).toBeNull()
+    expect(await session.moveToTeam("beto", 1)).toBeNull()
+    expect(await session.drawTeams()).toBeNull()
+    expect(await session.playAction({ type: "raise" })).toBeNull()
+
+    expect(send.mock.calls).toEqual([
+      ["room:game", { gameId: "truco-paulista" }],
+      ["room:team", { playerId: "beto", team: 1 }],
+      ["room:teams-draw"],
+      ["game:action", { type: "raise" }],
+    ])
   })
 })

@@ -10,6 +10,7 @@ import {
 import type { Hints, TurnAction } from "@/lib/game/domain/types"
 
 const hintsWith = (action: TurnAction): Hints => ({
+  kind: "rouba-monte",
   plays: [
     { action, sentence: "melhor" },
     { action: { type: "discard", card: "KC" }, sentence: "pior" },
