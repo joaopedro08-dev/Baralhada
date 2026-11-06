@@ -6,16 +6,13 @@ import type { IdentityGenerator } from "../ports.js"
 import type { RoomSession } from "../room-session.js"
 import type { SeatGrant } from "./create-room.js"
 
-export class JoinRoom<State, Action, GameCode extends string> {
+export class JoinRoom {
   constructor(
     private readonly identities: IdentityGenerator,
-    private readonly session: RoomSession<State, Action, GameCode>
+    private readonly session: RoomSession
   ) {}
 
-  execute(input: {
-    code: string
-    nickname: string
-  }): Result<SeatGrant<State>, ApplicationErrorCode> {
+  execute(input: { code: string; nickname: string }): Result<SeatGrant, ApplicationErrorCode> {
     const room = this.session.load(input.code)
     if (!room.ok) return room
 
@@ -30,7 +27,7 @@ export class JoinRoom<State, Action, GameCode extends string> {
         connected: true,
         disconnectedAt: null,
       },
-      this.session.rules
+      this.session.rulesOf(room.value)
     )
     if (!joined.ok) return joined
 

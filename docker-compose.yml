@@ -3,7 +3,7 @@ services:
     build:
       context: .
       target: runtime
-    image: rouba-monte:local
+    image: baralhada:local
     init: true
     restart: unless-stopped
     ports:
@@ -61,7 +61,7 @@ services:
     build:
       context: .
       target: perf
-    image: rouba-monte-perf:local
+    image: baralhada-perf:local
     profiles: [perf]
     cpus: ${LOAD_CPUS:-1.5}
     environment:

@@ -5,8 +5,10 @@ import type {
   GrantedSeat,
   SeatStore,
 } from "@/lib/game/application/ports"
-import { withLocalDeadline } from "@/lib/game/domain/turn-clock"
+import { keepLocalClock, withLocalDeadline } from "@/lib/game/domain/turn-clock"
+import type { TrucoAction, TrucoHints } from "@/lib/game/domain/truco/types"
 import type {
+  GameId,
   Hints,
   PlayerId,
   RoomState,
@@ -25,6 +27,7 @@ export type ConnectionStatus = "connecting" | "online" | "offline" | "replaced"
 export type Refusal = string | null
 
 export interface GameSessionState {
+  readonly started: boolean
   readonly connection: ConnectionStatus
   readonly room: RoomState | null
   readonly seat: Seat | null
@@ -34,6 +37,7 @@ export interface GameSessionState {
 }
 
 export const initialGameSessionState: GameSessionState = {
+  started: false,
   connection: "connecting",
   room: null,
   seat: null,
@@ -112,10 +116,19 @@ export const createGameSession = ({
     }, RESTORE_RETRY_MS)
   }
 
+  let serverClock: RoomState | null = null
+
   const applyRoomState = (next: RoomState): void => {
     const current = state.room
-    if (current?.code === next.code && next.version < current.version) return
-    update({ room: withLocalDeadline(next, now()) })
+    const sameRoom = current?.code === next.code
+    if (sameRoom && next.version <= current.version) return
+    const local = withLocalDeadline(next, now())
+    const room =
+      sameRoom && serverClock
+        ? keepLocalClock(serverClock, current, next, local)
+        : local
+    serverClock = next
+    update({ room })
   }
 
   const enterRoom = async (
@@ -143,7 +156,7 @@ export const createGameSession = ({
       const seat =
         stored && (!inviteCode || stored.code === inviteCode) ? stored : null
       if (stored && !seat) seats.forget()
-      update({ seat, inviteCode, restoring: seat !== null })
+      update({ started: true, seat, inviteCode, restoring: seat !== null })
       gateway.connect({
         onConnected() {
           update({ connection: "online" })
@@ -179,8 +192,10 @@ export const createGameSession = ({
       if (state.notice) update({ notice: null })
     },
 
-    createRoom: (nickname: string): Promise<Refusal> =>
-      enterRoom(nickname, () => gateway.send("room:create", { nickname })),
+    createRoom: (nickname: string, gameId: GameId): Promise<Refusal> =>
+      enterRoom(nickname, () =>
+        gateway.send("room:create", { nickname, gameId })
+      ),
 
     joinRoom: (code: string, nickname: string): Promise<Refusal> =>
       enterRoom(nickname, () => gateway.send("room:join", { code, nickname })),
@@ -197,10 +212,22 @@ export const createGameSession = ({
     kickPlayer: async (playerId: PlayerId): Promise<Refusal> =>
       refusalOf(await gateway.send("room:kick", { playerId })),
 
-    playAction: async (action: TurnAction): Promise<Refusal> =>
+    chooseGame: async (gameId: GameId): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:game", { gameId })),
+
+    moveToTeam: async (playerId: PlayerId, team: number): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:team", { playerId, team })),
+
+    drawTeams: async (): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:teams-draw")),
+
+    allowHints: async (allowed: boolean): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:hints", { allowed })),
+
+    playAction: async (action: TurnAction | TrucoAction): Promise<Refusal> =>
       refusalOf(await gateway.send("game:action", action)),
 
-    async fetchHints(): Promise<Hints | null> {
+    async fetchHints(): Promise<Hints | TrucoHints | null> {
       const result = await gateway.send("game:hints")
       return result.ok ? result.data : null
     },

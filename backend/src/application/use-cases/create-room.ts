@@ -9,22 +9,27 @@ import type { RoomSession } from "../room-session.js"
 
 const MAX_CODE_ATTEMPTS = 8
 
-export interface SeatGrant<State> {
-  readonly room: Room<State>
+export interface SeatGrant {
+  readonly room: Room
   readonly roomCode: string
   readonly playerId: PlayerId
   readonly reconnectToken: string
 }
 
-export class CreateRoom<State, Action, GameCode extends string> {
+export class CreateRoom {
   constructor(
-    private readonly rooms: RoomRepository<State>,
+    private readonly rooms: RoomRepository,
     private readonly identities: IdentityGenerator,
-    private readonly session: RoomSession<State, Action, GameCode>,
+    private readonly session: RoomSession,
     private readonly settings: GameSettings
   ) {}
 
-  execute(input: { nickname: string }): Result<SeatGrant<State>, ApplicationErrorCode> {
+  execute(input: {
+    nickname: string
+    gameId?: string | undefined
+  }): Result<SeatGrant, ApplicationErrorCode> {
+    const gameId = input.gameId ?? this.session.catalog.defaultGameId
+    if (!this.session.catalog.find(gameId)) return err("UNKNOWN_GAME")
     if (this.rooms.count() >= this.settings.maxRooms) return err("SERVER_FULL")
     const code = this.generateFreeCode()
     if (!code) return err("ROOM_CODE_UNAVAILABLE")
@@ -32,7 +37,7 @@ export class CreateRoom<State, Action, GameCode extends string> {
     const playerId = this.identities.playerId()
     const reconnectToken = this.identities.reconnectToken()
     const room = this.session.commit(
-      createRoom<State>(code, {
+      createRoom(code, gameId, {
         id: playerId,
         nickname: input.nickname,
         reconnectToken,

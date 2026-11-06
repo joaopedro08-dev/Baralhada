@@ -8,5 +8,7 @@ export type PlatformErrorCode =
   | "INVALID_RECONNECT"
   | "GAME_NOT_RUNNING"
   | "MATCH_STARTING"
+  | "HINTS_DISABLED"
+  | "TABLE_PAUSED"
 
 export type ApplicationErrorCode<GameCode extends string = never> = PlatformErrorCode | GameCode

@@ -13,6 +13,7 @@ export const buildPlayer = (
 })
 
 export const buildGame = (changes: Partial<GameState> = {}): GameState => ({
+  kind: "rouba-monte",
   hand: [],
   table: [],
   deckSize: 20,
@@ -29,11 +30,17 @@ export const buildGame = (changes: Partial<GameState> = {}): GameState => ({
 export const buildRoom = (changes: Partial<RoomState> = {}): RoomState => ({
   code: "ABC234",
   version: 1,
+  gameId: "rouba-monte",
   status: "lobby",
   hostId: "eu",
   viewerId: "eu",
   canStart: false,
+  startProblem: "NOT_ENOUGH_PLAYERS",
   players: [],
+  teams: null,
+  hintsAllowed: true,
+  pausedUntil: null,
+  turnDurationMs: 60_000,
   turnDeadlineAt: null,
   matchStartsAt: null,
   serverNow: 0,

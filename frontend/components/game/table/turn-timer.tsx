@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
 const URGENT_SECONDS = 10
-const TURN_SECONDS = 60
 const TICK_MS = 250
 
 const subscribeToClock = (listener: () => void): (() => void) => {
@@ -29,9 +28,27 @@ export const useSecondsLeft = (deadlineAt: number | null): number | null => {
   return useSyncExternalStore(subscribeToClock, readSeconds, noSeconds)
 }
 
-export function TurnClock({ deadlineAt }: { deadlineAt: number | null }) {
-  const seconds = useSecondsLeft(deadlineAt)
-  if (seconds === null) return null
+export const useWaiting = (until: number | null): boolean => {
+  const readWaiting = useCallback(
+    () => until !== null && until > Date.now(),
+    [until]
+  )
+  return useSyncExternalStore(subscribeToClock, readWaiting, noWaiting)
+}
+
+const noWaiting = (): boolean => false
+
+export function TurnClock({
+  deadlineAt,
+  durationMs,
+}: {
+  deadlineAt: number | null
+  durationMs?: number
+}) {
+  const left = useSecondsLeft(deadlineAt)
+  if (left === null) return null
+  const seconds =
+    durationMs === undefined ? left : Math.min(left, durationMs / 1000)
   const urgent = seconds <= URGENT_SECONDS
 
   return (
@@ -51,13 +68,19 @@ export function TurnClock({ deadlineAt }: { deadlineAt: number | null }) {
   )
 }
 
-export function TurnProgress({ deadlineAt }: { deadlineAt: number | null }) {
+export function TurnProgress({
+  deadlineAt,
+  durationMs,
+}: {
+  deadlineAt: number | null
+  durationMs: number
+}) {
   const seconds = useSecondsLeft(deadlineAt)
   if (seconds === null) return null
   return (
     <Progress
       aria-hidden
-      value={Math.min(100, (seconds / TURN_SECONDS) * 100)}
+      value={Math.min(100, ((seconds * 1000) / durationMs) * 100)}
       className="h-1 shrink-0 rounded-none bg-felt-deep [&>[data-slot=progress-indicator]]:bg-gold"
     />
   )

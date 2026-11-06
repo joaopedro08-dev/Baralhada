@@ -1,33 +1,36 @@
 import type { z } from "zod"
 import type { Clock, Logger } from "../../application/ports.js"
 import type { Actor } from "../../application/room-session.js"
-import type { SeatGrant } from "../../application/use-cases/create-room.js"
-import type { CreateRoom } from "../../application/use-cases/create-room.js"
+import type { ArrangeTeams } from "../../application/use-cases/arrange-teams.js"
+import type { ChooseGame } from "../../application/use-cases/choose-game.js"
+import type { ChangeHints } from "../../application/use-cases/change-hints.js"
+import type { CreateRoom, SeatGrant } from "../../application/use-cases/create-room.js"
 import type { DisconnectPlayer } from "../../application/use-cases/disconnect-player.js"
 import type { JoinRoom } from "../../application/use-cases/join-room.js"
 import type { KickPlayer } from "../../application/use-cases/kick-player.js"
 import type { LeaveRoom } from "../../application/use-cases/leave-room.js"
 import type { PlayTurn } from "../../application/use-cases/play-turn.js"
+import type { ReadGame } from "../../application/use-cases/read-game.js"
 import type { ReconnectPlayer } from "../../application/use-cases/reconnect-player.js"
-import type { GetHints } from "../../application/use-cases/rouba-monte/get-hints.js"
 import type { StartMatch } from "../../application/use-cases/start-match.js"
 import { err, ok } from "../../domain/shared/result.js"
 import type { Result } from "../../domain/shared/result.js"
 import { AddressRoomQuota } from "./address-room-quota.js"
 import type { ClientConnection, CommandMetrics, RawAck } from "./connection.js"
-import type { Ack, ClientCommand, ClientCommands, SeatDto } from "./contract.js"
-import type { Game, GameErrorCode, TurnAction } from "./game.js"
-import { errorMessage } from "./messages.js"
-import type { ErrorCode } from "./messages.js"
-import { createRoomStatePresenter, presentHints } from "./presenter.js"
+import type { Ack, ClientCommand, ClientCommands, HintsDto, SeatDto } from "./contract.js"
+import type { ErrorCode, ErrorMessages } from "./messages.js"
+import type { RoomPresenter } from "./presenter.js"
 import { AddressRateLimiter, TokenBucket } from "./rate-limiter.js"
 import {
+  anyPayloadSchema,
+  chooseGameSchema,
   createRoomSchema,
   emptySchema,
+  hintsSettingSchema,
   joinRoomSchema,
   kickSchema,
+  moveTeamSchema,
   reconnectSchema,
-  turnActionSchema,
 } from "./schemas.js"
 import type { ClientSession, SessionRegistry } from "./session-registry.js"
 
@@ -35,18 +38,22 @@ const RATE_LIMIT_BURST = 40
 const RATE_LIMIT_PER_SECOND = 20
 
 export interface SocketUseCases {
-  readonly createRoom: CreateRoom<Game, TurnAction, GameErrorCode>
-  readonly joinRoom: JoinRoom<Game, TurnAction, GameErrorCode>
-  readonly reconnectPlayer: ReconnectPlayer<Game, TurnAction, GameErrorCode>
-  readonly leaveRoom: LeaveRoom<Game, TurnAction, GameErrorCode>
-  readonly kickPlayer: KickPlayer<Game, TurnAction, GameErrorCode>
-  readonly disconnectPlayer: DisconnectPlayer<Game, TurnAction, GameErrorCode>
-  readonly startMatch: StartMatch<Game, TurnAction, GameErrorCode>
-  readonly playTurn: PlayTurn<Game, TurnAction, GameErrorCode>
-  readonly getHints: GetHints
+  readonly createRoom: CreateRoom
+  readonly joinRoom: JoinRoom
+  readonly reconnectPlayer: ReconnectPlayer
+  readonly leaveRoom: LeaveRoom
+  readonly kickPlayer: KickPlayer
+  readonly chooseGame: ChooseGame
+  readonly arrangeTeams: ArrangeTeams
+  readonly changeHints: ChangeHints
+  readonly disconnectPlayer: DisconnectPlayer
+  readonly startMatch: StartMatch
+  readonly playTurn: PlayTurn
+  readonly readGame: ReadGame
 }
 
 export interface SocketControllerOptions {
+  readonly presentation: SocketPresentation
   readonly publicUrl: string
   readonly roomCreationsPerMinute: number
   readonly roomJoinsPerMinute: number
@@ -54,7 +61,28 @@ export interface SocketControllerOptions {
   readonly roomExists: (code: string) => boolean
 }
 
-type Outcome<C extends ClientCommand> = Result<ClientCommands[C]["output"], ErrorCode>
+export interface SocketPresentation {
+  readonly presenter: RoomPresenter
+  readonly messages: ErrorMessages
+}
+
+type Outcome = Result<unknown, ErrorCode>
+
+type SeatedRegistrar = (
+  command: ClientCommand,
+  schema: z.ZodType,
+  run: (input: never) => Result<SeatGrant, ErrorCode>
+) => void
+
+type MemberRegistrar = (
+  command: ClientCommand,
+  schema: z.ZodType,
+  run: (actor: Actor, input: never) => Outcome
+) => void
+
+type Dispatched<T> =
+  | Result<T, ErrorCode>
+  | { readonly ok: false; readonly error: "INTERNAL_ERROR"; readonly failure: unknown }
 
 export class SocketController {
   private readonly roomCreations: AddressRateLimiter
@@ -81,30 +109,27 @@ export class SocketController {
     const bucket = new TokenBucket(RATE_LIMIT_BURST, RATE_LIMIT_PER_SECOND, this.clock)
     this.metrics.connectionOpened()
 
-    const { createRoom, joinRoom, reconnectPlayer, leaveRoom, kickPlayer } = this.useCases
-    const { startMatch, playTurn, getHints } = this.useCases
-
-    const seated = <C extends ClientCommand>(
-      command: C,
-      schema: z.ZodType,
-      run: (input: never) => Result<SeatGrant<Game>, ErrorCode>
-    ) =>
+    const seated: SeatedRegistrar = (command, schema, run) =>
       this.register(connection, bucket, command, schema, (input) => {
         if (session.actor) return err("ALREADY_IN_ROOM")
         const grant = run(input as never)
         return grant.ok ? ok(this.grantSeat(session, grant.value)) : grant
       })
 
-    const member = <C extends ClientCommand>(
-      command: C,
-      schema: z.ZodType,
-      run: (actor: Actor, input: never) => Outcome<C>
-    ) =>
+    const member: MemberRegistrar = (command, schema, run) =>
       this.register(connection, bucket, command, schema, (input) =>
         session.actor ? run(session.actor, input as never) : err("NOT_IN_ROOM")
       )
 
-    seated("room:create", createRoomSchema, (input: { nickname: string }) => {
+    this.registerEntry(connection, seated)
+    this.registerRoomCommands(session, member)
+    this.registerGameCommands(member)
+    connection.onDisconnect(() => this.handleDisconnect(session))
+  }
+
+  private registerEntry(connection: ClientConnection, seated: SeatedRegistrar): void {
+    const { createRoom, joinRoom, reconnectPlayer } = this.useCases
+    seated("room:create", createRoomSchema, (input: ClientCommands["room:create"]["input"]) => {
       const address = connection.clientAddress
       if (!this.roomQuota.hasRoomFor(address)) return err("TOO_MANY_ROOMS")
       if (!this.roomCreations.tryConsume(address)) return err("RATE_LIMITED")
@@ -112,35 +137,57 @@ export class SocketController {
       if (created.ok) this.roomQuota.record(address, created.value.roomCode)
       return created
     })
-    seated("room:join", joinRoomSchema, (input: { code: string; nickname: string }) =>
+    seated("room:join", joinRoomSchema, (input: ClientCommands["room:join"]["input"]) =>
       this.roomJoins.tryConsume(connection.clientAddress)
         ? joinRoom.execute(input)
         : err("RATE_LIMITED")
     )
-    seated(
-      "room:reconnect",
-      reconnectSchema,
-      (input: { code: string; nickname: string; reconnectToken: string }) =>
-        reconnectPlayer.execute(input)
+    seated("room:reconnect", reconnectSchema, (input: ClientCommands["room:reconnect"]["input"]) =>
+      reconnectPlayer.execute(input)
     )
+  }
+
+  private registerRoomCommands(session: ClientSession, member: MemberRegistrar): void {
+    const { leaveRoom, kickPlayer, chooseGame, arrangeTeams, changeHints } = this.useCases
     member("room:leave", emptySchema, (actor) => {
       const left = leaveRoom.execute(actor)
       if (left.ok) this.registry.unbind(session)
       return left
     })
-    member("room:kick", kickSchema, (actor, input: { playerId: string }) =>
+    member("room:kick", kickSchema, (actor, input: ClientCommands["room:kick"]["input"]) =>
       kickPlayer.execute(actor, input.playerId)
     )
+    member("room:game", chooseGameSchema, (actor, input: ClientCommands["room:game"]["input"]) =>
+      chooseGame.execute(actor, input.gameId)
+    )
+    member("room:team", moveTeamSchema, (actor, input: ClientCommands["room:team"]["input"]) =>
+      arrangeTeams.move(actor, input.playerId, input.team)
+    )
+    member("room:teams-draw", emptySchema, (actor) => arrangeTeams.draw(actor))
+    member(
+      "room:hints",
+      hintsSettingSchema,
+      (actor, input: ClientCommands["room:hints"]["input"]) =>
+        changeHints.execute(actor, input.allowed)
+    )
+  }
+
+  private registerGameCommands(member: MemberRegistrar): void {
+    const { startMatch, playTurn, readGame } = this.useCases
+    const { presenter } = this.options.presentation
     member("game:start", emptySchema, (actor) => startMatch.execute(actor))
-    member("game:action", turnActionSchema, (actor, action: TurnAction) =>
-      playTurn.perform(actor, action)
+    member("game:action", anyPayloadSchema, (actor, payload: unknown) =>
+      playTurn.perform(actor, (gameId) => {
+        const parsed = presenter.resolve(gameId).adapter.actionSchema.safeParse(payload)
+        return parsed.success ? ok(parsed.data) : err("INVALID_PAYLOAD")
+      })
     )
     member("game:hints", emptySchema, (actor) => {
-      const hints = getHints.execute(actor)
-      return hints.ok ? ok(presentHints(hints.value)) : hints
+      const snapshot = readGame.forHints(actor)
+      if (!snapshot.ok) return snapshot
+      const { gameId, game, viewerId } = snapshot.value
+      return ok(presenter.resolve(gameId).adapter.hints(game, viewerId) as HintsDto)
     })
-
-    connection.onDisconnect(() => this.handleDisconnect(session))
   }
 
   private handleDisconnect(session: ClientSession): void {
@@ -155,9 +202,9 @@ export class SocketController {
     }
   }
 
-  private grantSeat(session: ClientSession, grant: SeatGrant<Game>): SeatDto {
+  private grantSeat(session: ClientSession, grant: SeatGrant): SeatDto {
     this.registry.bind(session, { roomCode: grant.roomCode, playerId: grant.playerId })
-    const present = createRoomStatePresenter(grant.room, this.clock.now())
+    const present = this.options.presentation.presenter.present(grant.room, this.clock.now())
     session.connection.emit("room:state", present(grant.playerId))
     return {
       code: grant.roomCode,
@@ -167,12 +214,12 @@ export class SocketController {
     }
   }
 
-  private register<C extends ClientCommand>(
+  private register(
     connection: ClientConnection,
     bucket: TokenBucket,
-    command: C,
+    command: ClientCommand,
     schema: z.ZodType,
-    run: (input: unknown) => Outcome<C>
+    run: (input: unknown) => Outcome
   ): void {
     connection.on(command, (payload, ack) => {
       const startedAt = performance.now()
@@ -187,9 +234,7 @@ export class SocketController {
     schema: z.ZodType,
     payload: unknown,
     run: (input: unknown) => Result<T, ErrorCode>
-  ):
-    | Result<T, ErrorCode>
-    | { readonly ok: false; readonly error: "INTERNAL_ERROR"; readonly failure: unknown } {
+  ): Dispatched<T> {
     if (!bucket.tryConsume()) return err("RATE_LIMITED")
     const parsed = schema.safeParse(payload)
     if (!parsed.success) return err("INVALID_PAYLOAD")
@@ -202,12 +247,15 @@ export class SocketController {
 
   private respond<T>(
     command: string,
-    result: Result<T, ErrorCode> | { ok: false; error: "INTERNAL_ERROR"; failure: unknown },
+    result: Dispatched<T>,
     ack: RawAck
   ): "ok" | "rejected" | "failed" {
     const response: Ack<T> = result.ok
       ? { ok: true, data: result.value }
-      : { ok: false, error: { code: result.error, message: errorMessage(result.error) } }
+      : {
+          ok: false,
+          error: { code: result.error, message: this.options.presentation.messages(result.error) },
+        }
     ack(response)
     if (result.ok) return "ok"
     if (!("failure" in result)) return "rejected"

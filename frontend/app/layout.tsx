@@ -3,6 +3,7 @@ import { Geist_Mono, Public_Sans, Space_Grotesk } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SEAT_BOOT_SCRIPT } from "@/lib/game/infrastructure/local-seat-store"
 import { cn } from "@/lib/utils"
 
 const spaceGroteskHeading = Space_Grotesk({
@@ -23,13 +24,13 @@ export const metadata: Metadata = {
   metadataBase: productionHost
     ? new URL(`https://${productionHost}`)
     : undefined,
-  title: "Rouba Monte",
+  title: "Baralhada",
   description:
-    "Jogue Rouba Monte online com 2 a 6 amigos, no PC ou no celular.",
+    "Jogue Rouba Monte e Truco Paulista online com os amigos, no PC ou no celular.",
   openGraph: {
-    title: "Rouba Monte",
+    title: "Baralhada",
     description:
-      "Capture cartas, roube o monte dos amigos e termine com o maior.",
+      "Salas privadas para jogar baralho com os amigos: Rouba Monte e Truco Paulista.",
     type: "website",
     locale: "pt_BR",
   },
@@ -60,6 +61,9 @@ export default function RootLayout({
         spaceGroteskHeading.variable
       )}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SEAT_BOOT_SCRIPT }} />
+      </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>

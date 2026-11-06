@@ -6,6 +6,7 @@ import { CardFlights } from "@/components/game/table/card-flights"
 import { GameHeader } from "@/components/game/table/game-header"
 import { HandDock } from "@/components/game/table/hand-dock"
 import { HistoryList } from "@/components/game/table/history-list"
+import { LiveScore, useScoreNotice } from "@/components/game/table/live-score"
 import { MatchCountdown } from "@/components/game/table/match-countdown"
 import { OpponentPanels } from "@/components/game/table/opponent-panels"
 import { OwnArea } from "@/components/game/table/own-area"
@@ -37,7 +38,8 @@ export function GameScreen({
     room.viewerId,
     hints?.plays[0]?.action.type ?? null
   )
-  useTableEffects(game, room.viewerId, room.matchStartsAt)
+  const scoreNotice = useScoreNotice()
+  useTableEffects(game, room.viewerId, room.matchStartsAt, scoreNotice.show)
   const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
 
   const { selection } = controls
@@ -123,6 +125,7 @@ export function GameScreen({
         <TurnBanner turnNumber={game.turnNumber} />
       )}
       <CardFlights />
+      <LiveScore notice={scoreNotice.notice} onDismiss={scoreNotice.dismiss} />
       {secondsToStart > 0 && <MatchCountdown seconds={secondsToStart} />}
     </div>
   )

@@ -1,35 +1,46 @@
-import { isHost } from "../../domain/room/room.js"
+import { lockTeams, teamOf } from "../../domain/room/teams.js"
 import { chooseStartingPlayer } from "../../domain/room/turn-order.js"
+import type { Room } from "../../domain/room/room.js"
 import type { RandomSource } from "../../domain/shared/random.js"
 import { err, ok } from "../../domain/shared/result.js"
 import type { Result } from "../../domain/shared/result.js"
+import type { Seat } from "../../domain/shared/seat.js"
 import type { ApplicationErrorCode } from "../errors.js"
 import type { Actor, RoomSession } from "../room-session.js"
 
-export class StartMatch<State, Action, GameCode extends string> {
+const seatsOf = (room: Room, teamCount: number | null): readonly Seat[] =>
+  room.players.map(({ id, nickname }) => ({
+    id,
+    nickname,
+    team: teamCount === null ? null : teamOf(room, id, teamCount),
+  }))
+
+export class StartMatch {
   constructor(
-    private readonly session: RoomSession<State, Action, GameCode>,
+    private readonly session: RoomSession,
     private readonly random: RandomSource
   ) {}
 
-  execute(actor: Actor): Result<null, ApplicationErrorCode<GameCode>> {
-    const loaded = this.session.loadAsMember(actor)
+  execute(actor: Actor): Result<null, ApplicationErrorCode<string>> {
+    const loaded = this.session.loadAsIdleHost(actor)
     if (!loaded.ok) return loaded
     const room = loaded.value
 
-    if (!isHost(room, actor.playerId)) return err("NOT_HOST")
-    if (this.session.statusOf(room) === "playing") return err("GAME_ALREADY_STARTED")
-    if (!this.session.canStart(room)) return err("NOT_ENOUGH_PLAYERS")
+    const problem = this.session.startProblemOf(room)
+    if (problem) return err(problem)
 
-    const starterId = chooseStartingPlayer(room.players, room.lastStarterId, this.random)
-    const game = this.session.rules.start(room.players, starterId, this.random)
+    const rules = this.session.rulesOf(room)
+    const seated = rules.teamCount === null ? room : lockTeams(room, rules.teamCount)
+    const starterId = chooseStartingPlayer(seated.players, seated.lastStarterId, this.random)
+    const game = rules.start(seatsOf(seated, rules.teamCount), starterId, this.random)
     if (!game.ok) return game
 
     this.session.commit({
-      ...room,
+      ...seated,
       game: game.value,
       lastStarterId: starterId,
       matchStartsAt: this.session.countdownEnd(),
+      pausedUntil: null,
       timedTurnNumber: null,
     })
     return ok(null)

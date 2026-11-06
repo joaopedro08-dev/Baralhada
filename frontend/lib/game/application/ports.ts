@@ -1,4 +1,6 @@
+import type { TrucoAction, TrucoHints } from "@/lib/game/domain/truco/types"
 import type {
+  GameId,
   Hints,
   PlayerId,
   RoomState,
@@ -16,7 +18,10 @@ export type Ack<T> =
 export type GrantedSeat = Omit<Seat, "nickname" | "inviteUrl">
 
 export interface ClientCommands {
-  "room:create": { input: { nickname: string }; output: GrantedSeat }
+  "room:create": {
+    input: { nickname: string; gameId: GameId }
+    output: GrantedSeat
+  }
   "room:join": {
     input: { code: string; nickname: string }
     output: GrantedSeat
@@ -27,9 +32,13 @@ export interface ClientCommands {
   }
   "room:leave": { input: undefined; output: null }
   "room:kick": { input: { playerId: PlayerId }; output: null }
+  "room:game": { input: { gameId: GameId }; output: null }
+  "room:team": { input: { playerId: PlayerId; team: number }; output: null }
+  "room:teams-draw": { input: undefined; output: null }
+  "room:hints": { input: { allowed: boolean }; output: null }
   "game:start": { input: undefined; output: null }
-  "game:action": { input: TurnAction; output: null }
-  "game:hints": { input: undefined; output: Hints }
+  "game:action": { input: TurnAction | TrucoAction; output: null }
+  "game:hints": { input: undefined; output: Hints | TrucoHints }
 }
 
 export type ClientCommand = keyof ClientCommands

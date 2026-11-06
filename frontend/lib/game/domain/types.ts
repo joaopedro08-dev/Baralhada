@@ -1,3 +1,5 @@
+import type { TrucoState } from "@/lib/game/domain/truco/types"
+
 export const RANKS = [
   "A",
   "2",
@@ -19,6 +21,7 @@ export type Rank = (typeof RANKS)[number]
 export type Suit = (typeof SUITS)[number]
 export type Card = `${Rank}${Suit}`
 export type PlayerId = string
+export type GameId = "rouba-monte" | "truco-paulista"
 
 export type TurnAction =
   | {
@@ -55,6 +58,7 @@ export interface GamePlayer {
 }
 
 export interface GameState {
+  readonly kind: "rouba-monte"
   readonly hand: readonly Card[]
   readonly table: readonly Card[]
   readonly deckSize: number
@@ -67,18 +71,27 @@ export interface GameState {
   readonly history: readonly string[]
 }
 
+export type StartProblem =
+  "GAME_ALREADY_STARTED" | "NOT_ENOUGH_PLAYERS" | "TEAMS_UNBALANCED"
+
 export interface RoomState {
   readonly code: string
   readonly version: number
+  readonly gameId: GameId
   readonly status: RoomStatus
   readonly hostId: PlayerId | null
   readonly viewerId: PlayerId
   readonly canStart: boolean
+  readonly startProblem: StartProblem | null
   readonly players: readonly RoomPlayer[]
+  readonly teams: readonly (readonly PlayerId[])[] | null
+  readonly hintsAllowed: boolean
+  readonly turnDurationMs: number
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
+  readonly pausedUntil: number | null
   readonly serverNow: number
-  readonly game: GameState | null
+  readonly game: GameState | TrucoState | null
 }
 
 export interface SuggestedPlay {
@@ -87,6 +100,7 @@ export interface SuggestedPlay {
 }
 
 export interface Hints {
+  readonly kind: "rouba-monte"
   readonly plays: readonly SuggestedPlay[]
   readonly highlights: {
     readonly handCards: readonly Card[]

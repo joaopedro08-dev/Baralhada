@@ -227,9 +227,45 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .float-card {
+    animation: float-card 5s ease-in-out infinite;
+    animation-delay: var(--float-delay, 0s);
+  }
+
+  .sheen {
+    background-size: 220% 100%;
+    animation: sheen 6s linear infinite;
+  }
+
   .suggest-pulse {
     animation: suggest-pulse 1.8s ease-in-out infinite;
   }
+}
+
+.hero-glow {
+  background:
+    radial-gradient(
+      60rem 28rem at 15% -10%,
+      color-mix(in oklch, var(--gold) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(50rem 30rem at 95% 10%, var(--felt-glow), transparent 65%);
+}
+
+.float-card {
+  transform: translateY(0) rotate(var(--tilt, 0deg));
+}
+
+.sheen {
+  background-image: linear-gradient(
+    100deg,
+    var(--gold) 0%,
+    oklch(0.96 0.08 95) 35%,
+    var(--gold) 70%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -258,4 +294,35 @@
   50% {
     box-shadow: 0 0 0 4px color-mix(in oklch, var(--gold) 35%, transparent);
   }
+}
+
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-0.6rem) rotate(calc(var(--tilt, 0deg) + 1.5deg));
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
+[data-seat-boot] {
+  display: none;
+}
+
+html[data-seat] [data-seat-boot] {
+  display: block;
+}
+
+html[data-seat] [data-home] {
+  display: none;
 }

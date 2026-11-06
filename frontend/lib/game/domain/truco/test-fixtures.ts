@@ -1,0 +1,46 @@
+import type { TrucoState } from "@/lib/game/domain/truco/types"
+
+export const NO_MOVES = {
+  play: false,
+  raiseTo: null,
+  answer: false,
+  decideEleven: false,
+  cover: false,
+  fold: false,
+}
+
+export const buildTruco = (changes: Partial<TrucoState> = {}): TrucoState => ({
+  kind: "truco-paulista",
+  viewerTeam: 0,
+  hand: ["3H", "5C", "4D"],
+  handSize: 3,
+  blind: false,
+  partnerHands: [],
+  players: [
+    { id: "eu", nickname: "Ana", team: 0, handSize: 3 },
+    { id: "beto", nickname: "Beto", team: 1, handSize: 3 },
+    { id: "caio", nickname: "Caio", team: 0, handSize: 3 },
+    { id: "duda", nickname: "Duda", team: 1, handSize: 3 },
+  ],
+  scores: [0, 0],
+  handNumber: 1,
+  mode: "normal",
+  vira: "4C",
+  manilha: "5",
+  stake: 1,
+  table: [],
+  rounds: [],
+  currentPlayerId: "eu",
+  actorId: "eu",
+  request: null,
+  elevenDeciderId: null,
+  moves: { ...NO_MOVES, play: true, raiseTo: 3 },
+  lastHand: null,
+  lastRound: null,
+  canShowHand: false,
+  winnerTeam: null,
+  endReason: null,
+  turnNumber: 1,
+  history: [],
+  ...changes,
+})

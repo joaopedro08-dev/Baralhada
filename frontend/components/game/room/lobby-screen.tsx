@@ -4,13 +4,16 @@ import { m } from "framer-motion"
 import { Play } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
+import { GamePicker } from "@/components/game/game-picker"
 import { RefusalMessage } from "@/components/game/refusal-message"
+import { HintsSetting } from "@/components/game/room/hints-setting"
 import { InviteLink } from "@/components/game/room/invite-link"
 import { LeaveRoomButton } from "@/components/game/room/leave-button"
 import { SeatList } from "@/components/game/room/seat-list"
+import { TeamBoard } from "@/components/game/room/team-board"
 import { useRoomCommands } from "@/components/game/room/use-room-commands"
 import { Card, CardContent } from "@/components/ui/card"
-import { MAX_PLAYERS, MIN_PLAYERS } from "@/lib/game/domain/room-entry"
+import { describeStartProblem, gameInfo } from "@/lib/game/domain/catalog"
 import type { RoomState } from "@/lib/game/domain/types"
 
 function RoomCodeTiles({ code }: { code: string }) {
@@ -43,10 +46,12 @@ export function LobbyScreen({
   room: RoomState
   inviteUrl: string | null
 }) {
-  const { refusal, busy, startMatch, kickPlayer } = useRoomCommands()
+  const commands = useRoomCommands()
+  const { refusal, busy, startMatch, kickPlayer } = commands
   const viewerIsHost = room.hostId === room.viewerId
   const host = room.players.find((player) => player.id === room.hostId)
-  const missing = MIN_PLAYERS - room.players.length
+  const game = gameInfo(room.gameId)
+  const problem = describeStartProblem(room)
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-md flex-col justify-center gap-5 px-4 py-6">
@@ -66,7 +71,47 @@ export function LobbyScreen({
             </div>
           )}
 
+          <section
+            aria-labelledby="titulo-jogo"
+            className="flex flex-col gap-2"
+          >
+            <h2 id="titulo-jogo" className="font-heading text-lg font-semibold">
+              Jogo
+            </h2>
+            {viewerIsHost ? (
+              <GamePicker
+                value={room.gameId}
+                onChange={commands.chooseGame}
+                disabled={busy}
+                label="Jogo da sala"
+              />
+            ) : (
+              <p className="text-base">
+                <strong>{game.name}</strong>
+                <span className="block text-sm text-muted-foreground">
+                  {game.tagline}
+                </span>
+              </p>
+            )}
+          </section>
+
+          <HintsSetting
+            allowed={room.hintsAllowed}
+            editable={viewerIsHost}
+            busy={busy}
+            onChange={commands.allowHints}
+          />
+
           <SeatList room={room} onKick={kickPlayer} />
+
+          {room.teams && (
+            <TeamBoard
+              room={room}
+              busy={busy}
+              onMove={commands.moveToTeam}
+              onDraw={commands.drawTeams}
+            />
+          )}
 
           {refusal && <RefusalMessage>{refusal}</RefusalMessage>}
 
@@ -81,11 +126,9 @@ export function LobbyScreen({
                 <Play aria-hidden />
                 Iniciar partida
               </GameButton>
-              {!room.canStart && (
+              {problem && (
                 <p className="text-center text-sm text-muted-foreground">
-                  {missing > 0
-                    ? `Falta ${missing} jogador para começar.`
-                    : `A partida precisa de ${MIN_PLAYERS} a ${MAX_PLAYERS} jogadores.`}
+                  {problem}
                 </p>
               )}
             </div>
@@ -94,7 +137,8 @@ export function LobbyScreen({
               role="status"
               className="text-center text-sm text-muted-foreground"
             >
-              Aguardando {host?.nickname ?? "o anfitrião"} iniciar a partida.
+              Aguardando {host?.nickname ?? "o anfitrião"} iniciar a partida de{" "}
+              {game.name}.
             </p>
           )}
 

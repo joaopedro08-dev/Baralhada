@@ -1,7 +1,7 @@
 import type { Room } from "../domain/room/room.js"
 import type { PlayerId } from "../domain/shared/seat.js"
 
-export interface RoomRepository<State> {
+export interface RoomRepository<State = unknown> {
   find(code: string): Room<State> | undefined
   save(room: Room<State>): void
   remove(code: string): void
@@ -11,8 +11,8 @@ export interface RoomRepository<State> {
 
 export type RemovalReason = "kicked"
 
-export interface RoomNotifier<State> {
-  publish(room: Room<State>): void
+export interface RoomNotifier {
+  publish(room: Room): void
   notifyRemoved(playerId: PlayerId, reason: RemovalReason): void
 }
 
@@ -37,7 +37,8 @@ export interface Logger {
 }
 
 export interface GameSettings {
-  readonly turnDurationMs: number
+  readonly turnDurationOverrideMs: number | null
+  readonly pauseOverrideMs: number | null
   readonly matchCountdownMs: number
   readonly reconnectGraceMs: number
   readonly emptyRoomTtlMs: number
