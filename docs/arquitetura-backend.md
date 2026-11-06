@@ -2,7 +2,7 @@
 
 O backend é um único processo Node.js 24 que mantém todo o estado em memória e fala com o navegador por Socket.io. Ele segue a Arquitetura Limpa: as regras do jogo não conhecem rede, tela, relógio nem aleatoriedade.
 
-O código é dividido em plataforma e jogos. A plataforma cuida de sala, convite, entrada, saída, reconexão, times, prazo do turno e contagem regressiva, e não sabe qual jogo está rodando. Cada jogo entra por uma interface comum, a `GameRules`, registrada num catálogo (`GameCatalog`). Cada sala guarda o `gameId` escolhido pelo anfitrião (RF-25), e o mesmo servidor roda salas de jogos diferentes ao mesmo tempo. Hoje há dois jogos: Rouba Monte e Truco Paulista.
+O código é dividido em plataforma e jogos. A plataforma cuida de sala, convite, entrada, saída, reconexão, times, prazo do turno e contagem regressiva, e não sabe qual jogo está rodando. Cada jogo entra por uma interface comum, a `GameRules`, registrada num catálogo (`GameCatalog`). Cada sala guarda o `gameId` escolhido pelo anfitrião (RF-25), e o mesmo servidor roda salas de jogos diferentes ao mesmo tempo. Hoje há quatro jogos: Rouba Monte, Truco Paulista, Três Trincas e Poker Texas Hold'em.
 
 Em produção, a tela fica na Vercel e o servidor no Render, como serviços separados. Localmente, o `docker compose` sobe os dois num processo só.
 
@@ -61,6 +61,7 @@ A regra de dependência é verificada em `test/architecture.test.ts`. O mesmo te
 | Sessão e casos de uso comuns | `src/application/room-session.ts`, `src/application/use-cases` | Não. Resolve as regras pelo `gameId` da sala |
 | Regras do Rouba Monte | `src/domain/games/rouba-monte` | Sim |
 | Regras do Truco Paulista | `src/domain/games/truco` | Sim |
+| Regras do Poker Texas Hold'em | `src/domain/games/poker` | Sim |
 | Contrato comum do Socket.io | `src/adapters/socket` | Não. Despacha para o adaptador do jogo da sala |
 | Adaptador de cada jogo | `src/adapters/socket/games/<jogo>` | Sim: esquema Zod das ações, visão, dicas e frases em pt-BR |
 | Catálogo de jogos | `src/main/container.ts` | Sim, é onde regras e adaptadores são registrados |
@@ -112,8 +113,8 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 | `room:team` | `{ playerId, team }` | `null` | TR-RF-09 |
 | `room:teams-draw` | nenhuma | `null` | TR-RF-09 |
 | `game:start` | nenhuma | `null` | RF-04, RF-15 |
-| `game:action` | Rouba Monte: `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }` ou `draw`. Truco: `play { card }`, `playBlind { slot }`, `raise`, `accept` ou `run` | `null` | RF-09, RF-10, TR-RF-02 a TR-RF-08 |
-| `game:hints` | nenhuma | Rouba Monte: jogadas, destaques, risco e contador. Truco: régua de força e sugestões | RF-16 a RF-19, TR-RF-13, TR-RF-14 |
+| `game:action` | Rouba Monte: `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }` ou `draw`. Truco: `play { card }`, `playBlind { slot }`, `raise`, `accept` ou `run`. Poker: `fold`, `check`, `call`, `bet { amount }` ou `raise { amount }`, com o valor total da aposta na rodada | `null` | RF-09, RF-10, TR-RF-02 a TR-RF-08, PK-RF-03, PK-RF-04 |
+| `game:hints` | nenhuma | Rouba Monte: jogadas, destaques, risco e contador. Truco: régua de força e sugestões. Poker: jogo atual e cartas que melhoram | RF-16 a RF-19, TR-RF-13, TR-RF-14, PK-RF-12, PK-RF-13 |
 
 | Evento do servidor | Conteúdo |
 | --- | --- |
@@ -204,3 +205,40 @@ Seguem a seção 3 do documento de requisitos (TR-RN-01 a TR-RN-16), com as ques
 | Quem abre ao jogar de novo | Não há regra | O jogador seguinte a quem abriu a partida anterior, como no Rouba Monte |
 | Times depois de uma saída | "Ao jogar de novo, os times se mantêm" | Os times ficam fixos no início da partida; quem sai deixa o time, e quem entra vai para o time menor |
 | Fim da mão | Não há pausa definida | A mão seguinte é distribuída na hora, e a visão traz o resumo da anterior (`lastHand`) para a tela anunciar o resultado |
+
+## Regras do Poker Texas Hold'em
+
+Seguem o documento de requisitos do Poker (PK-RN-01 a PK-RN-19). O módulo fica em `src/domain/games/poker`, dividido por responsabilidade:
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `hand-ranking.ts` | Avaliador de mãos: melhor jogo de 5 entre até 7 cartas, as 10 categorias, A alto e baixo, kicker |
+| `pots.ts` | Potes paralelos por camadas de contribuição e divisão com a ficha ímpar |
+| `betting.ts` | Ações válidas na vez (`movesOf`), aposta mínima, aumento mínimo e quem ainda precisa falar |
+| `hand-flow.ts` | Distribuir, cobrar blinds, abrir a mesa, showdown, pagar os potes, eliminar e passar o botão |
+| `actions.ts` | Entradas da `GameRules`: jogar, estourar o tempo e sair |
+| `player-view.ts` · `hints.ts` | O que cada jogador vê e as dicas, que só recebem a visão dele |
+
+| Regra | Como funciona |
+| --- | --- |
+| Preparação (PK-RN-01 a PK-RN-04) | 2 a 6 jogadores, 1000 fichas cada, baralho de 52 embaralhado a cada mão. O botão da primeira mão é o jogador que a plataforma sorteia e passa ao próximo com fichas a cada mão |
+| Blinds (PK-RN-05 a PK-RN-07) | 10 e 20, dobrando a cada 5 mãos. Com 2 jogadores o botão paga a small e fala primeiro antes do flop. Quem não cobre a blind fica all-in com o que tem |
+| Apostas (PK-RN-09 a PK-RN-11) | Sem limite: mínimo da big blind, aumento mínimo do tamanho do último aumento e máximo de todas as fichas. Um all-in menor que um aumento completo não reabre a aposta para quem já falou |
+| Mesa (PK-RF-02) | Flop, turn e river só abrem quando a rodada fecha. Com todos all-in, a mesa abre até o river sem novas apostas |
+| Showdown e potes (PK-RN-12 a PK-RN-15) | Todos desistem menos um: ele leva tudo sem mostrar. No showdown, cada pote é disputado só por quem cobriu aquela camada; o excesso sem adversário volta para quem apostou. Empate divide e a ficha ímpar vai para o primeiro depois do botão |
+| Eliminação (PK-RN-16) | Quem zera é eliminado no fim da mão. Eliminados na mesma mão saem na ordem de quem começou com menos fichas |
+| Tempo (PK-RN-18) | 30 s por decisão. Ao estourar, passa se puder; se houver aposta, desiste. Cada decisão ganha um novo número de turno para o relógio |
+| Saída (PK-RN-19) | Quem sai desiste da mão e é eliminado; as fichas já apostadas ficam no pote. Sobrando 1 jogador, ele vence com o pote |
+| Visibilidade (PK-RN-17) | Cada um recebe só as próprias cartas fechadas. No showdown todos que chegaram mostram as cartas. O baralho nunca sai do servidor |
+| Ritmo da mesa | Pausa de 0,9 s ao abrir cada etapa, 2,6 s ao fim da mão sem showdown e 5,2 s com showdown, mais 1,1 s por etapa aberta de uma vez num all-in |
+
+### Decisões onde os requisitos do Poker eram omissos
+
+| Ponto | Lacuna | O que foi implementado |
+| --- | --- | --- |
+| Blinds a cada 5 ou 10 mãos | A PK-RN-05 e a introdução dizem 5 mãos; a seção 5 ainda diz 10 | 5 mãos, a regra numerada e mais recente. Basta mudar `HANDS_PER_BLIND_LEVEL` se a decisão for outra |
+| Desistir sem aposta | Não há regra | Recusado: sem aposta, passar é de graça. Evita desistências por engano e casa com a PK-RN-18 |
+| Big blind incompleta | Não há regra | Os outros pagam a big blind cheia; o que a blind curta não cobre forma um pote paralelo |
+| Ficha ímpar com 3 ou mais empatados | "A ficha que sobrar vai para o primeiro depois do botão" | Toda a sobra vai para o primeiro vencedor depois do botão |
+| Fichas de quem sai | "Ele desiste da mão atual e é eliminado" | O que já foi apostado fica no pote; o resto sai do jogo |
+| Cartas que melhoram (PK-RF-13) | Não diz o que é "melhorar" | Conta as cartas não vistas que sobem a categoria do seu jogo na próxima carta, no flop e no turn |

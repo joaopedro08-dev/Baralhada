@@ -10,6 +10,8 @@
   --felt-deep: oklch(0.27 0.055 165);
   --felt-glow: oklch(0.42 0.075 165);
   --card-back: oklch(0.42 0.13 27);
+  --poker-rail: oklch(0.36 0.07 50);
+  --poker-rail-edge: oklch(0.24 0.04 50);
   --felt-line: oklch(0.5 0.06 165);
   --felt-foreground: oklch(0.98 0.01 165);
   --felt-muted: oklch(0.87 0.03 165);
@@ -55,6 +57,8 @@
 }
 
 .dark {
+  --poker-rail: oklch(0.3 0.05 50);
+  --poker-rail-edge: oklch(0.18 0.03 50);
   --felt: oklch(0.25 0.04 165);
   --felt-deep: oklch(0.19 0.03 165);
   --felt-glow: oklch(0.32 0.05 165);
@@ -185,6 +189,47 @@
         rgb(255 255 255 / 0.14) 0 3px,
         transparent 3px 8px
       );
+  }
+
+  .poker-felt {
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at 50% 42%,
+      var(--felt-glow),
+      var(--felt) 62%,
+      var(--felt-deep) 100%
+    );
+    box-shadow:
+      0 0 0 0.6rem var(--poker-rail),
+      0 0 0 0.75rem var(--poker-rail-edge),
+      inset 0 0 2.5rem rgb(0 0 0 / 0.45),
+      0 1.5rem 3rem rgb(0 0 0 / 0.45);
+  }
+
+  .poker-felt-line {
+    border-radius: 50%;
+    border: 1px solid color-mix(in oklch, var(--gold) 28%, transparent);
+  }
+
+  .poker-chip {
+    border-radius: 9999px;
+    background:
+      radial-gradient(circle, var(--chip) 0 46%, transparent 47%),
+      repeating-conic-gradient(
+        var(--chip) 0 30deg,
+        oklch(0.97 0 0) 30deg 60deg
+      );
+    box-shadow:
+      inset 0 0 0 1.5px color-mix(in oklch, black 30%, var(--chip)),
+      0 1px 1.5px rgb(0 0 0 / 0.55);
+  }
+
+  .poker-chip::after {
+    content: "";
+    position: absolute;
+    inset: 24%;
+    border-radius: 9999px;
+    border: 1px dashed rgb(255 255 255 / 0.55);
   }
 
   .confetti-piece {

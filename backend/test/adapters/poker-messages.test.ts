@@ -101,14 +101,14 @@ describe("PK-RF-12 e PK-RF-13 frases das dicas", () => {
       })
     ).toEqual([
       "Você tem só carta alta.",
-      "23 de 47 cartas melhoram o seu jogo na próxima abertura (49%): 9 para flush e 14 para par.",
+      "23 de 47 cartas melhoram o seu jogo na próxima carta (49%): 9 para flush e 14 para par.",
     ])
     expect(
       describePokerHints({
         current: { category: "royalFlush", cards: [] },
         outs: { total: 0, unseen: 46, byCategory: [] },
       })
-    ).toEqual(["Você tem um royal flush.", "Nenhuma carta melhora o seu jogo na próxima abertura."])
+    ).toEqual(["Você tem um royal flush.", "Nenhuma carta melhora o seu jogo na próxima carta."])
   })
 })
 
