@@ -1,4 +1,5 @@
 import { createGameAdapters } from "../adapters/socket/game-adapter.js"
+import { pokerAdapter } from "../adapters/socket/games/poker/adapter.js"
 import { roubaMonteAdapter } from "../adapters/socket/games/rouba-monte/adapter.js"
 import { tresTrincasAdapter } from "../adapters/socket/games/tres-trincas/adapter.js"
 import { trucoAdapter } from "../adapters/socket/games/truco/adapter.js"
@@ -23,6 +24,7 @@ import { ReadGame } from "../application/use-cases/read-game.js"
 import { ReconnectPlayer } from "../application/use-cases/reconnect-player.js"
 import { StartMatch } from "../application/use-cases/start-match.js"
 import { SweepRooms } from "../application/use-cases/sweep-rooms.js"
+import { pokerRules } from "../domain/games/poker/rules.js"
 import { roubaMonteRules } from "../domain/games/rouba-monte/rules.js"
 import { tresTrincasRules } from "../domain/games/tres-trincas/rules.js"
 import { trucoRules } from "../domain/games/truco/rules.js"
@@ -36,12 +38,18 @@ import type { AppConfig } from "./config.js"
 
 const systemClock: Clock = { now: () => Date.now() }
 
-export const gameCatalog = createGameCatalog([roubaMonteRules, trucoRules, tresTrincasRules])
+export const gameCatalog = createGameCatalog([
+  roubaMonteRules,
+  trucoRules,
+  tresTrincasRules,
+  pokerRules,
+])
 
 export const gameAdapters = createGameAdapters([
   roubaMonteAdapter,
   trucoAdapter,
   tresTrincasAdapter,
+  pokerAdapter,
 ])
 
 export interface Container {
