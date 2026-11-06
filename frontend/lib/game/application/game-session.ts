@@ -6,14 +6,13 @@ import type {
   SeatStore,
 } from "@/lib/game/application/ports"
 import { keepLocalClock, withLocalDeadline } from "@/lib/game/domain/turn-clock"
-import type { TrucoAction, TrucoHints } from "@/lib/game/domain/truco/types"
 import type {
+  AnyAction,
+  AnyHints,
   GameId,
-  Hints,
   PlayerId,
   RoomState,
   Seat,
-  TurnAction,
 } from "@/lib/game/domain/types"
 
 export const RESTORE_RETRY_MS = 2000
@@ -224,10 +223,10 @@ export const createGameSession = ({
     allowHints: async (allowed: boolean): Promise<Refusal> =>
       refusalOf(await gateway.send("room:hints", { allowed })),
 
-    playAction: async (action: TurnAction | TrucoAction): Promise<Refusal> =>
+    playAction: async (action: AnyAction): Promise<Refusal> =>
       refusalOf(await gateway.send("game:action", action)),
 
-    async fetchHints(): Promise<Hints | TrucoHints | null> {
+    async fetchHints(): Promise<AnyHints | null> {
       const result = await gateway.send("game:hints")
       return result.ok ? result.data : null
     },

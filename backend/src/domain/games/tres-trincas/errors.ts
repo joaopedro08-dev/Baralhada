@@ -1,0 +1,12 @@
+export type TrincaErrorCode =
+  | "INVALID_PLAYER_COUNT"
+  | "GAME_FINISHED"
+  | "NOT_YOUR_TURN"
+  | "CARD_NOT_IN_HAND"
+  | "ALREADY_DREW"
+  | "DRAW_FIRST"
+  | "DRAW_BEFORE_MELD"
+  | "MELD_ONLY_AT_START"
+  | "WRONG_MELD_SIZE"
+  | "DEAD_CARD"
+  | "NOT_A_SET"

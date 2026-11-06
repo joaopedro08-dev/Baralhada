@@ -18,11 +18,15 @@ const players = (count: number): readonly RoomPlayer[] =>
   }))
 
 describe("RF-25 catálogo de jogos", () => {
-  it("lista o Rouba Monte e o Truco com o número de jogadores", () => {
+  it("lista os três jogos com o número de jogadores", () => {
     expect(GAMES.map((game) => game.id)).toEqual([
       "rouba-monte",
       "truco-paulista",
+      "tres-trincas",
     ])
+    expect(describePlayerCounts(gameInfo("tres-trincas"))).toBe(
+      "2 a 4 jogadores"
+    )
     expect(describePlayerCounts(gameInfo("rouba-monte"))).toBe(
       "2 a 6 jogadores"
     )

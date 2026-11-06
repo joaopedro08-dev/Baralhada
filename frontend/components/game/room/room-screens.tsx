@@ -12,7 +12,7 @@ import { useWaiting } from "@/components/game/table/turn-timer"
 import { Spinner } from "@/components/ui/spinner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useGame } from "@/hooks/use-game"
-import type { RoomStatus } from "@/lib/game/domain/types"
+import type { GameId, RoomStatus } from "@/lib/game/domain/types"
 
 function LoadingTable() {
   return (
@@ -37,7 +37,25 @@ const TrucoEndScreen = dynamic(
   { ssr: false, loading: LoadingTable }
 )
 
-const TRUCO_ID = "truco-paulista"
+const loadTrincasScreen = () =>
+  import("@/components/game/tres-trincas/tres-trincas-screen")
+const loadTrincasEndScreen = () =>
+  import("@/components/game/tres-trincas/tres-trincas-end-screen")
+
+const TresTrincasScreen = dynamic(
+  () => loadTrincasScreen().then((mod) => mod.TresTrincasScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const TresTrincasEndScreen = dynamic(
+  () => loadTrincasEndScreen().then((mod) => mod.TresTrincasEndScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const PRELOADS: Partial<Record<GameId, readonly (() => Promise<unknown>)[]>> = {
+  "truco-paulista": [loadTrucoScreen, loadTrucoEndScreen],
+  "tres-trincas": [loadTrincasScreen, loadTrincasEndScreen],
+}
 
 function CurrentScreen({ status }: { status: RoomStatus | null }) {
   const { room, seat } = useGame()
@@ -55,6 +73,13 @@ function CurrentScreen({ status }: { status: RoomStatus | null }) {
       <TrucoEndScreen room={room} game={game} inviteUrl={inviteUrl} />
     )
   }
+  if (game.kind === "tres-trincas") {
+    return playing ? (
+      <TresTrincasScreen room={room} game={game} />
+    ) : (
+      <TresTrincasEndScreen room={room} game={game} inviteUrl={inviteUrl} />
+    )
+  }
   return playing ? (
     <GameScreen room={room} game={game} />
   ) : (
@@ -64,16 +89,15 @@ function CurrentScreen({ status }: { status: RoomStatus | null }) {
 
 export default function RoomScreens() {
   const { room } = useGame()
-  const playsTruco = room?.gameId === TRUCO_ID
+  const gameId = room?.gameId ?? null
   const settling = useWaiting(room?.pausedUntil ?? null)
   const status =
     room?.status === "finished" && settling ? "playing" : (room?.status ?? null)
 
   useEffect(() => {
-    if (!playsTruco) return
-    void loadTrucoScreen()
-    void loadTrucoEndScreen()
-  }, [playsTruco])
+    if (!gameId) return
+    for (const load of PRELOADS[gameId] ?? []) void load()
+  }, [gameId])
 
   return (
     <LazyMotion features={domMax} strict>
