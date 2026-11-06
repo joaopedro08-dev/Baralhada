@@ -1,4 +1,9 @@
 import type {
+  PokerAction,
+  PokerHints,
+  PokerState,
+} from "@/lib/game/domain/poker/types"
+import type {
   TresTrincasHints,
   TresTrincasState,
   TrincaAction,
@@ -30,7 +35,11 @@ export type Rank = (typeof RANKS)[number]
 export type Suit = (typeof SUITS)[number]
 export type Card = `${Rank}${Suit}`
 export type PlayerId = string
-export type GameId = "rouba-monte" | "truco-paulista" | "tres-trincas"
+export type GameId =
+  | "rouba-monte"
+  | "truco-paulista"
+  | "tres-trincas"
+  | "poker-texas-holdem"
 
 export type TurnAction =
   | {
@@ -100,7 +109,12 @@ export interface RoomState {
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
   readonly serverNow: number
-  readonly game: GameState | TrucoState | TresTrincasState | null
+  readonly game:
+    | GameState
+    | TrucoState
+    | TresTrincasState
+    | PokerState
+    | null
 }
 
 export interface SuggestedPlay {
@@ -137,6 +151,6 @@ export interface Seat {
   readonly inviteUrl: string
 }
 
-export type AnyAction = TurnAction | TrucoAction | TrincaAction
+export type AnyAction = TurnAction | TrucoAction | TrincaAction | PokerAction
 
-export type AnyHints = Hints | TrucoHints | TresTrincasHints
+export type AnyHints = Hints | TrucoHints | TresTrincasHints | PokerHints

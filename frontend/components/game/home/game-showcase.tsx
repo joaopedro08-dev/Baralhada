@@ -28,7 +28,7 @@ export function GameShowcase({ onPick }: { onPick: (gameId: GameId) => void }) {
         </p>
       </Reveal>
 
-      <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {GAMES.map((game, index) => (
           <li key={game.id}>
             <Reveal delay={index * 0.1} className="h-full">

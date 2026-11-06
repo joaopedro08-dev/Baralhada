@@ -108,12 +108,12 @@ export const describePokerHints = ({ current, outs }: PokerHints): readonly stri
   if (!current) return []
   const now = `Você tem ${HAND_ARTICLES[current.category]}${HAND_NAMES[current.category]}.`
   if (!outs) return [now]
-  if (outs.total === 0) return [now, "Nenhuma carta melhora o seu jogo na próxima abertura."]
+  if (outs.total === 0) return [now, "Nenhuma carta melhora o seu jogo na próxima carta."]
   const best = outs.byCategory
     .slice(0, 2)
     .map((entry) => `${entry.count} para ${HAND_NAMES[entry.category]}`)
   return [
     now,
-    `${outs.total} de ${outs.unseen} cartas melhoram o seu jogo na próxima abertura (${percentOf(outs.total, outs.unseen)}%): ${listNames(best)}.`,
+    `${outs.total} de ${outs.unseen} cartas melhoram o seu jogo na próxima carta (${percentOf(outs.total, outs.unseen)}%): ${listNames(best)}.`,
   ]
 }
