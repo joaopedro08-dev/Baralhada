@@ -49,6 +49,23 @@ export const GAMES: readonly GameInfo[] = [
     sample: ["4C", "7H", "3D"],
     rulesAnchor: "regras-truco",
   },
+  {
+    id: "tres-trincas",
+    name: "Três Trincas",
+    tagline: "Compre, descarte e baixe 3 trincas antes de todo mundo.",
+    playerCounts: [2, 3, 4],
+    teamCount: null,
+    deck: "52 cartas, 2 como coringa",
+    turnSeconds: 30,
+    mode: "Cada um por si",
+    highlights: [
+      "O 2 é coringa e completa qualquer trinca",
+      "O valor do vira fica morto na partida",
+      "Vence quem baixar 3 trincas primeiro",
+    ],
+    sample: ["9C", "9H", "2D"],
+    rulesAnchor: "regras-tres-trincas",
+  },
 ]
 
 export const DEFAULT_GAME_ID: GameId = "rouba-monte"

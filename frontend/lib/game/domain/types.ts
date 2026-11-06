@@ -1,4 +1,13 @@
-import type { TrucoState } from "@/lib/game/domain/truco/types"
+import type {
+  TresTrincasHints,
+  TresTrincasState,
+  TrincaAction,
+} from "@/lib/game/domain/tres-trincas/types"
+import type {
+  TrucoAction,
+  TrucoHints,
+  TrucoState,
+} from "@/lib/game/domain/truco/types"
 
 export const RANKS = [
   "A",
@@ -21,7 +30,7 @@ export type Rank = (typeof RANKS)[number]
 export type Suit = (typeof SUITS)[number]
 export type Card = `${Rank}${Suit}`
 export type PlayerId = string
-export type GameId = "rouba-monte" | "truco-paulista"
+export type GameId = "rouba-monte" | "truco-paulista" | "tres-trincas"
 
 export type TurnAction =
   | {
@@ -91,7 +100,7 @@ export interface RoomState {
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
   readonly serverNow: number
-  readonly game: GameState | TrucoState | null
+  readonly game: GameState | TrucoState | TresTrincasState | null
 }
 
 export interface SuggestedPlay {
@@ -127,3 +136,7 @@ export interface Seat {
   readonly reconnectToken: string
   readonly inviteUrl: string
 }
+
+export type AnyAction = TurnAction | TrucoAction | TrincaAction
+
+export type AnyHints = Hints | TrucoHints | TresTrincasHints

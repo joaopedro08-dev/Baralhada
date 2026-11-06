@@ -1,5 +1,6 @@
 import { createGameAdapters } from "../adapters/socket/game-adapter.js"
 import { roubaMonteAdapter } from "../adapters/socket/games/rouba-monte/adapter.js"
+import { tresTrincasAdapter } from "../adapters/socket/games/tres-trincas/adapter.js"
 import { trucoAdapter } from "../adapters/socket/games/truco/adapter.js"
 import { createErrorMessages } from "../adapters/socket/messages.js"
 import { RoomPresenter } from "../adapters/socket/presenter.js"
@@ -23,6 +24,7 @@ import { ReconnectPlayer } from "../application/use-cases/reconnect-player.js"
 import { StartMatch } from "../application/use-cases/start-match.js"
 import { SweepRooms } from "../application/use-cases/sweep-rooms.js"
 import { roubaMonteRules } from "../domain/games/rouba-monte/rules.js"
+import { tresTrincasRules } from "../domain/games/tres-trincas/rules.js"
 import { trucoRules } from "../domain/games/truco/rules.js"
 import { createGameCatalog } from "../domain/room/game-catalog.js"
 import type { Room, RoomStatus } from "../domain/room/room.js"
@@ -34,9 +36,13 @@ import type { AppConfig } from "./config.js"
 
 const systemClock: Clock = { now: () => Date.now() }
 
-export const gameCatalog = createGameCatalog([roubaMonteRules, trucoRules])
+export const gameCatalog = createGameCatalog([roubaMonteRules, trucoRules, tresTrincasRules])
 
-export const gameAdapters = createGameAdapters([roubaMonteAdapter, trucoAdapter])
+export const gameAdapters = createGameAdapters([
+  roubaMonteAdapter,
+  trucoAdapter,
+  tresTrincasAdapter,
+])
 
 export interface Container {
   readonly controller: SocketController
