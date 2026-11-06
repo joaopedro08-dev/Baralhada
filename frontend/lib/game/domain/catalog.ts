@@ -66,6 +66,23 @@ export const GAMES: readonly GameInfo[] = [
     sample: ["9C", "9H", "2D"],
     rulesAnchor: "regras-tres-trincas",
   },
+  {
+    id: "poker-texas-holdem",
+    name: "Poker Texas Hold'em",
+    tagline: "Fichas de mentira, blefe de verdade: fique com todas as fichas.",
+    playerCounts: [2, 3, 4, 5, 6],
+    teamCount: null,
+    deck: "52 cartas, 1000 fichas",
+    turnSeconds: 30,
+    mode: "Eliminação",
+    highlights: [
+      "Duas cartas suas e cinco na mesa formam o seu jogo",
+      "Sem limite: aposte, aumente ou vá all-in",
+      "As blinds dobram a cada 5 mãos e vence quem ficar com tudo",
+    ],
+    sample: ["AS", "KS", "QH"],
+    rulesAnchor: "regras-poker",
+  },
 ]
 
 export const DEFAULT_GAME_ID: GameId = "rouba-monte"
