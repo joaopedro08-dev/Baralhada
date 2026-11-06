@@ -52,9 +52,24 @@ const TresTrincasEndScreen = dynamic(
   { ssr: false, loading: LoadingTable }
 )
 
+const loadPokerScreen = () => import("@/components/game/poker/poker-screen")
+const loadPokerEndScreen = () =>
+  import("@/components/game/poker/poker-end-screen")
+
+const PokerScreen = dynamic(
+  () => loadPokerScreen().then((mod) => mod.PokerScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const PokerEndScreen = dynamic(
+  () => loadPokerEndScreen().then((mod) => mod.PokerEndScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
 const PRELOADS: Partial<Record<GameId, readonly (() => Promise<unknown>)[]>> = {
   "truco-paulista": [loadTrucoScreen, loadTrucoEndScreen],
   "tres-trincas": [loadTrincasScreen, loadTrincasEndScreen],
+  "poker-texas-holdem": [loadPokerScreen, loadPokerEndScreen],
 }
 
 function CurrentScreen({ status }: { status: RoomStatus | null }) {
@@ -78,6 +93,13 @@ function CurrentScreen({ status }: { status: RoomStatus | null }) {
       <TresTrincasScreen room={room} game={game} />
     ) : (
       <TresTrincasEndScreen room={room} game={game} inviteUrl={inviteUrl} />
+    )
+  }
+  if (game.kind === "poker-texas-holdem") {
+    return playing ? (
+      <PokerScreen room={room} game={game} />
+    ) : (
+      <PokerEndScreen room={room} game={game} inviteUrl={inviteUrl} />
     )
   }
   return playing ? (
