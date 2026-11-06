@@ -1,9 +1,8 @@
 import { z } from "zod"
-import { COPIES_PER_RANK, createFullDeck } from "../../domain/cards/card.js"
-import type { Card } from "../../domain/cards/card.js"
 
 export const ROOM_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 export const ROOM_CODE_LENGTH = 6
+export const MAX_TEAMS = 8
 
 const nickname = z
   .string()
@@ -21,14 +20,13 @@ const roomCode = z
 
 const playerId = z.string().min(1).max(64)
 
-const card = z.enum(createFullDeck() as readonly [Card, ...Card[]])
-
-const tableCards = z
-  .array(card)
+const gameId = z
+  .string()
   .min(1)
-  .max(COPIES_PER_RANK - 1)
+  .max(32)
+  .regex(/^[a-z0-9-]+$/)
 
-export const createRoomSchema = z.strictObject({ nickname })
+export const createRoomSchema = z.strictObject({ nickname, gameId: gameId.optional() })
 
 export const joinRoomSchema = z.strictObject({ code: roomCode, nickname })
 
@@ -40,12 +38,19 @@ export const reconnectSchema = z.strictObject({
 
 export const kickSchema = z.strictObject({ playerId })
 
+export const chooseGameSchema = z.strictObject({ gameId })
+
+export const moveTeamSchema = z.strictObject({
+  playerId,
+  team: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_TEAMS - 1),
+})
+
+export const hintsSettingSchema = z.strictObject({ allowed: z.boolean() })
+
 export const emptySchema = z.undefined()
 
-export const turnActionSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("capture"), card, tableCards }),
-  z.strictObject({ type: z.literal("stack"), card }),
-  z.strictObject({ type: z.literal("steal"), card, targetId: playerId }),
-  z.strictObject({ type: z.literal("discard"), card }),
-  z.strictObject({ type: z.literal("draw") }),
-])
+export const anyPayloadSchema = z.unknown()

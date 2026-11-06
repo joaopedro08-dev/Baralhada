@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: rouba-monte-backend
+    name: baralhada-backend
     runtime: node
     plan: free
     region: virginia

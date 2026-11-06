@@ -3,8 +3,9 @@ import {
   describeEvent,
   describePlay,
   describeRisk,
-  errorMessage,
-} from "../../src/adapters/socket/messages.js"
+  ROUBA_MONTE_ERRORS,
+} from "../../src/adapters/socket/games/rouba-monte/messages.js"
+import { createErrorMessages } from "../../src/adapters/socket/messages.js"
 import type { GameEvent } from "../../src/domain/games/rouba-monte/model.js"
 import type { Play } from "../../src/domain/games/rouba-monte/hints.js"
 
@@ -67,6 +68,9 @@ describe("RF-17 e RF-18 frases das dicas", () => {
   })
 
   it("explica as recusas em português", () => {
+    const errorMessage = createErrorMessages(ROUBA_MONTE_ERRORS)
     expect(errorMessage("TOP_MISMATCH")).toBe("A carta precisa ter o mesmo valor do topo do monte.")
+    expect(errorMessage("ROOM_FULL")).toBe("A sala está cheia.")
+    expect(errorMessage("CODIGO_QUE_NAO_EXISTE")).toBe("Essa jogada não é permitida agora.")
   })
 })

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react"
 
+import type { TrucoHints } from "@/lib/game/domain/truco/types"
 import type { Hints, RoomState } from "@/lib/game/domain/types"
 import {
   readHintsPreference,
@@ -10,21 +11,29 @@ import {
 } from "@/lib/game/infrastructure/hints-preference"
 import { gameSession } from "@/lib/game/session"
 
+type AnyHints = Hints | TrucoHints
+type HintsKind = AnyHints["kind"]
+
 const defaultPreference = (): boolean => true
 
 interface VersionedHints {
   readonly version: number
-  readonly hints: Hints | null
+  readonly hints: AnyHints | null
 }
 
-export const useHints = (room: RoomState, isMyTurn: boolean) => {
+export const useHints = <Kind extends HintsKind = "rouba-monte">(
+  room: RoomState,
+  isMyTurn: boolean,
+  kind: Kind = "rouba-monte" as Kind
+) => {
   const enabled = useSyncExternalStore(
     subscribeToHintsPreference,
     readHintsPreference,
     defaultPreference
   )
   const [latest, setLatest] = useState<VersionedHints | null>(null)
-  const wanted = enabled && isMyTurn
+  const allowed = room.hintsAllowed
+  const wanted = allowed && enabled && isMyTurn
 
   useEffect(() => {
     if (!wanted) return
@@ -37,9 +46,14 @@ export const useHints = (room: RoomState, isMyTurn: boolean) => {
     }
   }, [wanted, room.version])
 
+  const fresh = wanted && latest?.version === room.version ? latest.hints : null
   return {
+    allowed,
     enabled,
     setEnabled: writeHintsPreference,
-    hints: wanted && latest?.version === room.version ? latest.hints : null,
+    hints:
+      fresh?.kind === kind
+        ? (fresh as Extract<AnyHints, { kind: Kind }>)
+        : null,
   }
 }

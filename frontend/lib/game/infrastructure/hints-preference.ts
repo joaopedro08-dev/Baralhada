@@ -1,4 +1,4 @@
-const STORAGE_KEY = "rouba-monte:dicas"
+const STORAGE_KEY = "baralhada:dicas"
 const DISABLED = "desligadas"
 
 const listeners = new Set<() => void>()

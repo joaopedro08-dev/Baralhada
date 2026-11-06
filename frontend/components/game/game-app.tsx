@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect } from "react"
 import dynamic from "next/dynamic"
 
 import { GameButton } from "@/components/game/game-button"
@@ -52,13 +52,29 @@ function RestoringScreen() {
 }
 
 export function GameApp() {
-  const { room, restoring } = useGame()
+  const { room, restoring, started } = useGame()
 
   useEffect(() => {
     gameSession.start()
     void loadRoomScreens()
   }, [])
 
+  useLayoutEffect(() => {
+    if (started) delete document.documentElement.dataset.seat
+  }, [started])
+
   if (room) return <RoomScreens />
-  return restoring ? <RestoringScreen /> : <HomeScreen />
+  if (restoring) return <RestoringScreen />
+  return (
+    <>
+      {!started && (
+        <div data-seat-boot>
+          <WaitingScreen message="Voltando para a sala..." />
+        </div>
+      )}
+      <div data-home>
+        <HomeScreen />
+      </div>
+    </>
+  )
 }

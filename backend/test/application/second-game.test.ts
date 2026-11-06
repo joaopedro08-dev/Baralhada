@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { RoomNotifier, TurnScheduler } from "../../src/application/ports.js"
+import type { Actor } from "../../src/application/room-session.js"
+import { ChooseGame } from "../../src/application/use-cases/choose-game.js"
 import { RoomSession } from "../../src/application/room-session.js"
 import { CreateRoom } from "../../src/application/use-cases/create-room.js"
 import { ExpireTurn } from "../../src/application/use-cases/expire-turn.js"
@@ -7,6 +9,8 @@ import { JoinRoom } from "../../src/application/use-cases/join-room.js"
 import { LeaveRoom } from "../../src/application/use-cases/leave-room.js"
 import { PlayTurn } from "../../src/application/use-cases/play-turn.js"
 import { StartMatch } from "../../src/application/use-cases/start-match.js"
+import { roubaMonteRules } from "../../src/domain/games/rouba-monte/rules.js"
+import { createGameCatalog } from "../../src/domain/room/game-catalog.js"
 import type { GameRules } from "../../src/domain/room/game-rules.js"
 import { err, ok } from "../../src/domain/shared/result.js"
 import type { Result } from "../../src/domain/shared/result.js"
@@ -42,8 +46,9 @@ const advance = (state: RaceState, total: number): RaceState => ({
 
 const raceRules: GameRules<RaceState, RaceStep, RaceError> = {
   id: "corrida-ate-5",
-  minPlayers: 2,
-  maxPlayers: 3,
+  playerCounts: [2, 3],
+  teamCount: null,
+  turnDurationMs: 30_000,
   start: (seats, starterId) =>
     ok({
       order: seats.map((seat) => seat.id),
@@ -67,17 +72,31 @@ const raceRules: GameRules<RaceState, RaceStep, RaceError> = {
   isFinished: (state) => state.winnerId !== null,
 }
 
+const PAUSE_MS = 1500
+
+const pacedRules: GameRules<RaceState, RaceStep, RaceError> = {
+  ...raceRules,
+  id: "corrida-com-pausa",
+  pauseAfter: (previous, next) => (next.total > previous.total ? PAUSE_MS : 0),
+  playsDuringPause: (step) => step.add === 0,
+}
+
 const setup = () => {
   const rooms = new InMemoryRoomRepository<RaceState>()
-  const notifier: RoomNotifier<RaceState> = {
+  const notifier: RoomNotifier = {
     publish: () => undefined,
     notifyRemoved: () => undefined,
   }
   const timers = new Map<string, number>()
+  const delays = new Map<string, number>()
   const scheduler: TurnScheduler = {
-    schedule: (code, turnNumber) => timers.set(code, turnNumber),
+    schedule: (code, turnNumber, delay) => {
+      timers.set(code, turnNumber)
+      delays.set(code, delay)
+    },
     cancel: (code) => timers.delete(code),
   }
+  let now = 0
   let sequence = 0
   const identities = {
     roomCode: () => `SALA${++sequence}`,
@@ -86,25 +105,34 @@ const setup = () => {
   }
   const random = seededRandom(3)
   const settings = {
-    turnDurationMs: 30_000,
+    turnDurationOverrideMs: null,
+    pauseOverrideMs: null,
     matchCountdownMs: 0,
     reconnectGraceMs: 60_000,
     emptyRoomTtlMs: 60_000,
     maxRooms: 5,
   }
   const session = new RoomSession(
-    raceRules,
-    { rooms, notifier, scheduler, clock: { now: () => 0 }, random },
+    createGameCatalog([raceRules, pacedRules, roubaMonteRules]),
+    { rooms, notifier, scheduler, clock: { now: () => now }, random },
     settings
   )
+  const playTurn = new PlayTurn(session, random)
   return {
     rooms,
     timers,
+    delays,
+    tick: (ms: number) => {
+      now += ms
+    },
     create: new CreateRoom(rooms, identities, session, settings),
     join: new JoinRoom(identities, session),
     leave: new LeaveRoom(session),
     start: new StartMatch(session, random),
-    play: new PlayTurn(session, random),
+    choose: new ChooseGame(session),
+    play: {
+      perform: (actor: Actor, step: RaceStep) => playTurn.perform(actor, () => ok(step)),
+    },
     expire: new ExpireTurn(session, random),
   }
 }
@@ -167,5 +195,81 @@ describe("a plataforma recebe outro jogo sem mudar sala nem casos de uso", () =>
     unwrap(t.start.execute({ roomCode: host.roomCode, playerId: host.playerId }))
     unwrap(t.leave.execute({ roomCode: host.roomCode, playerId: guest.playerId }))
     expect(t.rooms.find(host.roomCode)?.game?.winnerId).toBe(host.playerId)
+  })
+
+  it("roda dois jogos ao mesmo tempo, cada sala com o seu", () => {
+    const t = setup()
+    const race = unwrap(t.create.execute({ nickname: "Ana" }))
+    const monte = unwrap(t.create.execute({ nickname: "Caio", gameId: roubaMonteRules.id }))
+    unwrap(t.join.execute({ code: race.roomCode, nickname: "Beto" }))
+    unwrap(t.join.execute({ code: monte.roomCode, nickname: "Duda" }))
+    unwrap(t.start.execute({ roomCode: race.roomCode, playerId: race.playerId }))
+    unwrap(t.start.execute({ roomCode: monte.roomCode, playerId: monte.playerId }))
+
+    expect(t.rooms.find(race.roomCode)?.gameId).toBe("corrida-ate-5")
+    expect(t.rooms.find(monte.roomCode)?.gameId).toBe("rouba-monte")
+    expect(
+      (t.rooms.find(monte.roomCode)?.game as unknown as { table: unknown[] }).table
+    ).toHaveLength(8)
+  })
+
+  it("RF-25 só o anfitrião troca o jogo, antes de iniciar, e recusa jogo desconhecido", () => {
+    const t = setup()
+    const host = unwrap(t.create.execute({ nickname: "Ana" }))
+    const guest = unwrap(t.join.execute({ code: host.roomCode, nickname: "Beto" }))
+    const hostActor = { roomCode: host.roomCode, playerId: host.playerId }
+
+    expect(
+      t.choose.execute({ roomCode: host.roomCode, playerId: guest.playerId }, "rouba-monte")
+    ).toEqual({
+      ok: false,
+      error: "NOT_HOST",
+    })
+    expect(t.choose.execute(hostActor, "xadrez")).toEqual({ ok: false, error: "UNKNOWN_GAME" })
+    unwrap(t.choose.execute(hostActor, "rouba-monte"))
+    expect(t.rooms.find(host.roomCode)?.gameId).toBe("rouba-monte")
+
+    unwrap(t.start.execute(hostActor))
+    expect(t.choose.execute(hostActor, "corrida-ate-5")).toEqual({
+      ok: false,
+      error: "GAME_ALREADY_STARTED",
+    })
+  })
+
+  it("recusa criar sala de jogo desconhecido", () => {
+    const t = setup()
+    expect(t.create.execute({ nickname: "Ana", gameId: "xadrez" })).toEqual({
+      ok: false,
+      error: "UNKNOWN_GAME",
+    })
+  })
+})
+
+describe("pausa da mesa entre jogadas", () => {
+  it("segura a próxima jogada até a pausa acabar e só então conta o tempo do turno", () => {
+    const t = setup()
+    const host = unwrap(t.create.execute({ nickname: "Ana", gameId: "corrida-com-pausa" }))
+    const guest = unwrap(t.join.execute({ code: host.roomCode, nickname: "Beto" }))
+    unwrap(t.start.execute({ roomCode: host.roomCode, playerId: host.playerId }))
+    const actorOf = (playerId: PlayerId) => ({ roomCode: host.roomCode, playerId })
+    const room = () => t.rooms.find(host.roomCode)
+    const first = (room()?.game as RaceState).current
+    const second = first === host.playerId ? guest.playerId : host.playerId
+
+    unwrap(t.play.perform(actorOf(first), { add: 0 }))
+    expect(room()?.pausedUntil).toBeNull()
+
+    unwrap(t.play.perform(actorOf(second), { add: 2 }))
+    expect(room()?.pausedUntil).toBe(PAUSE_MS)
+    expect(t.delays.get(host.roomCode)).toBe(PAUSE_MS + 30_000)
+    expect(room()?.turnDeadlineAt).toBe(PAUSE_MS + 30_000)
+    expect(t.play.perform(actorOf(first), { add: 1 })).toEqual({
+      ok: false,
+      error: "TABLE_PAUSED",
+    })
+    expect(t.play.perform(actorOf(first), { add: 0 }).ok).toBe(true)
+
+    t.tick(PAUSE_MS)
+    expect(t.play.perform(actorOf(second), { add: 1 }).ok).toBe(true)
   })
 })

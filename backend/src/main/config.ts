@@ -9,7 +9,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
   FRONTEND_DIR: z.string().optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error", "silent"]).default("info"),
-  TURN_SECONDS: z.coerce.number().positive().default(60),
+  TURN_SECONDS: z.coerce.number().positive().optional(),
+  TABLE_PAUSE_MS: z.coerce.number().int().min(0).optional(),
   MATCH_COUNTDOWN_SECONDS: z.coerce.number().min(0).default(3),
   RECONNECT_GRACE_SECONDS: z.coerce.number().positive().default(120),
   EMPTY_ROOM_TTL_SECONDS: z.coerce.number().positive().default(150),
@@ -40,7 +41,8 @@ export interface AppConfig {
   readonly roomJoinsPerMinute: number
   readonly maxRoomsPerAddress: number
   readonly game: {
-    readonly turnDurationMs: number
+    readonly turnDurationOverrideMs: number | null
+    readonly pauseOverrideMs: number | null
     readonly matchCountdownMs: number
     readonly reconnectGraceMs: number
     readonly emptyRoomTtlMs: number
@@ -74,7 +76,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv): AppConfig => {
     roomJoinsPerMinute: parsed.ROOM_JOINS_PER_MINUTE,
     maxRoomsPerAddress: parsed.MAX_ROOMS_PER_IP,
     game: {
-      turnDurationMs: parsed.TURN_SECONDS * 1000,
+      turnDurationOverrideMs: parsed.TURN_SECONDS === undefined ? null : parsed.TURN_SECONDS * 1000,
+      pauseOverrideMs: parsed.TABLE_PAUSE_MS ?? null,
       matchCountdownMs: parsed.MATCH_COUNTDOWN_SECONDS * 1000,
       reconnectGraceMs: parsed.RECONNECT_GRACE_SECONDS * 1000,
       emptyRoomTtlMs: parsed.EMPTY_ROOM_TTL_SECONDS * 1000,

@@ -144,7 +144,7 @@ class BotRoom {
 
   private async chooseAction(bot: Bot): Promise<TurnAction | null> {
     const hints = await this.command<HintsDto>(bot, "game:hints")
-    const action = hints?.plays[0]?.action
+    const action = hints?.kind === "rouba-monte" ? hints.plays[0]?.action : undefined
     const game = bot.state?.game
     if (!action || !game || !bot.myTurn) return null
     return action

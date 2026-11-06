@@ -3,8 +3,6 @@ const NICKNAME_PATTERN = /^[^\p{C}<>]+$/u
 
 export const ROOM_CODE_LENGTH = 6
 export const NICKNAME_MAX_LENGTH = 20
-export const MIN_PLAYERS = 2
-export const MAX_PLAYERS = 6
 
 export const normalizeRoomCode = (code: string): string =>
   code.toUpperCase().replace(/[^0-9A-Z]/g, "")

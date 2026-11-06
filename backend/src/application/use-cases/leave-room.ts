@@ -3,8 +3,8 @@ import type { Result } from "../../domain/shared/result.js"
 import type { ApplicationErrorCode } from "../errors.js"
 import type { Actor, RoomSession } from "../room-session.js"
 
-export class LeaveRoom<State, Action, GameCode extends string> {
-  constructor(private readonly session: RoomSession<State, Action, GameCode>) {}
+export class LeaveRoom {
+  constructor(private readonly session: RoomSession) {}
 
   execute(actor: Actor): Result<null, ApplicationErrorCode> {
     const room = this.session.loadAsMember(actor)
