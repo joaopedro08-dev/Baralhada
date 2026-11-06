@@ -18,7 +18,7 @@ const QUESTIONS = [
   {
     question: "Quantas pessoas podem jogar?",
     answer:
-      "No Rouba Monte, de 2 a 6 pessoas, cada uma por si. No Truco Paulista, 2, 4 ou 6 pessoas, divididas em dois times iguais. No Três Trincas, de 2 a 4 pessoas, cada uma por si.",
+      "No Rouba Monte, de 2 a 6 pessoas, cada uma por si. No Truco Paulista, 2, 4 ou 6 pessoas, divididas em dois times iguais. No Três Trincas, de 2 a 4 pessoas, cada uma por si. No Poker Texas Hold'em, de 2 a 6 pessoas, até sobrar uma com todas as fichas.",
   },
   {
     question: "Como convido meus amigos?",
