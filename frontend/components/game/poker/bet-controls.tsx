@@ -147,7 +147,10 @@ export function BetControls({
   onAction: (action: PokerAction) => void
 }) {
   const [raising, setRaising] = useState<number | null>(null)
-  const myTurn = game.currentPlayerId === viewerId && game.endReason === null
+  const myTurn =
+    game.pending === null &&
+    game.currentPlayerId === viewerId &&
+    game.endReason === null
   const { moves } = game
   const press = pressOf(game)
   const disabled = busy || paused

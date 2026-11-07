@@ -7,7 +7,9 @@ Site para jogar baralho online com os amigos, no PC ou no celular. Não há cada
 | Rouba Monte | 2 a 6 | Capture cartas da mesa e roube o monte dos adversários. Vence o maior monte. Turno de 60 s |
 | Truco Paulista | 2, 4 ou 6, em times | 40 cartas, manilha pela vira, truco, seis, nove e doze. Vence quem chega a 12 pontos. Jogada de 30 s |
 | Três Trincas | 2 a 4 | 52 cartas, 2 como coringa e o valor do vira morto. Compre, descarte e vença baixando 3 trincas primeiro. Vez de 30 s |
-| Poker Texas Hold'em | 2 a 6 | 52 cartas e 1000 fichas de mentira, sem limite de aposta e com potes paralelos. Blinds dobram a cada 5 mãos e vence quem ficar com todas as fichas. Vez de 30 s |
+| Poker Texas Hold'em | 2 a 6 | 52 cartas e 1000 fichas de mentira, sem limite de aposta e com potes paralelos. Blinds dobram a cada 10 mãos e vence quem ficar com todas as fichas. Vez de 30 s |
+| Cacheta | 2 a 4 | 2 baralhos (104 cartas), coringa pelo vira. Feche 9 cartas em trincas e sequências e bata: os outros perdem 1 ponto, ou 2 se for limpo. Vence o último com pontos. Vez de 30 s |
+| Blackjack | 1 a 6, inclusive sozinho | 52 cartas e 1000 fichas de mentira, todos contra a banca. Peça, pare, dobre ou divida; blackjack paga 3 para 2. Vence quem tiver mais fichas depois de 10 rodadas. Vez de 30 s |
 
 Cada jogo é um módulo registrado num catálogo; a sala, o tempo real e o relógio são comuns. As regras completas ficam na página `/informacoes`.
 

@@ -12,10 +12,12 @@ import {
 const CONFETTI_PIECES = 36
 const SUIT_GLYPHS = ["♠", "♥", "♦", "♣"] as const
 
-const launchConfetti = (stage: HTMLElement) => {
+const launchConfetti = (stage: HTMLElement): (() => void) => {
   const originX = stage.clientWidth / 2
+  const glyphs: HTMLSpanElement[] = []
   for (let piece = 0; piece < CONFETTI_PIECES; piece++) {
     const glyph = document.createElement("span")
+    glyphs.push(glyph)
     glyph.textContent = SUIT_GLYPHS[piece % SUIT_GLYPHS.length] as string
     glyph.className = "confetti-piece"
     stage.appendChild(glyph)
@@ -33,6 +35,9 @@ const launchConfetti = (stage: HTMLElement) => {
       onComplete: () => glyph.remove(),
     })
   }
+  return () => {
+    for (const glyph of glyphs) glyph.remove()
+  }
 }
 
 export const useVictoryShow = (viewerWon: boolean) => {
@@ -42,7 +47,7 @@ export const useVictoryShow = (viewerWon: boolean) => {
   useGSAP(
     () => {
       if (prefersReducedMotion() || !title.current) return
-      const split = SplitText.create(title.current, { type: "chars" })
+      const split = SplitText.create(title.current, { type: "words,chars" })
       gsap.from(split.chars, {
         y: 28,
         opacity: 0,
@@ -51,7 +56,7 @@ export const useVictoryShow = (viewerWon: boolean) => {
         ease: "back.out(2)",
         stagger: 0.025,
       })
-      if (viewerWon && stage.current) launchConfetti(stage.current)
+      if (viewerWon && stage.current) return launchConfetti(stage.current)
     },
     { scope: stage, dependencies: [viewerWon] }
   )

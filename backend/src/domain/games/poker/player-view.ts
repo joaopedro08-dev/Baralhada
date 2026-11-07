@@ -7,6 +7,7 @@ import type {
   Blinds,
   HandSummary,
   PlayerId,
+  PendingStep,
   PlayerStatus,
   PokerEndReason,
   PokerEvent,
@@ -43,6 +44,7 @@ export interface PokerView {
   readonly currentBet: number
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
+  readonly pending: PendingStep | null
   readonly moves: PokerMoves
   readonly lastHand: HandSummary | null
   readonly eliminatedIds: readonly PlayerId[]
@@ -81,6 +83,7 @@ export const toPokerView = (game: PokerGame, viewerId: PlayerId): PokerView => {
     currentBet: deal.currentBet,
     currentPlayerId: deal.actorId,
     turnNumber: game.step,
+    pending: game.pending,
     moves: movesOf(game, viewerId),
     lastHand: game.lastHand,
     eliminatedIds: game.eliminatedIds,

@@ -144,7 +144,7 @@ describe("PK-RF-01 a PK-RF-09 partida pelo socket", () => {
       expect(game.hole).toHaveLength(2)
       expect(game.potTotal).toBe(30)
       expect(game.blinds).toEqual({ small: 10, big: 20 })
-      expect(game.handsUntilBlindsRise).toBe(5)
+      expect(game.handsUntilBlindsRise).toBe(10)
       expect(game.players.map((player) => player.chips).sort()).toEqual([1000, 980, 990].sort())
       const frame = JSON.stringify(state)
       for (const other of states.filter((peer) => peer !== state)) {
@@ -190,7 +190,11 @@ describe("PK-RF-01 a PK-RF-09 partida pelo socket", () => {
   it("três navegadores jogam até sobrar um vencedor", async () => {
     const { sockets } = await startTable(3)
     for (let decision = 0; decision < MAX_DECISIONS; decision++) {
-      const states = sockets.map((socket) => latest.get(socket) as RoomStateDto)
+      const states = await Promise.all(
+        sockets.map((socket) =>
+          nextState(socket, (next) => next.status === "finished" || next.game?.pending === null)
+        )
+      )
       if (states[0]?.status === "finished") break
       const index = states.findIndex((state) => state.game?.currentPlayerId === state.viewerId)
       const socket = sockets[index] as Socket

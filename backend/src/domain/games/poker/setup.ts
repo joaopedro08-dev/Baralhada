@@ -40,6 +40,7 @@ export const startGame = (
       actorId: starterId,
     },
     step: 1,
+    pending: null,
     events: [],
     lastHand: null,
     eliminatedIds: [],

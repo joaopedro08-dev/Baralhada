@@ -81,6 +81,18 @@ const pacedRules: GameRules<RaceState, RaceStep, RaceError> = {
   playsDuringPause: (step) => step.add === 0,
 }
 
+const AUTOMATIC_TOTAL = 2
+
+const steppedRules: GameRules<RaceState, RaceStep, RaceError> = {
+  ...pacedRules,
+  id: "corrida-com-passo-automatico",
+  turnOf: (state) => ({
+    number: state.turnNumber,
+    playerId: state.current,
+    automatic: state.total === AUTOMATIC_TOTAL,
+  }),
+}
+
 const setup = () => {
   const rooms = new InMemoryRoomRepository<RaceState>()
   const notifier: RoomNotifier = {
@@ -113,7 +125,7 @@ const setup = () => {
     maxRooms: 5,
   }
   const session = new RoomSession(
-    createGameCatalog([raceRules, pacedRules, roubaMonteRules]),
+    createGameCatalog([raceRules, pacedRules, steppedRules, roubaMonteRules]),
     { rooms, notifier, scheduler, clock: { now: () => now }, random },
     settings
   )
@@ -271,5 +283,22 @@ describe("pausa da mesa entre jogadas", () => {
 
     t.tick(PAUSE_MS)
     expect(t.play.perform(actorOf(second), { add: 1 }).ok).toBe(true)
+  })
+})
+
+describe("passo automático do jogo", () => {
+  it("dispara assim que a pausa acaba, sem contar o tempo do turno nem mostrar relógio", () => {
+    const t = setup()
+    const host = unwrap(
+      t.create.execute({ nickname: "Ana", gameId: "corrida-com-passo-automatico" })
+    )
+    unwrap(t.join.execute({ code: host.roomCode, nickname: "Beto" }))
+    unwrap(t.start.execute({ roomCode: host.roomCode, playerId: host.playerId }))
+    const room = () => t.rooms.find(host.roomCode)
+    const first = (room()?.game as RaceState).current
+
+    unwrap(t.play.perform({ roomCode: host.roomCode, playerId: first }, { add: 2 }))
+    expect(t.delays.get(host.roomCode)).toBe(PAUSE_MS)
+    expect(room()?.turnDeadlineAt).toBeNull()
   })
 })

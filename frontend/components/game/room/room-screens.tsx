@@ -66,10 +66,42 @@ const PokerEndScreen = dynamic(
   { ssr: false, loading: LoadingTable }
 )
 
+const loadCachetaScreen = () =>
+  import("@/components/game/cacheta/cacheta-screen")
+const loadCachetaEndScreen = () =>
+  import("@/components/game/cacheta/cacheta-end-screen")
+
+const CachetaScreen = dynamic(
+  () => loadCachetaScreen().then((mod) => mod.CachetaScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const CachetaEndScreen = dynamic(
+  () => loadCachetaEndScreen().then((mod) => mod.CachetaEndScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const loadBlackjackScreen = () =>
+  import("@/components/game/blackjack/blackjack-screen")
+const loadBlackjackEndScreen = () =>
+  import("@/components/game/blackjack/blackjack-end-screen")
+
+const BlackjackScreen = dynamic(
+  () => loadBlackjackScreen().then((mod) => mod.BlackjackScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
+const BlackjackEndScreen = dynamic(
+  () => loadBlackjackEndScreen().then((mod) => mod.BlackjackEndScreen),
+  { ssr: false, loading: LoadingTable }
+)
+
 const PRELOADS: Partial<Record<GameId, readonly (() => Promise<unknown>)[]>> = {
   "truco-paulista": [loadTrucoScreen, loadTrucoEndScreen],
   "tres-trincas": [loadTrincasScreen, loadTrincasEndScreen],
   "poker-texas-holdem": [loadPokerScreen, loadPokerEndScreen],
+  cacheta: [loadCachetaScreen, loadCachetaEndScreen],
+  blackjack: [loadBlackjackScreen, loadBlackjackEndScreen],
 }
 
 function CurrentScreen({ status }: { status: RoomStatus | null }) {
@@ -100,6 +132,20 @@ function CurrentScreen({ status }: { status: RoomStatus | null }) {
       <PokerScreen room={room} game={game} />
     ) : (
       <PokerEndScreen room={room} game={game} inviteUrl={inviteUrl} />
+    )
+  }
+  if (game.kind === "blackjack") {
+    return playing ? (
+      <BlackjackScreen room={room} game={game} />
+    ) : (
+      <BlackjackEndScreen room={room} game={game} inviteUrl={inviteUrl} />
+    )
+  }
+  if (game.kind === "cacheta") {
+    return playing ? (
+      <CachetaScreen room={room} game={game} />
+    ) : (
+      <CachetaEndScreen room={room} game={game} inviteUrl={inviteUrl} />
     )
   }
   return playing ? (

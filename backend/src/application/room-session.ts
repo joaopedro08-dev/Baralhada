@@ -142,16 +142,16 @@ export class RoomSession {
       return { ...room, timedTurnNumber: null, turnDeadlineAt: null }
     }
     const rules = this.rulesOf(room)
-    const turnNumber = rules.turnOf(room.game).number
-    if (room.timedTurnNumber === turnNumber) return room
+    const turn = rules.turnOf(room.game)
+    if (room.timedTurnNumber === turn.number) return room
     const now = this.clock.now()
     const waitLeft = Math.max(0, (room.matchStartsAt ?? 0) - now, (room.pausedUntil ?? 0) - now)
-    const delay = waitLeft + this.turnDurationOf(rules)
-    this.scheduler.schedule(room.code, turnNumber, delay)
+    const delay = waitLeft + (turn.automatic ? 0 : this.turnDurationOf(rules))
+    this.scheduler.schedule(room.code, turn.number, delay)
     return {
       ...room,
-      timedTurnNumber: turnNumber,
-      turnDeadlineAt: now + delay,
+      timedTurnNumber: turn.number,
+      turnDeadlineAt: turn.automatic ? null : now + delay,
     }
   }
 }

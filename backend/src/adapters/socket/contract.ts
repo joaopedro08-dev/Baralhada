@@ -1,6 +1,8 @@
 import type { RemovalReason } from "../../application/ports.js"
 import type { RoomStatus, StartProblem } from "../../domain/room/room.js"
 import type { PlayerId } from "../../domain/shared/seat.js"
+import type { BlackjackHintsDto, BlackjackStateDto } from "./games/blackjack/contract.js"
+import type { CachetaHintsDto, CachetaStateDto } from "./games/cacheta/contract.js"
 import type { PokerHintsDto, PokerStateDto } from "./games/poker/contract.js"
 import type { RoubaMonteHintsDto, RoubaMonteStateDto } from "./games/rouba-monte/contract.js"
 import type { TresTrincasHintsDto, TresTrincasStateDto } from "./games/tres-trincas/contract.js"
@@ -11,9 +13,21 @@ export type AckError = { readonly code: string; readonly message: string }
 export type Ack<T> =
   { readonly ok: true; readonly data: T } | { readonly ok: false; readonly error: AckError }
 
-export type GameStateDto = RoubaMonteStateDto | TrucoStateDto | TresTrincasStateDto | PokerStateDto
+export type GameStateDto =
+  | RoubaMonteStateDto
+  | TrucoStateDto
+  | TresTrincasStateDto
+  | PokerStateDto
+  | CachetaStateDto
+  | BlackjackStateDto
 
-export type HintsDto = RoubaMonteHintsDto | TrucoHintsDto | TresTrincasHintsDto | PokerHintsDto
+export type HintsDto =
+  | RoubaMonteHintsDto
+  | TrucoHintsDto
+  | TresTrincasHintsDto
+  | PokerHintsDto
+  | CachetaHintsDto
+  | BlackjackHintsDto
 
 export interface SeatDto {
   readonly code: string
