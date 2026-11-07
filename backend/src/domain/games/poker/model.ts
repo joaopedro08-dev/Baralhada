@@ -9,7 +9,7 @@ export const PLAYER_COUNTS = [2, 3, 4, 5, 6] as const
 export const MIN_PLAYERS = 2
 export const STARTING_CHIPS = 1000
 export const FIRST_SMALL_BLIND = 10
-export const HANDS_PER_BLIND_LEVEL = 5
+export const HANDS_PER_BLIND_LEVEL = 10
 export const HOLE_CARDS = 2
 export const TURN_DURATION_MS = 30_000
 export const EVENT_LOG_LIMIT = 200
@@ -118,11 +118,14 @@ export type PokerEvent =
 
 export type PokerEndReason = "chips" | "abandoned"
 
+export type PendingStep = "street" | "showdown" | "nextHand"
+
 export interface PokerGame {
   readonly nicknames: Readonly<Record<PlayerId, string>>
   readonly players: readonly PokerPlayer[]
   readonly deal: Deal
   readonly step: number
+  readonly pending: PendingStep | null
   readonly events: readonly PokerEvent[]
   readonly lastHand: HandSummary | null
   readonly eliminatedIds: readonly PlayerId[]

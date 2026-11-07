@@ -78,10 +78,46 @@ export const GAMES: readonly GameInfo[] = [
     highlights: [
       "Duas cartas suas e cinco na mesa formam o seu jogo",
       "Sem limite: aposte, aumente ou vá all-in",
-      "As blinds dobram a cada 5 mãos e vence quem ficar com tudo",
+      "As blinds dobram a cada 10 mãos e vence quem ficar com tudo",
     ],
     sample: ["AS", "KS", "QH"],
     rulesAnchor: "regras-poker",
+  },
+  {
+    id: "cacheta",
+    name: "Cacheta",
+    tagline:
+      "Feche a mão em trincas e sequências, bata e tire pontos de todos.",
+    playerCounts: [2, 3, 4],
+    teamCount: null,
+    deck: "2 baralhos, 104 cartas",
+    turnSeconds: 30,
+    mode: "Eliminação",
+    highlights: [
+      "O valor seguinte ao vira vira coringa a cada rodada",
+      "Bata com 9 cartas em jogos e descarte a 10ª",
+      "Bater limpo, sem coringa, tira 2 pontos de cada um",
+    ],
+    sample: ["4S", "5S", "6S"],
+    rulesAnchor: "regras-cacheta",
+  },
+  {
+    id: "blackjack",
+    name: "Blackjack",
+    tagline:
+      "Todos contra a banca: chegue a 21 sem passar e saia com mais fichas.",
+    playerCounts: [1, 2, 3, 4, 5, 6],
+    teamCount: null,
+    deck: "52 cartas, 1000 fichas",
+    turnSeconds: 30,
+    mode: "Contra a banca",
+    highlights: [
+      "Dá para jogar sozinho contra a banca",
+      "Peça, pare, dobre ou divida o par",
+      "Blackjack paga 3 para 2 e vence quem tiver mais fichas em 10 rodadas",
+    ],
+    sample: ["AS", "KH", "7D"],
+    rulesAnchor: "regras-blackjack",
   },
 ]
 

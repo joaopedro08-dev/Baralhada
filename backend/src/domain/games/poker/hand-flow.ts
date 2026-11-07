@@ -130,7 +130,7 @@ export const dealHand = (
     blinds.big,
     true
   )
-  return resolveBetting(posted, positions.bigBlindId, random)
+  return resolveBetting(posted, positions.bigBlindId)
 }
 
 const dealStreet = (game: PokerGame): PokerGame => {
@@ -175,7 +175,7 @@ const winnersOf = (
   }
 }
 
-const showdown = (game: PokerGame, random: RandomSource): PokerGame => {
+const showdown = (game: PokerGame): PokerGame => {
   const contenders = seatsAfter(game.players, game.deal.buttonId).filter(isContender)
   const ranked = new Map(
     contenders.map((player) => [player.id, bestHand([...player.hole, ...game.deal.board])])
@@ -185,10 +185,10 @@ const showdown = (game: PokerGame, random: RandomSource): PokerGame => {
     return { playerId: player.id, hole: player.hole, category: hand.category, cards: hand.cards }
   })
   const pots = buildPots(contributionsOf(game)).map((pot) => winnersOf(game, pot, ranked))
-  return closeHand(game, { showdown: true, shown, pots }, random)
+  return closeHand(game, { showdown: true, shown, pots })
 }
 
-const awardUncontested = (game: PokerGame, random: RandomSource): PokerGame => {
+const awardUncontested = (game: PokerGame): PokerGame => {
   const winnerIds = contendersOf(game).map((player) => player.id)
   const pot: PotResult = {
     amount: potTotalOf(game),
@@ -196,20 +196,29 @@ const awardUncontested = (game: PokerGame, random: RandomSource): PokerGame => {
     winnerIds,
     category: null,
   }
-  return closeHand(game, { showdown: false, shown: [], pots: [pot] }, random)
+  return closeHand(game, { showdown: false, shown: [], pots: [pot] })
 }
 
-export const resolveBetting = (
-  game: PokerGame,
-  afterId: PlayerId,
-  random: RandomSource
-): PokerGame => {
-  if (contendersOf(game).length === 1) return awardUncontested(game, random)
+export const resolveBetting = (game: PokerGame, afterId: PlayerId): PokerGame => {
+  if (contendersOf(game).length === 1) return awardUncontested(game)
   const actorId = nextActorAfter(game, afterId)
-  if (actorId) return { ...game, deal: { ...game.deal, actorId } }
-  if (game.deal.street === "river") return showdown(game, random)
-  const next = dealStreet(game)
-  return resolveBetting(next, next.deal.buttonId, random)
+  if (actorId) return { ...game, pending: null, deal: { ...game.deal, actorId } }
+  return { ...game, pending: game.deal.street === "river" ? "showdown" : "street" }
+}
+
+export const advancePending = (game: PokerGame, random: RandomSource): PokerGame => {
+  switch (game.pending) {
+    case "street": {
+      const next = dealStreet(game)
+      return resolveBetting(next, next.deal.buttonId)
+    }
+    case "showdown":
+      return showdown(game)
+    case "nextHand":
+      return dealHand(game, game.deal.number + 1, nextAliveAfter(game, game.deal.buttonId), random)
+    case null:
+      return game
+  }
 }
 
 const winningsOf = (pots: readonly PotResult[]): Readonly<Record<PlayerId, number>> => {
@@ -233,7 +242,7 @@ const finish = (game: PokerGame): PokerGame => {
   return winner ? withEvents(finished, { type: "matchWon", playerId: winner.id }) : finished
 }
 
-const closeHand = (game: PokerGame, outcome: Outcome, random: RandomSource): PokerGame => {
+const closeHand = (game: PokerGame, outcome: Outcome): PokerGame => {
   const winnings = winningsOf(outcome.pots)
   const paid = game.players.map((player) => ({
     ...player,
@@ -276,6 +285,6 @@ const closeHand = (game: PokerGame, outcome: Outcome, random: RandomSource): Pok
     },
     ...events
   )
-  if (closed.players.filter(isInGame).length < 2) return finish(closed)
-  return dealHand(closed, game.deal.number + 1, nextAliveAfter(closed, game.deal.buttonId), random)
+  if (closed.players.filter(isInGame).length < 2) return finish({ ...closed, pending: null })
+  return { ...closed, pending: "nextHand" }
 }

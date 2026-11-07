@@ -15,6 +15,7 @@ export const POKER_ERRORS: Readonly<Record<PokerErrorCode, string>> = {
   CANNOT_RAISE: "Você não pode aumentar agora.",
   AMOUNT_TOO_SMALL: "O valor está abaixo do mínimo permitido.",
   AMOUNT_TOO_LARGE: "Você não tem fichas para esse valor.",
+  TABLE_MOVING: "A mesa está andando: espere as cartas e o resultado da mão.",
 }
 
 export const HAND_NAMES: Readonly<Record<HandCategory, string>> = {

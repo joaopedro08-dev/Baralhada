@@ -21,7 +21,11 @@ import {
   standingsOf,
   statusLabel,
 } from "@/lib/game/domain/poker/guide"
-import { pokerNotice } from "@/lib/game/domain/poker/notice"
+import {
+  handResultOf,
+  HAND_LADDER,
+  winnerShowcase,
+} from "@/lib/game/domain/poker/showcase"
 import { seatOrderFrom, seatSpots } from "@/lib/game/domain/poker/seating"
 import { chipBreakdown } from "@/lib/game/domain/poker/chips"
 import { buildPoker } from "@/lib/game/domain/poker/test-fixtures"
@@ -72,7 +76,9 @@ describe("PK-RF-08 e PK-RF-10 placar, blinds e posições", () => {
   })
 
   it("mostra as blinds e quantas mãos faltam para dobrar", () => {
-    expect(describeBlinds(buildPoker())).toBe("Blinds 10/20 · dobram em 5 mãos")
+    expect(describeBlinds(buildPoker())).toBe(
+      "Blinds 10/20 · dobram em 10 mãos"
+    )
     expect(describeBlinds(buildPoker({ handsUntilBlindsRise: 1 }))).toBe(
       "Blinds 10/20 · dobram na próxima mão"
     )
@@ -193,6 +199,23 @@ describe("PK-RF-04 valor da aposta", () => {
   })
 })
 
+describe("ritmo da mesa", () => {
+  it("avisa que a mesa está andando em vez de mostrar a vez", () => {
+    const street = buildPoker({ pending: "street" })
+    expect(describeTurn(street, "eu")).toBe("A mesa está andando")
+    expect(describeNextStep(street, "eu")).toBe(
+      "Apostas fechadas. Abrindo a próxima carta..."
+    )
+    const showdown = buildPoker({ pending: "showdown" })
+    expect(describeNextStep(showdown, "eu")).toBe(
+      "Apostas fechadas. Hora de mostrar as cartas..."
+    )
+    const next = buildPoker({ pending: "nextHand" })
+    expect(describeTurn(next, "eu")).toBe("Resultado da mão")
+    expect(describeNextStep(next, "eu")).toBe("Próxima mão em instantes...")
+  })
+})
+
 describe("PK-RF-07 resultado da mão", () => {
   it("diz quem ganhou e com qual jogo", () => {
     const game = buildPoker()
@@ -211,29 +234,73 @@ describe("PK-RF-07 resultado da mão", () => {
     expect(describeHandResult(game, folded, "caio")).toBe("Ana levou o pote")
   })
 
-  it("anuncia a mão nova com as fichas ganhas e as 5 cartas usadas", () => {
-    const before = buildPoker()
-    const after = buildPoker({ lastHand: SHOWDOWN })
-    const notice = pokerNotice(before, after, "eu")
-    expect(notice).toMatchObject({
+  it("mostra o resultado só enquanto a mesa espera a próxima mão", () => {
+    expect(handResultOf(buildPoker({ lastHand: SHOWDOWN }))).toBeNull()
+    const waiting = buildPoker({ lastHand: SHOWDOWN, pending: "nextHand" })
+    expect(handResultOf(waiting)).toBe(SHOWDOWN)
+    const nextHand = buildPoker({ lastHand: SHOWDOWN, handNumber: 2 })
+    expect(handResultOf(nextHand)).toBeNull()
+    const final = buildPoker({ lastHand: SHOWDOWN, endReason: "chips" })
+    expect(handResultOf(final)).toBe(SHOWDOWN)
+  })
+
+  it("anima o vencedor com o jogo, a posição na hierarquia e as 5 cartas", () => {
+    const game = buildPoker({ lastHand: SHOWDOWN, pending: "nextHand" })
+    expect(winnerShowcase(game, SHOWDOWN, "eu")).toEqual({
       key: "mao-1",
       tone: "good",
-      title: "Você ganhou com par",
-      detail: "760 fichas em 2 potes. Caio foi eliminado.",
+      headline: "Você ganhou a mão!",
+      category: "pair",
+      level: 2,
       cards: ["AH", "AD", "JH", "9S", "7D"],
+      winners: [
+        { id: "beto", label: "Beto", amount: 400 },
+        { id: "eu", label: "Você", amount: 360 },
+      ],
+      notes: ["O pote foi dividido em 2 partes.", "Caio foi eliminado."],
     })
-    expect(notice?.lines.map((line) => [line.label, line.value])).toEqual([
-      ["Beto", 400],
-      ["Você", 360],
-    ])
-    expect(pokerNotice(after, after, "eu")).toBeNull()
-    expect(pokerNotice(before, after, "caio")?.tone).toBe("bad")
+    expect(winnerShowcase(game, SHOWDOWN, "caio").tone).toBe("bad")
+    expect(winnerShowcase(game, SHOWDOWN, "beto").headline).toBe(
+      "Ana ganhou a mão"
+    )
+    expect(HAND_LADDER).toHaveLength(10)
+  })
+
+  it("quem leva o pote sem showdown não mostra cartas nem hierarquia", () => {
+    const folded: HandSummary = {
+      ...SHOWDOWN,
+      showdown: false,
+      shown: [],
+      pots: [
+        {
+          amount: 30,
+          eligibleIds: ["beto"],
+          winnerIds: ["beto"],
+          category: null,
+        },
+      ],
+      winnings: { beto: 30 },
+      eliminatedIds: [],
+    }
+    expect(winnerShowcase(buildPoker(), folded, "eu")).toMatchObject({
+      tone: "neutral",
+      headline: "Beto levou o pote",
+      category: null,
+      level: null,
+      cards: [],
+      notes: ["Todos os outros desistiram."],
+    })
   })
 })
 
 describe("PK-RF-09 fim da partida", () => {
   it("ordena o vencedor e depois a ordem inversa de eliminação", () => {
+    const base = buildPoker()
     const game = buildPoker({
+      players: base.players.map((player) => ({
+        ...player,
+        chips: player.id === "eu" ? 2800 : 0,
+      })),
       eliminatedIds: ["caio", "beto"],
       winnerId: "eu",
       endReason: "chips",
@@ -250,7 +317,7 @@ describe("PK-RF-09 fim da partida", () => {
     expect(describeResult({ ...game, winnerId: null }, "eu")).toBe(
       "Partida encerrada"
     )
-    expect(explainEnd(game)).toBe("Ficou com todas as 3.000 fichas.")
+    expect(explainEnd(game)).toBe("Ficou com todas as 2.800 fichas.")
     expect(explainEnd({ ...game, endReason: "abandoned" })).toBe(
       "Os outros jogadores saíram, e a partida terminou."
     )

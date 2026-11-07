@@ -10,6 +10,7 @@ export type PokerAction =
 export type Street = "preflop" | "flop" | "turn" | "river"
 export type PlayerStatus = "active" | "folded" | "allIn" | "out"
 export type PokerEndReason = "chips" | "abandoned"
+export type PendingStep = "street" | "showdown" | "nextHand"
 
 export type HandCategory =
   | "highCard"
@@ -95,6 +96,7 @@ export interface PokerState {
   readonly currentBet: number
   readonly currentPlayerId: PlayerId
   readonly turnNumber: number
+  readonly pending: PendingStep | null
   readonly moves: PokerMoves
   readonly lastHand: HandSummary | null
   readonly eliminatedIds: readonly PlayerId[]

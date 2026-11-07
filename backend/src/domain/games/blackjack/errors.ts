@@ -1,0 +1,12 @@
+export type BlackjackErrorCode =
+  | "BLACKJACK_PLAYER_COUNT"
+  | "GAME_FINISHED"
+  | "NOT_BETTING"
+  | "ALREADY_BET"
+  | "OUT_OF_CHIPS"
+  | "INVALID_BET"
+  | "NOT_YOUR_TURN"
+  | "DEALER_PLAYING"
+  | "TABLE_DEALING"
+  | "CANNOT_DOUBLE"
+  | "CANNOT_SPLIT"

@@ -1,0 +1,11 @@
+export type CachetaErrorCode =
+  | "CACHETA_PLAYER_COUNT"
+  | "GAME_FINISHED"
+  | "NOT_YOUR_TURN"
+  | "ROUND_CLOSING"
+  | "ALREADY_DREW"
+  | "EMPTY_DISCARD"
+  | "PICK_BEFORE_DISCARD"
+  | "PICK_BEFORE_KNOCK"
+  | "CARD_NOT_IN_HAND"
+  | "NOT_A_KNOCK"
