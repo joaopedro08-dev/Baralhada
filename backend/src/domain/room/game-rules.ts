@@ -5,6 +5,7 @@ import type { PlayerId, Seat } from "../shared/seat.js"
 export interface TurnInfo {
   readonly number: number
   readonly playerId: PlayerId
+  readonly automatic?: boolean
 }
 
 export interface GameFormat {

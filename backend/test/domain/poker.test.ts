@@ -16,12 +16,14 @@ import type { PokerGame } from "../../src/domain/games/poker/model.js"
 import { collectedPotsOf, toPokerView } from "../../src/domain/games/poker/player-view.js"
 import { buildPots, splitPot } from "../../src/domain/games/poker/pots.js"
 import {
+  BETTING_CLOSED_PAUSE_MS,
+  DEAL_PAUSE_MS,
   FOLD_WIN_PAUSE_MS,
   pokerPauseAfter,
   pokerRules,
   RUNOUT_STREET_MS,
   SHOWDOWN_PAUSE_MS,
-  STREET_PAUSE_MS,
+  STREET_REVEAL_MS,
 } from "../../src/domain/games/poker/rules.js"
 import { startGame } from "../../src/domain/games/poker/setup.js"
 import type { Seat } from "../../src/domain/shared/seat.js"
@@ -39,8 +41,14 @@ const seats = (count: number): readonly Seat[] =>
 
 const start = (count: number): PokerGame => unwrap(startGame(seats(count), "p0", random))
 
-const act = (game: PokerGame, playerId: string, action: PokerAction): PokerGame =>
+const settle = (game: PokerGame): PokerGame =>
+  game.pending === null ? game : settle(expirePoker(game, random))
+
+const play = (game: PokerGame, playerId: string, action: PokerAction): PokerGame =>
   unwrap(playPoker(game, playerId, action, random))
+
+const act = (game: PokerGame, playerId: string, action: PokerAction): PokerGame =>
+  settle(play(game, playerId, action))
 
 const refusal = (game: PokerGame, playerId: string, action: PokerAction) => {
   const result = playPoker(game, playerId, action, random)
@@ -89,14 +97,14 @@ describe("PK-RN-05 a PK-RN-07 blinds", () => {
     expect(game.deal.actorId).toBe("p0")
   })
 
-  it("começam em 10 e 20 e dobram a cada 5 mãos", () => {
+  it("começam em 10 e 20 e dobram a cada 10 mãos", () => {
     expect(blindsFor(1)).toEqual({ small: 10, big: 20 })
-    expect(blindsFor(5)).toEqual({ small: 10, big: 20 })
-    expect(blindsFor(6)).toEqual({ small: 20, big: 40 })
-    expect(blindsFor(11)).toEqual({ small: 40, big: 80 })
-    expect(handsUntilBlindsRise(1)).toBe(5)
-    expect(handsUntilBlindsRise(5)).toBe(1)
-    expect(handsUntilBlindsRise(6)).toBe(5)
+    expect(blindsFor(10)).toEqual({ small: 10, big: 20 })
+    expect(blindsFor(11)).toEqual({ small: 20, big: 40 })
+    expect(blindsFor(21)).toEqual({ small: 40, big: 80 })
+    expect(handsUntilBlindsRise(1)).toBe(10)
+    expect(handsUntilBlindsRise(10)).toBe(1)
+    expect(handsUntilBlindsRise(11)).toBe(10)
   })
 
   it("com 2 jogadores, o botão paga a small e fala primeiro antes do flop", () => {
@@ -476,7 +484,7 @@ describe("PK-RN-17 visibilidade", () => {
     const view = toPokerView(start(3), "p0")
     expect(view.blinds).toEqual({ small: 10, big: 20 })
     expect(view.nextBlinds).toEqual({ small: 20, big: 40 })
-    expect(view.handsUntilBlindsRise).toBe(5)
+    expect(view.handsUntilBlindsRise).toBe(10)
     expect(view.potTotal).toBe(30)
     expect(view.moves.call).toBe(20)
     expect(toPokerView(start(3), "p1").moves.call).toBeNull()
@@ -526,29 +534,94 @@ describe("PK-RF-12 e PK-RF-13 dicas", () => {
 })
 
 describe("ritmo da mesa", () => {
-  it("pausa ao abrir uma carta, ao terminar a mão e mais ainda com showdown", () => {
-    const game = start(3)
-    expect(pokerPauseAfter(game, act(game, "p0", call))).toBe(0)
-    const preflop = act(act(game, "p0", call), "p1", call)
-    expect(pokerPauseAfter(preflop, act(preflop, "p2", check))).toBe(STREET_PAUSE_MS)
-    const folded = act(game, "p0", fold)
-    expect(pokerPauseAfter(folded, act(folded, "p1", fold))).toBe(FOLD_WIN_PAUSE_MS)
+  it("fecha a rodada, espera e só então abre o flop", () => {
+    const preflop = act(act(start(3), "p0", call), "p1", call)
+    const closed = play(preflop, "p2", check)
+    expect(closed.pending).toBe("street")
+    expect(closed.deal.board).toEqual([])
+    expect(getPlayer(closed, "p2").bet).toBe(20)
+    expect(pokerPauseAfter(preflop, closed)).toBe(BETTING_CLOSED_PAUSE_MS)
+    expect(pokerRules.turnOf(closed)).toMatchObject({ automatic: true })
+    expect(movesOf(closed, "p1")).toMatchObject({ check: false, call: null, fold: false })
+    expect(refusal(closed, "p1", check)).toBe("TABLE_MOVING")
+
+    const flop = expirePoker(closed, random)
+    expect(flop.pending).toBeNull()
+    expect(flop.deal.board).toHaveLength(3)
+    expect(flop.step).toBe(closed.step + 1)
+    expect(pokerPauseAfter(closed, flop)).toBe(STREET_REVEAL_MS)
+    expect(pokerRules.turnOf(flop)).toEqual({ number: flop.step, playerId: "p1", automatic: false })
   })
 
-  it("dá tempo para a mesa abrir até o river no all-in", () => {
+  it("no all-in abre uma rua por vez, mostra o resultado e só depois distribui", () => {
     const game = buildPoker({
       players: { a: { chips: 300, hole: ["AH", "AD"] }, b: { chips: 1000, hole: ["KH", "KD"] } },
       deal: { board: FLOP, deck: TURN_AND_RIVER, buttonId: "b", actorId: "a" },
     })
-    const shoved = act(game, "a", bet(300))
-    expect(pokerPauseAfter(shoved, act(shoved, "b", call))).toBe(
-      SHOWDOWN_PAUSE_MS + 2 * RUNOUT_STREET_MS
-    )
+    const shoved = play(game, "a", bet(300))
+    const called = play(shoved, "b", call)
+    expect(called.pending).toBe("street")
+    expect(pokerPauseAfter(shoved, called)).toBe(BETTING_CLOSED_PAUSE_MS)
+
+    const turn = expirePoker(called, random)
+    expect(turn.deal.board).toHaveLength(4)
+    expect(turn.pending).toBe("street")
+    expect(pokerPauseAfter(called, turn)).toBe(RUNOUT_STREET_MS)
+
+    const river = expirePoker(turn, random)
+    expect(river.deal.board).toHaveLength(5)
+    expect(river.pending).toBe("showdown")
+    expect(river.lastHand).toBeNull()
+    expect(pokerPauseAfter(turn, river)).toBe(RUNOUT_STREET_MS)
+
+    const shown = expirePoker(river, random)
+    expect(shown.pending).toBe("nextHand")
+    expect(shown.lastHand).toMatchObject({ number: 1, showdown: true, winnings: { a: 600 } })
+    expect(shown.deal.number).toBe(1)
+    expect(getPlayer(shown, "a").hole).toEqual(["AH", "AD"])
+    expect(pokerPauseAfter(river, shown)).toBe(SHOWDOWN_PAUSE_MS)
+
+    const next = expirePoker(shown, random)
+    expect(next.deal.number).toBe(2)
+    expect(next.pending).toBeNull()
+    expect(next.lastHand?.number).toBe(1)
+    expect(pokerPauseAfter(shown, next)).toBe(DEAL_PAUSE_MS)
+  })
+
+  it("quem leva o pote sem showdown ganha uma pausa mais curta", () => {
+    const folded = act(start(3), "p0", fold)
+    const won = play(folded, "p1", fold)
+    expect(won.pending).toBe("nextHand")
+    expect(won.deal.number).toBe(1)
+    expect(pokerPauseAfter(folded, won)).toBe(FOLD_WIN_PAUSE_MS)
+  })
+
+  it("a mão que se resolve sozinha não apaga o resultado da anterior", () => {
+    const table = buildPoker({ players: { a: { chips: 5 }, b: { chips: 1000 } } })
+    const dealt = dealHand(table, 1, "a", random)
+    expect(getPlayer(dealt, "a").status).toBe("allIn")
+    expect(dealt.pending).toBe("street")
+    expect(dealt.deal.board).toEqual([])
+    expect(dealt.lastHand).toBeNull()
+  })
+
+  it("quem sai enquanto a mesa espera a próxima mão não destrava nada antes da hora", () => {
+    const won = play(act(start(3), "p0", fold), "p1", fold)
+    const left = removePokerPlayer(won, "p0", random)
+    expect(left.pending).toBe("nextHand")
+    expect(left.deal.number).toBe(1)
+    const next = expirePoker(left, random)
+    expect(next.deal.number).toBe(2)
+    expect(getPlayer(next, "p0").hole).toEqual([])
   })
 
   it("informa a vez pelo número da decisão", () => {
     const game = start(3)
-    expect(pokerRules.turnOf(game)).toEqual({ number: 1, playerId: "p0" })
-    expect(pokerRules.turnOf(act(game, "p0", call))).toEqual({ number: 2, playerId: "p1" })
+    expect(pokerRules.turnOf(game)).toEqual({ number: 1, playerId: "p0", automatic: false })
+    expect(pokerRules.turnOf(act(game, "p0", call))).toEqual({
+      number: 2,
+      playerId: "p1",
+      automatic: false,
+    })
   })
 })

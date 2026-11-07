@@ -66,10 +66,12 @@ const raiseRange = (game: PokerGame, player: PokerPlayer): BetRange => {
   return { min: Math.min(game.deal.currentBet + game.deal.minRaise, allIn), max: allIn }
 }
 
+const isOnTurn = (game: PokerGame, playerId: PlayerId): boolean =>
+  !isFinished(game) && game.pending === null && game.deal.actorId === playerId
+
 export const movesOf = (game: PokerGame, playerId: PlayerId): PokerMoves => {
   const player = findPlayer(game, playerId)
-  const onTurn = !isFinished(game) && game.deal.actorId === playerId
-  if (!player || !onTurn || player.status !== "active") return NO_MOVES
+  if (!player || !isOnTurn(game, playerId) || player.status !== "active") return NO_MOVES
   const toCall = toCallOf(game.deal, player)
   const canPress = player.chips > toCall && othersCanRespond(game, playerId)
   const opening = game.deal.currentBet === 0

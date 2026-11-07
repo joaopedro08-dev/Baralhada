@@ -1,4 +1,6 @@
 import { createGameAdapters } from "../adapters/socket/game-adapter.js"
+import { blackjackAdapter } from "../adapters/socket/games/blackjack/adapter.js"
+import { cachetaAdapter } from "../adapters/socket/games/cacheta/adapter.js"
 import { pokerAdapter } from "../adapters/socket/games/poker/adapter.js"
 import { roubaMonteAdapter } from "../adapters/socket/games/rouba-monte/adapter.js"
 import { tresTrincasAdapter } from "../adapters/socket/games/tres-trincas/adapter.js"
@@ -24,6 +26,8 @@ import { ReadGame } from "../application/use-cases/read-game.js"
 import { ReconnectPlayer } from "../application/use-cases/reconnect-player.js"
 import { StartMatch } from "../application/use-cases/start-match.js"
 import { SweepRooms } from "../application/use-cases/sweep-rooms.js"
+import { blackjackRules } from "../domain/games/blackjack/rules.js"
+import { cachetaRules } from "../domain/games/cacheta/rules.js"
 import { pokerRules } from "../domain/games/poker/rules.js"
 import { roubaMonteRules } from "../domain/games/rouba-monte/rules.js"
 import { tresTrincasRules } from "../domain/games/tres-trincas/rules.js"
@@ -43,6 +47,8 @@ export const gameCatalog = createGameCatalog([
   trucoRules,
   tresTrincasRules,
   pokerRules,
+  cachetaRules,
+  blackjackRules,
 ])
 
 export const gameAdapters = createGameAdapters([
@@ -50,6 +56,8 @@ export const gameAdapters = createGameAdapters([
   trucoAdapter,
   tresTrincasAdapter,
   pokerAdapter,
+  cachetaAdapter,
+  blackjackAdapter,
 ])
 
 export interface Container {

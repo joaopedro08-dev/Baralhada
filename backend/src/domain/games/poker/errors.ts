@@ -9,3 +9,4 @@ export type PokerErrorCode =
   | "CANNOT_RAISE"
   | "AMOUNT_TOO_SMALL"
   | "AMOUNT_TOO_LARGE"
+  | "TABLE_MOVING"

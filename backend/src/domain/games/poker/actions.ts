@@ -4,7 +4,7 @@ import type { Result } from "../../shared/result.js"
 import { applyMove, movesOf } from "./betting.js"
 import type { PokerAction } from "./betting.js"
 import type { PokerErrorCode } from "./errors.js"
-import { potTotalOf, resolveBetting } from "./hand-flow.js"
+import { advancePending, potTotalOf, resolveBetting } from "./hand-flow.js"
 import {
   findPlayer,
   getPlayer,
@@ -20,17 +20,19 @@ export const playPoker = (
   game: PokerGame,
   playerId: PlayerId,
   action: PokerAction,
-  random: RandomSource
+  _random: RandomSource
 ): Result<PokerGame, PokerErrorCode> => {
   if (isFinished(game)) return err("GAME_FINISHED")
+  if (game.pending !== null) return err("TABLE_MOVING")
   if (game.deal.actorId !== playerId) return err("NOT_YOUR_TURN")
   const applied = applyMove(game, getPlayer(game, playerId), action)
   if (!applied.ok) return applied
-  return ok(resolveBetting({ ...applied.value, step: game.step + 1 }, playerId, random))
+  return ok(resolveBetting({ ...applied.value, step: game.step + 1 }, playerId))
 }
 
 export const expirePoker = (game: PokerGame, random: RandomSource): PokerGame => {
   if (isFinished(game)) return game
+  if (game.pending !== null) return advancePending({ ...game, step: game.step + 1 }, random)
   const playerId = game.deal.actorId
   const action: PokerAction = movesOf(game, playerId).check ? { type: "check" } : { type: "fold" }
   const played = playPoker(
@@ -61,7 +63,7 @@ const abandon = (game: PokerGame, remaining: PokerPlayer | undefined): PokerGame
 export const removePokerPlayer = (
   game: PokerGame,
   playerId: PlayerId,
-  random: RandomSource
+  _random: RandomSource
 ): PokerGame => {
   const leaving = findPlayer(game, playerId)
   if (isFinished(game) || !leaving || !isInGame(leaving)) return game
@@ -80,10 +82,7 @@ export const removePokerPlayer = (
   )
   const alive = left.players.filter(isInGame)
   if (alive.length < MIN_PLAYERS) return abandon(left, alive[0])
+  if (left.pending === "nextHand") return left
   const actorId = game.deal.actorId
-  return resolveBetting(
-    left,
-    actorId === playerId ? playerId : seatBefore(left.players, actorId),
-    random
-  )
+  return resolveBetting(left, actorId === playerId ? playerId : seatBefore(left.players, actorId))
 }

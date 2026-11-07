@@ -1,6 +1,7 @@
 import type {
   HandCategory,
   HandSummary,
+  PendingStep,
   PlayerStatus,
   PokerPlayer,
   PokerState,
@@ -36,6 +37,12 @@ const STATUS_LABELS: Partial<Readonly<Record<PlayerStatus, string>>> = {
   out: "Fora",
 }
 
+const PENDING_STEPS: Readonly<Record<PendingStep, string>> = {
+  street: "Apostas fechadas. Abrindo a próxima carta...",
+  showdown: "Apostas fechadas. Hora de mostrar as cartas...",
+  nextHand: "Próxima mão em instantes...",
+}
+
 export type Position = "D" | "SB" | "BB"
 
 export const formatChips = (chips: number): string =>
@@ -67,10 +74,13 @@ export const positionsOf = (
   return positions
 }
 
-export const describeTurn = (game: PokerState, viewerId: PlayerId): string =>
-  game.currentPlayerId === viewerId
+export const describeTurn = (game: PokerState, viewerId: PlayerId): string => {
+  if (game.pending === "nextHand") return "Resultado da mão"
+  if (game.pending !== null) return "A mesa está andando"
+  return game.currentPlayerId === viewerId
     ? "Sua vez"
     : `Vez de ${nicknameOf(game, game.currentPlayerId)}`
+}
 
 export const describeBlinds = (game: PokerState): string => {
   const { blinds, handsUntilBlindsRise: left } = game
@@ -91,6 +101,7 @@ export const describeNextStep = (
   if (viewer?.status === "out") return "Você foi eliminado e está assistindo."
   if (viewer?.status === "folded") return "Você desistiu desta mão."
   if (viewer?.status === "allIn") return "Você está all-in. Torça pela mesa!"
+  if (game.pending !== null) return PENDING_STEPS[game.pending]
   if (game.currentPlayerId !== viewerId) {
     return `Aguarde ${nicknameOf(game, game.currentPlayerId)}.`
   }
@@ -156,7 +167,10 @@ export const describeResult = (
     : `${nicknameOf(game, game.winnerId)} venceu`
 }
 
+const winnerChipsOf = (game: PokerState): number =>
+  game.winnerId === null ? 0 : (playerOf(game, game.winnerId)?.chips ?? 0)
+
 export const explainEnd = (game: PokerState): string =>
   game.endReason === "abandoned"
     ? "Os outros jogadores saíram, e a partida terminou."
-    : `Ficou com todas as ${formatChips(game.players.length * STARTING_CHIPS)} fichas.`
+    : `Ficou com todas as ${formatChips(winnerChipsOf(game))} fichas.`

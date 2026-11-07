@@ -13,6 +13,11 @@ export type EntryMode = "criar" | "entrar"
 
 export const ENTRY_ANCHOR = "entrar"
 
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth"
+
 export const useEntry = () => {
   const { connection, inviteCode, notice } = useGame()
   const nicknameInput = useRef<HTMLInputElement>(null)
@@ -34,6 +39,13 @@ export const useEntry = () => {
     setBusy(true)
     setProblem(await run(name))
     setBusy(false)
+  }
+
+  const focusEntry = () => {
+    document
+      .getElementById(ENTRY_ANCHOR)
+      ?.scrollIntoView({ behavior: scrollBehavior(), block: "center" })
+    nicknameInput.current?.focus({ preventScroll: true })
   }
 
   const join = () => {
@@ -60,14 +72,21 @@ export const useEntry = () => {
     },
     create: () => void enter((name) => gameSession.createRoom(name, gameId)),
     join,
+    chooseGame: (next: GameId) => {
+      setGameId(next)
+      setChosenMode("criar")
+      setProblem(null)
+    },
     pickGame: (next: GameId) => {
       setGameId(next)
       setChosenMode("criar")
       setProblem(null)
-      document
-        .getElementById(ENTRY_ANCHOR)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" })
-      nicknameInput.current?.focus({ preventScroll: true })
+      focusEntry()
+    },
+    openEntry: (next: EntryMode) => {
+      setChosenMode(next)
+      setProblem(null)
+      focusEntry()
     },
   }
   return [entry, nicknameInput] as const
