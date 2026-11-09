@@ -9,6 +9,7 @@ import type {
 import { RoomSession } from "../../src/application/room-session.js"
 import type { Actor } from "../../src/application/room-session.js"
 import { CreateRoom } from "../../src/application/use-cases/create-room.js"
+import { ChangePause } from "../../src/application/use-cases/change-pause.js"
 import { DisconnectPlayer } from "../../src/application/use-cases/disconnect-player.js"
 import { ExpireTurn } from "../../src/application/use-cases/expire-turn.js"
 import { ReadGame } from "../../src/application/use-cases/read-game.js"
@@ -90,6 +91,7 @@ const setup = (custom: Partial<GameSettings> = {}) => {
     kick: new KickPlayer(session, notifier),
     disconnect: new DisconnectPlayer(session, clock),
     start: new StartMatch(session, random),
+    pause: new ChangePause(session),
     play: {
       perform: (actor: Actor, action: TurnAction) => playTurn.perform(actor, () => ok(action)),
     },
@@ -149,6 +151,25 @@ describe("casos de uso", () => {
       expect(room?.game?.table).toHaveLength(8)
       expect(room?.turnDeadlineAt).toBe(61_000)
       expect(app.timers.get(host.roomCode)).toEqual({ turnNumber: 1, delayMs: 60_000 })
+    })
+
+    describe("pausar partida", () => {
+      it("congela o turno e desloca o prazo ao continuar", () => {
+        const { hostActor, guestActor, host } = lobby(app)
+        unwrap(app.start.execute(hostActor))
+        app.clock.current = 5_000
+
+        expect(app.pause.execute(guestActor, true)).toEqual({ ok: false, error: "NOT_HOST" })
+        unwrap(app.pause.execute(hostActor, true))
+        expect(app.rooms.find(host.roomCode)?.pausedAt).toBe(5_000)
+        expect(app.timers.has(host.roomCode)).toBe(false)
+
+        app.clock.current = 25_000
+        unwrap(app.pause.execute(hostActor, false))
+        expect(app.rooms.find(host.roomCode)?.pausedAt).toBeNull()
+        expect(app.rooms.find(host.roomCode)?.turnDeadlineAt).toBe(81_000)
+        expect(app.timers.get(host.roomCode)).toEqual({ turnNumber: 1, delayMs: 56_000 })
+      })
     })
 
     it("não inicia sozinho nem duas vezes", () => {

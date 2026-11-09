@@ -91,6 +91,10 @@ export const describeTurn = (
       return game.currentPlayerId === viewerId
         ? "Sua vez"
         : `Vez de ${nicknameOf(game, game.currentPlayerId ?? "")}`
+    case "insurance":
+      return game.currentPlayerId === viewerId
+        ? "Escolha o seguro da banca"
+        : `Seguro de ${nicknameOf(game, game.currentPlayerId ?? "")}`
     case "dealing":
       return "Distribuindo as cartas"
     case "dealer":
@@ -114,6 +118,11 @@ export const describeNextStep = (
   }
   if (game.phase === "dealing") {
     return "A banca está distribuindo, uma carta por vez."
+  }
+  if (game.phase === "insurance") {
+    return game.moves.insurance
+      ? `A banca mostra ás. Seguro custa ${formatChips(game.moves.insurance.cost)} fichas.`
+      : "Aguarde a escolha do seguro."
   }
   if (game.phase === "dealer")
     return "A banca revela e compra até ter 17 ou mais."

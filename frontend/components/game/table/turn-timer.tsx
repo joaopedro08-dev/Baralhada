@@ -17,13 +17,19 @@ const subscribeToClock = (listener: () => void): (() => void) => {
 
 const noSeconds = (): null => null
 
-export const useSecondsLeft = (deadlineAt: number | null): number | null => {
+export const useSecondsLeft = (
+  deadlineAt: number | null,
+  pausedAt: number | null = null
+): number | null => {
   const readSeconds = useCallback(
     () =>
       deadlineAt === null
         ? null
-        : Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000)),
-    [deadlineAt]
+        : Math.max(
+            0,
+            Math.ceil((deadlineAt - (pausedAt ?? Date.now())) / 1000)
+          ),
+    [deadlineAt, pausedAt]
   )
   return useSyncExternalStore(subscribeToClock, readSeconds, noSeconds)
 }
@@ -40,12 +46,14 @@ const noWaiting = (): boolean => false
 
 export function TurnClock({
   deadlineAt,
+  pausedAt,
   durationMs,
 }: {
   deadlineAt: number | null
+  pausedAt?: number | null
   durationMs?: number
 }) {
-  const left = useSecondsLeft(deadlineAt)
+  const left = useSecondsLeft(deadlineAt, pausedAt)
   if (left === null) return null
   const seconds =
     durationMs === undefined ? left : Math.min(left, durationMs / 1000)
@@ -70,12 +78,14 @@ export function TurnClock({
 
 export function TurnProgress({
   deadlineAt,
+  pausedAt,
   durationMs,
 }: {
   deadlineAt: number | null
+  pausedAt?: number | null
   durationMs: number
 }) {
-  const seconds = useSecondsLeft(deadlineAt)
+  const seconds = useSecondsLeft(deadlineAt, pausedAt)
   if (seconds === null) return null
   return (
     <Progress

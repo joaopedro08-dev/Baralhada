@@ -9,7 +9,7 @@ export const BLACKJACK_RULE_SECTIONS = [
   },
   {
     title: "Aposta e distribuição",
-    text: "No começo da rodada, todos apostam ao mesmo tempo: de 10 fichas até todas as que têm, de 10 em 10. Depois a banca distribui uma carta por vez: 2 abertas para cada um e, para ela, 1 aberta e 1 escondida. Se a banca tiver blackjack, ela revela na hora: quem não tem blackjack perde e quem tem empata.",
+    text: "No começo da rodada, todos apostam ao mesmo tempo: de 10 fichas até todas as que têm, de 10 em 10. Depois a banca distribui uma carta por vez: 2 abertas para cada um e, para ela, 1 aberta e 1 escondida. Se a carta aberta da banca for ás, cada jogador escolhe se quer seguro antes de continuar.",
   },
   {
     title: "Sua vez",
@@ -17,7 +17,7 @@ export const BLACKJACK_RULE_SECTIONS = [
   },
   {
     title: "Banca e pagamento",
-    text: "A banca revela a carta escondida e compra até ter 17 ou mais, inclusive 17 macio. Quem ganha recebe o valor da aposta; blackjack paga 3 para 2 (aposta de 20 recebe 30); empate devolve a aposta. Se a banca estourar, ganha quem não estourou.",
+    text: "A banca revela a carta escondida e compra até ter 17 ou mais, inclusive 17 macio. O seguro custa metade da aposta e, se a banca tiver blackjack, paga 2 para 1; sem blackjack, o seguro é perdido. Quem ganha recebe o valor da aposta; blackjack paga 3 para 2 (aposta de 20 recebe 30); empate devolve a aposta. Se a banca estourar, ganha quem não estourou.",
   },
   {
     title: "Tempo, fichas e saída",

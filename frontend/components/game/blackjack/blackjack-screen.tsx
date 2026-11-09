@@ -32,10 +32,12 @@ export function BlackjackScreen({
   room: RoomState
   game: BlackjackState
 }) {
-  const myTurn = game.currentPlayerId === room.viewerId && game.moves.hit
+  const myTurn =
+    game.currentPlayerId === room.viewerId &&
+    (game.moves.hit || !!game.moves.insurance)
   const { enabled, setEnabled, hints } = useHints(room, myTurn, "blackjack")
   const commands = useActionCommands<BlackjackAction>(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
   const [lastBet, setLastBet] = useState<number | null>(null)
   const others = game.players.filter((seat) => seat.id !== room.viewerId)
   const actorId = game.currentPlayerId ?? room.viewerId

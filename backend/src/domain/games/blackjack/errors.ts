@@ -8,5 +8,8 @@ export type BlackjackErrorCode =
   | "NOT_YOUR_TURN"
   | "DEALER_PLAYING"
   | "TABLE_DEALING"
+  | "INSURANCE_NOT_AVAILABLE"
+  | "ALREADY_INSURED"
+  | "CANNOT_INSURE"
   | "CANNOT_DOUBLE"
   | "CANNOT_SPLIT"

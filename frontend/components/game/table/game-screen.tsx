@@ -40,7 +40,7 @@ export function GameScreen({
   )
   const scoreNotice = useScoreNotice()
   useTableEffects(game, room.viewerId, room.matchStartsAt, scoreNotice.show)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
 
   const { selection } = controls
   const focus = focusOfHints(hints, room.viewerId)

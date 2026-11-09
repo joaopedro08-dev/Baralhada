@@ -14,6 +14,7 @@ import type { Clock, Logger } from "../application/ports.js"
 import { RoomSession } from "../application/room-session.js"
 import { ArrangeTeams } from "../application/use-cases/arrange-teams.js"
 import { ChangeHints } from "../application/use-cases/change-hints.js"
+import { ChangePause } from "../application/use-cases/change-pause.js"
 import { ChooseGame } from "../application/use-cases/choose-game.js"
 import { CreateRoom } from "../application/use-cases/create-room.js"
 import { DisconnectPlayer } from "../application/use-cases/disconnect-player.js"
@@ -99,6 +100,7 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
       chooseGame: new ChooseGame(session),
       arrangeTeams: new ArrangeTeams(session, random),
       changeHints: new ChangeHints(session),
+      changePause: new ChangePause(session),
       disconnectPlayer: new DisconnectPlayer(session, systemClock),
       startMatch: new StartMatch(session, random),
       playTurn: new PlayTurn(session, random),

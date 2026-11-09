@@ -36,7 +36,9 @@ export const blackjackPauseAfter = (previous: BlackjackGame, next: BlackjackGame
 }
 
 const turnOwner = (game: BlackjackGame): string => {
-  if (game.phase === "playing" && game.turn.playerId) return game.turn.playerId
+  if ((game.phase === "playing" || game.phase === "insurance") && game.turn.playerId) {
+    return game.turn.playerId
+  }
   const waiting = game.players.find((seat) => seat.status === "playing" && seat.bet === null)
   return waiting?.id ?? game.players[0]?.id ?? ""
 }
@@ -53,7 +55,10 @@ export const blackjackRules: GameRules<BlackjackGame, BlackjackAction, Blackjack
   turnOf: (game) => ({
     number: game.turn.number,
     playerId: turnOwner(game),
-    automatic: game.phase !== "betting" && game.phase !== "playing",
+    automatic:
+      game.phase !== "betting" &&
+      game.phase !== "playing" &&
+      game.phase !== "insurance",
   }),
   isFinished,
   pauseAfter: blackjackPauseAfter,

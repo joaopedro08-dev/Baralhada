@@ -1,4 +1,5 @@
 import { createFullDeck } from "../../cards/card.js"
+import { rankOf } from "../../cards/card.js"
 import type { Card } from "../../cards/card.js"
 import type { RandomSource } from "../../shared/random.js"
 import { shuffle } from "../../shared/random.js"
@@ -46,6 +47,7 @@ export const beginRound = (game: BlackjackGame, round: number): BlackjackGame =>
   const players = game.players.map((seat): Seat => ({
     ...seat,
     bet: null,
+    insurance: null,
     hands: [],
     status: seat.chips > 0 ? "playing" : "broke",
   }))
@@ -89,6 +91,40 @@ export const moveOn = (game: BlackjackGame): BlackjackGame => {
   }
 }
 
+const beginInsurance = (game: BlackjackGame): BlackjackGame => {
+  const prepared = {
+    ...game,
+    phase: "insurance" as const,
+    players: game.players.map((seat) => {
+      const cost = Math.floor((seat.bet ?? 0) / 2)
+      return seat.status === "playing" && seat.chips < cost
+        ? { ...seat, insurance: false }
+        : seat
+    }),
+  }
+  const next = prepared.players.find(
+    (seat) => seat.status === "playing" && seat.insurance === null
+  )
+  if (next) {
+    return {
+      ...prepared,
+      turn: {
+        number: nextTurnNumber(game),
+        playerId: next.id,
+        handIndex: 0,
+      },
+    }
+  }
+  if (!isNatural(prepared.dealer.cards)) return moveOn(prepared)
+  return settle(
+    withEvents({ ...prepared, dealer: { ...prepared.dealer, revealed: true } }, {
+      type: "dealerRevealed",
+      card: prepared.dealer.cards[1] as Card,
+      total: scoreOf(prepared.dealer.cards).total,
+    })
+  )
+}
+
 const outcomeOf = (hand: Hand, dealerCards: readonly Card[]): HandOutcome => {
   if (isBust(hand.cards)) return "bust"
   const dealerNatural = isNatural(dealerCards)
@@ -125,6 +161,8 @@ export const settle = (game: BlackjackGame): BlackjackGame => {
   const players = game.players.map((seat): Seat => {
     const returns = seat.hands.map((hand, handIndex) => {
       const outcome = outcomeOf(hand, game.dealer.cards)
+      const insuranceBet = seat.insurance === true ? Math.floor(hand.bet / 2) : 0
+      const insuranceNet = isNatural(game.dealer.cards) ? insuranceBet * 2 : -insuranceBet
       const paid = RETURNS[outcome](hand.bet)
       results.push({
         playerId: seat.id,
@@ -133,8 +171,10 @@ export const settle = (game: BlackjackGame): BlackjackGame => {
         bet: hand.bet,
         net: paid - hand.bet,
         fromSplit: hand.fromSplit,
+        insuranceBet,
+        insuranceNet,
       })
-      return paid
+      return paid + (isNatural(game.dealer.cards) ? insuranceBet * 3 : 0)
     })
     return { ...seat, chips: seat.chips + returns.reduce((total, paid) => total + paid, 0) }
   })
@@ -198,6 +238,9 @@ const finishDeal = (game: BlackjackGame): BlackjackGame => {
     },
     { type: "dealt", round: game.round }
   )
+  if (dealt.dealer.cards[0] && rankOf(dealt.dealer.cards[0]) === "A") {
+    return beginInsurance(dealt)
+  }
   if (!isNatural(dealt.dealer.cards)) return moveOn(dealt)
   return settle(
     withEvents(

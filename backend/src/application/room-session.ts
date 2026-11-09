@@ -100,7 +100,29 @@ export class RoomSession {
     const { room } = running.value
     const now = this.clock.now()
     if ((room.matchStartsAt ?? 0) > now) return err("MATCH_STARTING")
-    return !duringPause && (room.pausedUntil ?? 0) > now ? err("TABLE_PAUSED") : running
+    return !duringPause &&
+      ((room.pausedUntil ?? 0) > now || room.pausedAt !== null)
+      ? err("TABLE_PAUSED")
+      : running
+  }
+
+  pause(room: Room): Result<Room, ApplicationErrorCode> {
+    if (room.pausedAt !== null) return err("TABLE_ALREADY_PAUSED")
+    return ok({ ...room, pausedAt: this.clock.now() })
+  }
+
+  resume(room: Room): Result<Room, ApplicationErrorCode> {
+    if (room.pausedAt === null) return err("TABLE_NOT_PAUSED")
+    const elapsed = this.clock.now() - room.pausedAt
+    const shift = (value: number | null): number | null =>
+      value === null ? null : value + elapsed
+    return ok({
+      ...room,
+      matchStartsAt: shift(room.matchStartsAt),
+      turnDeadlineAt: shift(room.turnDeadlineAt),
+      pausedAt: null,
+      timedTurnNumber: null,
+    })
   }
 
   advance(room: Room, game: unknown): Room {
@@ -136,17 +158,31 @@ export class RoomSession {
     return this.settings.turnDurationOverrideMs ?? rules.turnDurationMs
   }
 
+  private turnDelayOf(room: Room, automatic: boolean, rules: AnyGameRules, now: number): number {
+    if (automatic) return 0
+    if (room.timedTurnNumber === null && room.turnDeadlineAt !== null) {
+      return Math.max(0, room.turnDeadlineAt - now)
+    }
+    return this.turnDurationOf(rules)
+  }
+
   private syncTurnTimer(room: Room): Room {
     if (room.game === null || this.statusOf(room) !== "playing") {
       this.scheduler.cancel(room.code)
       return { ...room, timedTurnNumber: null, turnDeadlineAt: null }
     }
     const rules = this.rulesOf(room)
+    if (room.pausedAt !== null) {
+      this.scheduler.cancel(room.code)
+      return { ...room, timedTurnNumber: null, turnDeadlineAt: room.turnDeadlineAt }
+    }
     const turn = rules.turnOf(room.game)
     if (room.timedTurnNumber === turn.number) return room
     const now = this.clock.now()
     const waitLeft = Math.max(0, (room.matchStartsAt ?? 0) - now, (room.pausedUntil ?? 0) - now)
-    const delay = waitLeft + (turn.automatic ? 0 : this.turnDurationOf(rules))
+    const resuming = room.timedTurnNumber === null && room.turnDeadlineAt !== null
+    const turnDelay = this.turnDelayOf(room, turn.automatic ?? false, rules, now)
+    const delay = resuming ? Math.max(waitLeft, turnDelay) : waitLeft + turnDelay
     this.scheduler.schedule(room.code, turn.number, delay)
     return {
       ...room,
