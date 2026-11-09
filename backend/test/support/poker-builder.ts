@@ -43,6 +43,7 @@ export const buildPoker = (spec: PokerSpec): PokerGame => {
       ...spec.deal,
     },
     step: 1,
+    pending: null,
     events: [],
     lastHand: null,
     eliminatedIds: [],

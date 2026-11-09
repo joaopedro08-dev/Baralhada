@@ -2,33 +2,29 @@ import type { GameRules } from "../../room/game-rules.js"
 import { expirePoker, playPoker, removePokerPlayer } from "./actions.js"
 import type { PokerAction } from "./betting.js"
 import type { PokerErrorCode } from "./errors.js"
-import {
-  BOARD_SIZE,
-  isFinished,
-  PLAYER_COUNTS,
-  POKER_ID,
-  STREETS,
-  TURN_DURATION_MS,
-} from "./model.js"
+import { isFinished, PLAYER_COUNTS, POKER_ID, TURN_DURATION_MS } from "./model.js"
 import type { PokerGame } from "./model.js"
 import { startGame } from "./setup.js"
 
-export const FOLD_WIN_PAUSE_MS = 2600
-export const SHOWDOWN_PAUSE_MS = 5200
-export const STREET_PAUSE_MS = 900
-export const RUNOUT_STREET_MS = 1100
+export const FOLD_WIN_PAUSE_MS = 3000
+export const SHOWDOWN_PAUSE_MS = 6000
+export const BETTING_CLOSED_PAUSE_MS = 1000
+export const RUNOUT_STREET_MS = 1600
+export const STREET_REVEAL_MS = 700
+export const DEAL_PAUSE_MS = 900
 
-const streetsBetween = (fromSize: number, toSize: number): number =>
-  STREETS.filter((street) => BOARD_SIZE[street] > fromSize && BOARD_SIZE[street] <= toSize).length
+const isWaiting = (game: PokerGame): boolean =>
+  game.pending === "street" || game.pending === "showdown"
 
 export const pokerPauseAfter = (previous: PokerGame, next: PokerGame): number => {
   const summary = next.lastHand
   if (summary && summary.number !== previous.lastHand?.number) {
-    const before = previous.deal.number === summary.number ? previous.deal.board.length : 0
-    const runout = streetsBetween(before, summary.board.length) * RUNOUT_STREET_MS
-    return (summary.showdown ? SHOWDOWN_PAUSE_MS : FOLD_WIN_PAUSE_MS) + runout
+    return summary.showdown ? SHOWDOWN_PAUSE_MS : FOLD_WIN_PAUSE_MS
   }
-  return next.deal.board.length > previous.deal.board.length ? STREET_PAUSE_MS : 0
+  const boardGrew = next.deal.board.length > previous.deal.board.length
+  if (isWaiting(next)) return boardGrew ? RUNOUT_STREET_MS : BETTING_CLOSED_PAUSE_MS
+  if (boardGrew) return STREET_REVEAL_MS
+  return next.deal.number > previous.deal.number ? DEAL_PAUSE_MS : 0
 }
 
 export const pokerRules: GameRules<PokerGame, PokerAction, PokerErrorCode> = {
@@ -40,7 +36,11 @@ export const pokerRules: GameRules<PokerGame, PokerAction, PokerErrorCode> = {
   play: playPoker,
   expireTurn: expirePoker,
   removePlayer: removePokerPlayer,
-  turnOf: (game) => ({ number: game.step, playerId: game.deal.actorId }),
+  turnOf: (game) => ({
+    number: game.step,
+    playerId: game.deal.actorId,
+    automatic: game.pending !== null,
+  }),
   isFinished,
   pauseAfter: pokerPauseAfter,
 }

@@ -10,5 +10,7 @@ export type PlatformErrorCode =
   | "MATCH_STARTING"
   | "HINTS_DISABLED"
   | "TABLE_PAUSED"
+  | "TABLE_ALREADY_PAUSED"
+  | "TABLE_NOT_PAUSED"
 
 export type ApplicationErrorCode<GameCode extends string = never> = PlatformErrorCode | GameCode

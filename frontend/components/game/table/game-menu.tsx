@@ -7,6 +7,7 @@ import { LeaveMatchButton } from "@/components/game/room/leave-button"
 import { HistoryList } from "@/components/game/table/history-list"
 import { HintsToggle } from "@/components/game/table/hints-toggle"
 import { HowToPlay } from "@/components/game/table/how-to-play"
+import { PauseToggle } from "@/components/game/table/pause-toggle"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -107,6 +108,10 @@ export function GameMenu({
             )}
             {hints && <CardCounter hints={hints} />}
           </MenuSection>
+
+          <Separator />
+
+          <PauseToggle room={room} />
 
           <Separator />
 

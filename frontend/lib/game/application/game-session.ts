@@ -223,6 +223,9 @@ export const createGameSession = ({
     allowHints: async (allowed: boolean): Promise<Refusal> =>
       refusalOf(await gateway.send("room:hints", { allowed })),
 
+    changePause: async (paused: boolean): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:pause", { paused })),
+
     playAction: async (action: AnyAction): Promise<Refusal> =>
       refusalOf(await gateway.send("game:action", action)),
 

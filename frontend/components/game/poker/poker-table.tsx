@@ -6,31 +6,15 @@ import { ChipStack } from "@/components/game/poker/chips"
 import { CommunityBoard } from "@/components/game/poker/community-board"
 import { PokerSeat } from "@/components/game/poker/poker-seat"
 import { PotDisplay } from "@/components/game/poker/pot-display"
-import type { HeldHand } from "@/components/game/poker/use-hand-hold"
 import { STREET_NAMES } from "@/lib/game/domain/poker/guide"
 import { seatSpots } from "@/lib/game/domain/poker/seating"
-import type { PokerPlayer, PokerState } from "@/lib/game/domain/poker/types"
+import type { HandSummary, PokerState } from "@/lib/game/domain/poker/types"
 import type { Card, RoomState } from "@/lib/game/domain/types"
 
-const playersDuring = (
-  game: PokerState,
-  held: HeldHand | null
-): readonly PokerPlayer[] => {
-  if (!held) return game.players
-  const { winnings } = held.summary
-  return held.before.players.map((player) => ({
-    ...player,
-    chips: player.chips + (winnings[player.id] ?? 0),
-    bet: 0,
-  }))
-}
-
-const winningCardsOf = (held: HeldHand | null): readonly Card[] | null => {
-  if (!held?.summary.showdown) return null
-  const winnerId = held.summary.pots[0]?.winnerIds[0]
-  return (
-    held.summary.shown.find((hand) => hand.playerId === winnerId)?.cards ?? null
-  )
+const winningCardsOf = (held: HandSummary | null): readonly Card[] | null => {
+  if (!held?.showdown) return null
+  const winnerId = held.pots[0]?.winnerIds[0]
+  return held.shown.find((hand) => hand.playerId === winnerId)?.cards ?? null
 }
 
 const uncollectedTotal = (game: PokerState): number | null => {
@@ -38,12 +22,13 @@ const uncollectedTotal = (game: PokerState): number | null => {
   return game.potTotal > collected ? game.potTotal : null
 }
 
-const stageLabel = (game: PokerState, held: HeldHand | null): string => {
+const stageLabel = (game: PokerState, held: HandSummary | null): string => {
   if (held) {
-    return held.summary.showdown
-      ? `Mão ${held.summary.number} · Showdown`
-      : `Mão ${held.summary.number} · encerrada`
+    return held.showdown
+      ? `Mão ${held.number} · Showdown`
+      : `Mão ${held.number} · encerrada`
   }
+  if (game.pending === "showdown") return `Mão ${game.handNumber} · Showdown`
   return `Mão ${game.handNumber} · ${STREET_NAMES[game.street]}`
 }
 
@@ -54,16 +39,16 @@ export function PokerTable({
 }: {
   room: RoomState
   game: PokerState
-  held: HeldHand | null
+  held: HandSummary | null
 }) {
-  const players = playersDuring(game, held)
+  const { players } = game
   const spots = seatSpots(
     players.map((player) => player.id),
     room.viewerId
   )
   const highlight = winningCardsOf(held)
   const shownBy = new Map(
-    (held?.summary.shown ?? []).map((hand) => [hand.playerId, hand])
+    (held?.shown ?? []).map((hand) => [hand.playerId, hand])
   )
 
   return (
@@ -90,13 +75,10 @@ export function PokerTable({
             {stageLabel(game, held)}
           </m.p>
         </AnimatePresence>
-        <CommunityBoard
-          board={held ? held.summary.board : game.board}
-          highlight={highlight}
-        />
+        <CommunityBoard board={game.board} highlight={highlight} />
         <PotDisplay
           game={game}
-          pots={held ? held.summary.pots : game.pots}
+          pots={held ? held.pots : game.pots}
           total={held ? null : uncollectedTotal(game)}
         />
       </div>
@@ -141,7 +123,7 @@ export function PokerTable({
                 ?.connected ?? false
             }
             shown={shownBy.get(player.id)}
-            winnings={held?.summary.winnings[player.id] ?? 0}
+            winnings={held?.winnings[player.id] ?? 0}
             highlight={highlight}
             held={held !== null}
           />

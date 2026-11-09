@@ -35,6 +35,7 @@ export interface ClientCommands {
   "room:team": { input: { playerId: PlayerId; team: number }; output: null }
   "room:teams-draw": { input: undefined; output: null }
   "room:hints": { input: { allowed: boolean }; output: null }
+  "room:pause": { input: { paused: boolean }; output: null }
   "game:start": { input: undefined; output: null }
   "game:action": { input: AnyAction; output: null }
   "game:hints": { input: undefined; output: AnyHints }

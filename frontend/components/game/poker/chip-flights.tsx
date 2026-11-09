@@ -72,9 +72,11 @@ const plansBetween = (
   }))
 }
 
+const isNewResult = (previous: PokerState, next: PokerState): boolean =>
+  next.lastHand !== null && next.lastHand.number !== previous.lastHand?.number
+
 const streetClosed = (previous: PokerState, next: PokerState): boolean =>
-  next.handNumber !== previous.handNumber ||
-  next.board.length > previous.board.length
+  next.board.length > previous.board.length || isNewResult(previous, next)
 
 const planFlights = (
   previous: PokerState,
@@ -94,7 +96,7 @@ const planFlights = (
     : []
   const summary = next.lastHand
   const paid =
-    summary && summary.number !== previous.lastHand?.number
+    summary && isNewResult(previous, next)
       ? Object.entries(summary.winnings).flatMap(([playerId, amount]) =>
           plansBetween(
             rectOf("[data-pot]"),

@@ -26,11 +26,11 @@ export const metadata: Metadata = {
     : undefined,
   title: "Baralhada",
   description:
-    "Jogue Rouba Monte, Truco Paulista, Três Trincas e Poker online com os amigos, no PC ou no celular.",
+    "Jogue Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack online com os amigos, no PC ou no celular.",
   openGraph: {
     title: "Baralhada",
     description:
-      "Salas privadas para jogar baralho com os amigos: Rouba Monte, Truco Paulista, Três Trincas e Poker.",
+      "Salas privadas para jogar baralho com os amigos: Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack.",
     type: "website",
     locale: "pt_BR",
   },
@@ -53,6 +53,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={cn(
         "antialiased",
         fontMono.variable,

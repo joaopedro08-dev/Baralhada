@@ -1,4 +1,6 @@
 import { createGameAdapters } from "../adapters/socket/game-adapter.js"
+import { blackjackAdapter } from "../adapters/socket/games/blackjack/adapter.js"
+import { cachetaAdapter } from "../adapters/socket/games/cacheta/adapter.js"
 import { pokerAdapter } from "../adapters/socket/games/poker/adapter.js"
 import { roubaMonteAdapter } from "../adapters/socket/games/rouba-monte/adapter.js"
 import { tresTrincasAdapter } from "../adapters/socket/games/tres-trincas/adapter.js"
@@ -12,6 +14,7 @@ import type { Clock, Logger } from "../application/ports.js"
 import { RoomSession } from "../application/room-session.js"
 import { ArrangeTeams } from "../application/use-cases/arrange-teams.js"
 import { ChangeHints } from "../application/use-cases/change-hints.js"
+import { ChangePause } from "../application/use-cases/change-pause.js"
 import { ChooseGame } from "../application/use-cases/choose-game.js"
 import { CreateRoom } from "../application/use-cases/create-room.js"
 import { DisconnectPlayer } from "../application/use-cases/disconnect-player.js"
@@ -24,6 +27,8 @@ import { ReadGame } from "../application/use-cases/read-game.js"
 import { ReconnectPlayer } from "../application/use-cases/reconnect-player.js"
 import { StartMatch } from "../application/use-cases/start-match.js"
 import { SweepRooms } from "../application/use-cases/sweep-rooms.js"
+import { blackjackRules } from "../domain/games/blackjack/rules.js"
+import { cachetaRules } from "../domain/games/cacheta/rules.js"
 import { pokerRules } from "../domain/games/poker/rules.js"
 import { roubaMonteRules } from "../domain/games/rouba-monte/rules.js"
 import { tresTrincasRules } from "../domain/games/tres-trincas/rules.js"
@@ -43,6 +48,8 @@ export const gameCatalog = createGameCatalog([
   trucoRules,
   tresTrincasRules,
   pokerRules,
+  cachetaRules,
+  blackjackRules,
 ])
 
 export const gameAdapters = createGameAdapters([
@@ -50,6 +57,8 @@ export const gameAdapters = createGameAdapters([
   trucoAdapter,
   tresTrincasAdapter,
   pokerAdapter,
+  cachetaAdapter,
+  blackjackAdapter,
 ])
 
 export interface Container {
@@ -91,6 +100,7 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
       chooseGame: new ChooseGame(session),
       arrangeTeams: new ArrangeTeams(session, random),
       changeHints: new ChangeHints(session),
+      changePause: new ChangePause(session),
       disconnectPlayer: new DisconnectPlayer(session, systemClock),
       startMatch: new StartMatch(session, random),
       playTurn: new PlayTurn(session, random),

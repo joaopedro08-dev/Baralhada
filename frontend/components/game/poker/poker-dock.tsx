@@ -6,10 +6,10 @@ import { Sparkles } from "lucide-react"
 import { CardBack, CardFace } from "@/components/game/cards/card-face"
 import { BetControls } from "@/components/game/poker/bet-controls"
 import { ChipCount } from "@/components/game/poker/chips"
-import type { HeldHand } from "@/components/game/poker/use-hand-hold"
 import { cardName } from "@/lib/game/domain/cards"
 import { playerOf } from "@/lib/game/domain/poker/guide"
 import type {
+  HandSummary,
   PokerAction,
   PokerHints,
   PokerState,
@@ -86,20 +86,21 @@ export function PokerDock({
   game: PokerState
   viewerId: PlayerId
   hints: PokerHints | null
-  held: HeldHand | null
+  held: HandSummary | null
   busy: boolean
   paused: boolean
   refusal: string | null
   onAction: (action: PokerAction) => void
 }) {
   const me = playerOf(game, viewerId)
-  const shown = held?.summary.shown.find((hand) => hand.playerId === viewerId)
-  const cards = held ? held.before.hole : game.hole
+  const shown = held?.shown.find((hand) => hand.playerId === viewerId)
   const myTurn =
-    !held && game.currentPlayerId === viewerId && game.endReason === null
+    !held &&
+    game.pending === null &&
+    game.currentPlayerId === viewerId &&
+    game.endReason === null
   const [current, outs] = hints?.sentences ?? []
-  const folded =
-    (held ? playerOf(held.before, viewerId) : me)?.status === "folded"
+  const folded = me?.status === "folded"
 
   return (
     <section
@@ -111,8 +112,8 @@ export function PokerDock({
     >
       <div className="flex items-center gap-3">
         <HoleCards
-          cards={cards}
-          dealKey={held ? held.summary.number : game.handNumber}
+          cards={game.hole}
+          dealKey={game.handNumber}
           folded={folded}
           highlight={shown?.cards ?? null}
         />

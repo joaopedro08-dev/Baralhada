@@ -50,6 +50,7 @@ export const moveTeamSchema = z.strictObject({
 })
 
 export const hintsSettingSchema = z.strictObject({ allowed: z.boolean() })
+export const pauseSettingSchema = z.strictObject({ paused: z.boolean() })
 
 export const emptySchema = z.undefined()
 

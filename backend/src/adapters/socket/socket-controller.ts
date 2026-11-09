@@ -4,6 +4,7 @@ import type { Actor } from "../../application/room-session.js"
 import type { ArrangeTeams } from "../../application/use-cases/arrange-teams.js"
 import type { ChooseGame } from "../../application/use-cases/choose-game.js"
 import type { ChangeHints } from "../../application/use-cases/change-hints.js"
+import type { ChangePause } from "../../application/use-cases/change-pause.js"
 import type { CreateRoom, SeatGrant } from "../../application/use-cases/create-room.js"
 import type { DisconnectPlayer } from "../../application/use-cases/disconnect-player.js"
 import type { JoinRoom } from "../../application/use-cases/join-room.js"
@@ -27,6 +28,7 @@ import {
   createRoomSchema,
   emptySchema,
   hintsSettingSchema,
+  pauseSettingSchema,
   joinRoomSchema,
   kickSchema,
   moveTeamSchema,
@@ -46,6 +48,7 @@ export interface SocketUseCases {
   readonly chooseGame: ChooseGame
   readonly arrangeTeams: ArrangeTeams
   readonly changeHints: ChangeHints
+  readonly changePause: ChangePause
   readonly disconnectPlayer: DisconnectPlayer
   readonly startMatch: StartMatch
   readonly playTurn: PlayTurn
@@ -148,7 +151,8 @@ export class SocketController {
   }
 
   private registerRoomCommands(session: ClientSession, member: MemberRegistrar): void {
-    const { leaveRoom, kickPlayer, chooseGame, arrangeTeams, changeHints } = this.useCases
+    const { leaveRoom, kickPlayer, chooseGame, arrangeTeams, changeHints, changePause } =
+      this.useCases
     member("room:leave", emptySchema, (actor) => {
       const left = leaveRoom.execute(actor)
       if (left.ok) this.registry.unbind(session)
@@ -169,6 +173,12 @@ export class SocketController {
       hintsSettingSchema,
       (actor, input: ClientCommands["room:hints"]["input"]) =>
         changeHints.execute(actor, input.allowed)
+    )
+    member(
+      "room:pause",
+      pauseSettingSchema,
+      (actor, input: ClientCommands["room:pause"]["input"]) =>
+        changePause.execute(actor, input.paused)
     )
   }
 

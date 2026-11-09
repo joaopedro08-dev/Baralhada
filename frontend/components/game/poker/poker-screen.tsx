@@ -7,9 +7,8 @@ import { ChipFlights } from "@/components/game/poker/chip-flights"
 import { PokerDock } from "@/components/game/poker/poker-dock"
 import { PokerMenu } from "@/components/game/poker/poker-menu"
 import { PokerTable } from "@/components/game/poker/poker-table"
-import { useHandHold } from "@/components/game/poker/use-hand-hold"
+import { WinnerShowcase } from "@/components/game/poker/winner-showcase"
 import { HistoryList } from "@/components/game/table/history-list"
-import { LiveScore, useStateNotice } from "@/components/game/table/live-score"
 import { MatchCountdown } from "@/components/game/table/match-countdown"
 import { MatchHeader } from "@/components/game/table/match-header"
 import { useSecondsLeft, useWaiting } from "@/components/game/table/turn-timer"
@@ -23,7 +22,7 @@ import {
   nicknameOf,
   playerOf,
 } from "@/lib/game/domain/poker/guide"
-import { pokerNotice } from "@/lib/game/domain/poker/notice"
+import { handResultOf, winnerShowcase } from "@/lib/game/domain/poker/showcase"
 import type { PokerAction, PokerState } from "@/lib/game/domain/poker/types"
 import type { RoomState } from "@/lib/game/domain/types"
 
@@ -56,7 +55,7 @@ export function PokerScreen({
   game: PokerState
 }) {
   const paused = useWaiting(room.pausedUntil)
-  const held = useHandHold(game, paused)
+  const held = handResultOf(game)
   const isMyTurn = game.currentPlayerId === room.viewerId
   const inHand = isInHand(playerOf(game, room.viewerId))
   const { enabled, setEnabled, hints } = useHints(
@@ -65,10 +64,8 @@ export function PokerScreen({
     "poker-texas-holdem"
   )
   const commands = useActionCommands<PokerAction>(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
-  const notice = useStateNotice(game, (previous, next) =>
-    pokerNotice(previous, next, room.viewerId)
-  )
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
+  const showcase = held ? winnerShowcase(game, held, room.viewerId) : null
   const [lastEvent] = game.history
 
   return (
@@ -78,7 +75,7 @@ export function PokerScreen({
         actorId={game.currentPlayerId}
         actorName={nicknameOf(game, game.currentPlayerId)}
         title={held ? "Resultado da mão" : describeTurn(game, room.viewerId)}
-        highlight={isMyTurn && !held}
+        highlight={isMyTurn && !held && game.pending === null}
         lastEvent={lastEvent}
         menu={
           <PokerMenu
@@ -123,7 +120,7 @@ export function PokerScreen({
       </div>
 
       <ChipFlights game={game} />
-      <LiveScore notice={notice.notice} onDismiss={notice.dismiss} />
+      <WinnerShowcase showcase={showcase} />
       {secondsToStart > 0 && <MatchCountdown seconds={secondsToStart} />}
     </div>
   )

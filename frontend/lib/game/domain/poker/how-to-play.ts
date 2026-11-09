@@ -5,7 +5,7 @@ export const POKER_RULE_SECTIONS = [
   },
   {
     title: "Blinds e botão",
-    text: "O botão (D) marca quem distribui e passa para o próximo jogador a cada mão. O jogador depois do botão paga a small blind e o seguinte paga a big blind, apostas obrigatórias que começam em 10 e 20 e dobram a cada 5 mãos. Com 2 jogadores, o botão paga a small blind e fala primeiro antes do flop.",
+    text: "O botão (D) marca quem distribui e passa para o próximo jogador a cada mão. O jogador depois do botão paga a small blind e o seguinte paga a big blind, apostas obrigatórias que começam em 10 e 20 e dobram a cada 10 mãos. Com 2 jogadores, o botão paga a small blind e fala primeiro antes do flop.",
   },
   {
     title: "Uma mão",

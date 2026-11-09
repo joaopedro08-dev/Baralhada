@@ -215,10 +215,7 @@
     border-radius: 9999px;
     background:
       radial-gradient(circle, var(--chip) 0 46%, transparent 47%),
-      repeating-conic-gradient(
-        var(--chip) 0 30deg,
-        oklch(0.97 0 0) 30deg 60deg
-      );
+      repeating-conic-gradient(var(--chip) 0 30deg, oklch(0.97 0 0) 30deg 60deg);
     box-shadow:
       inset 0 0 0 1.5px color-mix(in oklch, black 30%, var(--chip)),
       0 1px 1.5px rgb(0 0 0 / 0.55);
@@ -271,7 +268,21 @@
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--gold) 70%, transparent);
 }
 
+.marquee-bulbs {
+  background-image: radial-gradient(
+    circle,
+    oklch(0.95 0.12 95) 0 1.5px,
+    transparent 2.5px
+  );
+  background-size: 12px 12px;
+  background-position: 0 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .marquee-bulbs {
+    animation: bulb-chase 1.2s steps(4) infinite;
+  }
+
   .float-card {
     animation: float-card 5s ease-in-out infinite;
     animation-delay: var(--float-delay, 0s);
@@ -351,6 +362,12 @@
   }
 }
 
+@keyframes bulb-chase {
+  to {
+    background-position: 12px 0;
+  }
+}
+
 @keyframes sheen {
   from {
     background-position: 200% 0;
@@ -370,4 +387,75 @@ html[data-seat] [data-seat-boot] {
 
 html[data-seat] [data-home] {
   display: none;
+}
+
+.feature-timer {
+  background: conic-gradient(
+    var(--gold) 0 var(--timer-sweep, 75%),
+    color-mix(in oklch, var(--gold) 18%, transparent) 0
+  );
+}
+
+.lobby-table {
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    var(--felt-glow),
+    var(--felt) 60%,
+    var(--felt-deep) 100%
+  );
+  box-shadow:
+    0 0 0 0.5rem var(--poker-rail),
+    0 0 0 0.65rem var(--poker-rail-edge),
+    inset 0 0 2rem rgb(0 0 0 / 0.4),
+    0 1.25rem 2.5rem rgb(0 0 0 / 0.35);
+}
+
+@property --timer-sweep {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 75%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .suit-marquee {
+    animation: suit-marquee 38s linear infinite;
+  }
+
+  .suit-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .feature-timer {
+    animation: timer-sweep 6s linear infinite;
+  }
+
+  .seat-waiting {
+    animation: seat-waiting 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes suit-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes timer-sweep {
+  from {
+    --timer-sweep: 100%;
+  }
+  to {
+    --timer-sweep: 0%;
+  }
+}
+
+@keyframes seat-waiting {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }

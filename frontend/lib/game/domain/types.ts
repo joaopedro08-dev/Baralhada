@@ -1,4 +1,14 @@
 import type {
+  BlackjackAction,
+  BlackjackHints,
+  BlackjackState,
+} from "@/lib/game/domain/blackjack/types"
+import type {
+  CachetaAction,
+  CachetaHints,
+  CachetaState,
+} from "@/lib/game/domain/cacheta/types"
+import type {
   PokerAction,
   PokerHints,
   PokerState,
@@ -40,6 +50,8 @@ export type GameId =
   | "truco-paulista"
   | "tres-trincas"
   | "poker-texas-holdem"
+  | "cacheta"
+  | "blackjack"
 
 export type TurnAction =
   | {
@@ -108,12 +120,15 @@ export interface RoomState {
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
+  readonly pausedAt: number | null
   readonly serverNow: number
   readonly game:
     | GameState
     | TrucoState
     | TresTrincasState
     | PokerState
+    | CachetaState
+    | BlackjackState
     | null
 }
 
@@ -151,6 +166,18 @@ export interface Seat {
   readonly inviteUrl: string
 }
 
-export type AnyAction = TurnAction | TrucoAction | TrincaAction | PokerAction
+export type AnyAction =
+  | TurnAction
+  | TrucoAction
+  | TrincaAction
+  | PokerAction
+  | CachetaAction
+  | BlackjackAction
 
-export type AnyHints = Hints | TrucoHints | TresTrincasHints | PokerHints
+export type AnyHints =
+  | Hints
+  | TrucoHints
+  | TresTrincasHints
+  | PokerHints
+  | CachetaHints
+  | BlackjackHints

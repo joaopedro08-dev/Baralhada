@@ -157,7 +157,10 @@ export function PokerSeat({
   held: boolean
 }) {
   const acting =
-    !held && game.currentPlayerId === player.id && game.endReason === null
+    !held &&
+    game.pending === null &&
+    game.currentPlayerId === player.id &&
+    game.endReason === null
   const status = statusLabel(player.status)
   const positions = held ? [] : positionsOf(game, player.id)
   const { plate, wave } = useAllInShock(player.status)

@@ -51,7 +51,7 @@ export function PotDisplay({
       <ul
         className={cn(
           "flex flex-wrap items-center justify-center gap-x-3 gap-y-1",
-          many && "max-w-[15rem]"
+          many && "max-w-60"
         )}
       >
         <AnimatePresence initial={false}>
@@ -68,7 +68,7 @@ export function PotDisplay({
             >
               <ChipStack amount={pot.amount} />
               {(many || isResult(pot)) && (
-                <span className="flex max-w-[9rem] items-center gap-0.5 truncate text-[0.65rem] leading-tight text-felt-muted">
+                <span className="flex max-w-36 items-center gap-0.5 truncate text-[0.65rem] leading-tight text-felt-muted">
                   {isResult(pot) && (
                     <Crown aria-hidden className="size-3 shrink-0 text-gold" />
                   )}

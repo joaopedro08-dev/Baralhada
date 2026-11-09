@@ -10,7 +10,7 @@ import type { RandomSource } from "../../src/domain/shared/random.js"
 import { seededRandom, unwrap } from "../support/game-builder.js"
 import { cardsInPlay, chipsInPlay } from "../support/poker-builder.js"
 
-const MAX_DECISIONS = 4000
+const MAX_DECISIONS = 20_000
 const SEEDS = 40
 
 const choose = (moves: PokerMoves, random: RandomSource): PokerAction => {
@@ -34,6 +34,7 @@ const assertInvariants = (game: PokerGame, totalChips: number) => {
   const cards = cardsInPlay(game)
   expect(new Set(cards).size).toBe(cards.length)
   expect(cards).toHaveLength(DECK_SIZE)
+  if (game.pending !== null) return
   expect(movesOf(game, game.deal.actorId)).not.toEqual({
     fold: false,
     check: false,
@@ -56,7 +57,7 @@ const playOut = (seed: number) => {
   for (let decision = 0; decision < MAX_DECISIONS && !isFinished(game); decision++) {
     const actorId = game.deal.actorId
     game =
-      random.nextInt(25) === 0
+      game.pending !== null || random.nextInt(25) === 0
         ? expirePoker(game, random)
         : unwrap(playPoker(game, actorId, choose(movesOf(game, actorId), random), random))
     assertInvariants(game, totalChips)
@@ -97,7 +98,10 @@ describe("simulação de partidas completas", () => {
           continue
         }
         const actorId = game.deal.actorId
-        game = unwrap(playPoker(game, actorId, choose(movesOf(game, actorId), random), random))
+        game =
+          game.pending !== null
+            ? expirePoker(game, random)
+            : unwrap(playPoker(game, actorId, choose(movesOf(game, actorId), random), random))
       }
       expect(isFinished(game)).toBe(true)
       expect(game.eliminatedIds).toHaveLength(4)
