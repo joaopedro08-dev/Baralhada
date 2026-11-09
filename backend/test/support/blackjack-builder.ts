@@ -11,6 +11,7 @@ import type {
 interface SeatSpec {
   readonly chips?: number
   readonly bet?: number | null
+  readonly insurance?: boolean | null
   readonly hands?: readonly Hand[]
   readonly status?: SeatStatus
 }
@@ -42,6 +43,7 @@ export const buildBlackjack = (spec: BlackjackSpec): BlackjackGame => {
       id,
       chips: spec.players[id]?.chips ?? 900,
       bet: spec.players[id]?.bet ?? (phase === "betting" ? null : 100),
+      insurance: spec.players[id]?.insurance ?? null,
       hands: spec.players[id]?.hands ?? [],
       status: spec.players[id]?.status ?? "playing",
     })),

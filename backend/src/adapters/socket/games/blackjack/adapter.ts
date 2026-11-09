@@ -15,6 +15,10 @@ export const blackjackActionSchema = z.discriminatedUnion("type", [
     type: z.literal("bet"),
     amount: z.number().int().min(1).max(MAX_BET),
   }),
+  z.strictObject({
+    type: z.literal("insurance"),
+    accepted: z.boolean(),
+  }),
   z.strictObject({ type: z.literal("hit") }),
   z.strictObject({ type: z.literal("stand") }),
   z.strictObject({ type: z.literal("double") }),

@@ -5,6 +5,7 @@ import { PlayActions } from "@/components/game/blackjack/play-actions"
 import { SeatHands } from "@/components/game/blackjack/seat-hands"
 import { ChipCount, ChipStack } from "@/components/game/poker/chips"
 import { RefusalMessage } from "@/components/game/refusal-message"
+import { GameButton } from "@/components/game/game-button"
 import {
   describeNextStep,
   resultsFor,
@@ -37,7 +38,7 @@ export function BlackjackDock({
 }) {
   const seat = seatOf(game, viewerId)
   const myTurn = game.currentPlayerId === viewerId
-  const acting = game.moves.bet !== null || myTurn
+  const acting = game.moves.bet !== null || !!game.moves.insurance || myTurn
   return (
     <section
       aria-label="Sua mão e ações"
@@ -76,6 +77,31 @@ export function BlackjackDock({
           activeIndex={myTurn ? game.handIndex : null}
           size="large"
         />
+      )}
+
+      {game.moves.insurance && seat && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-center text-sm font-medium">
+            A banca mostra um ás. O seguro custa{" "}
+            <strong>{game.moves.insurance.cost} fichas</strong> e paga 2 para 1
+            se houver blackjack.
+          </p>
+          <div className="flex gap-2">
+            <GameButton
+              tone="gold"
+              disabled={busy}
+              onClick={() => onAction({ type: "insurance", accepted: true })}
+            >
+              Sim
+            </GameButton>
+            <GameButton
+              disabled={busy}
+              onClick={() => onAction({ type: "insurance", accepted: false })}
+            >
+              Não
+            </GameButton>
+          </div>
+        </div>
       )}
 
       {seat && seat.hands.length === 0 && seat.bet !== null && (

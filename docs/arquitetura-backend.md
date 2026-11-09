@@ -81,7 +81,7 @@ Os times são da plataforma, não do Truco: um jogo com `teamCount` recebe em ca
 3. Registrar as regras e o adaptador no `container.ts` e o tipo do estado na união de `contract.ts`.
 4. No frontend, registrar o jogo em `lib/game/domain/catalog.ts` e a mesa em `components/game/room/room-screens.tsx`.
 
-Nenhum arquivo da sala ou dos casos de uso muda (RNF-13).
+As regras dos jogos continuam isoladas da sala e dos casos de uso; o estado e os comandos comuns ficam na camada da plataforma.
 
 ## Decisões
 
@@ -114,6 +114,7 @@ Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { cod
 | `room:game` | `{ gameId }` | `null` | RF-25 |
 | `room:team` | `{ playerId, team }` | `null` | TR-RF-09 |
 | `room:teams-draw` | nenhuma | `null` | TR-RF-09 |
+| `room:pause` | `{ paused }` | `null` | Pausa manual pelo anfitrião; congela o relógio e o agendador |
 | `game:start` | nenhuma | `null` | RF-04, RF-15 |
 | `game:action` | Rouba Monte: `capture { card, tableCards }`, `stack { card }`, `steal { card, targetId }`, `discard { card }` ou `draw`. Truco: `play { card }`, `playBlind { slot }`, `raise`, `accept` ou `run`. Poker: `fold`, `check`, `call`, `bet { amount }` ou `raise { amount }`, com o valor total da aposta na rodada. Cacheta: `draw`, `take`, `discard { card }` ou `knock { card }`, com a carta que vai para o descarte. Blackjack: `bet { amount }`, `hit`, `stand`, `double` ou `split` | `null` | RF-09, RF-10, TR-RF-02 a TR-RF-08, PK-RF-03, PK-RF-04, CA-RF-03, CA-RF-04, CA-RF-06, BJ-RF-01, BJ-RF-04 a BJ-RF-06 |
 | `game:hints` | nenhuma | Rouba Monte: jogadas, destaques, risco e contador. Truco: régua de força e sugestões. Poker: jogo atual e cartas que melhoram. Cacheta: jogos prontos, batida possível e sugestões. Blackjack: jogada da estratégia básica | RF-16 a RF-19, TR-RF-13, TR-RF-14, PK-RF-12, PK-RF-13, CA-RF-11, CA-RF-12, BJ-RF-13 |
@@ -238,7 +239,7 @@ Seguem o documento de requisitos do Poker (PK-RN-01 a PK-RN-19). O módulo fica 
 
 | Ponto | Lacuna | O que foi implementado |
 | --- | --- | --- |
-| Blinds a cada 5 ou 10 mãos | A PK-RN-05 e a introdução dizem 5 mãos; a seção 5 diz 10 | 10 mãos, decisão do João Pedro para deixar a partida mais equilibrada. A constante é `HANDS_PER_BLIND_LEVEL` |
+| Blinds a cada 5 ou 10 mãos | A PK-RN-05 e a introdução dizem 5 mãos; a seção 5 diz 10 | 10 mãos, decisão do realizada por mim para deixar a partida mais equilibrada. A constante é `HANDS_PER_BLIND_LEVEL` |
 | Desistir sem aposta | Não há regra | Recusado: sem aposta, passar é de graça. Evita desistências por engano e casa com a PK-RN-18 |
 | Big blind incompleta | Não há regra | Os outros pagam a big blind cheia; o que a blind curta não cobre forma um pote paralelo |
 | Ficha ímpar com 3 ou mais empatados | "A ficha que sobrar vai para o primeiro depois do botão" | Toda a sobra vai para o primeiro vencedor depois do botão |
@@ -310,7 +311,7 @@ Seguem o documento de requisitos do Blackjack (BJ-RN-01 a BJ-RN-20), com os 4 po
 | Ponto | Lacuna | O que foi implementado |
 | --- | --- | --- |
 | Fichas que não fecham em 10 | Blackjack paga 3 para 2 e cria valores como 1015 | Além dos múltiplos de 10, vale apostar todas as fichas. Quem tem menos de 10 aposta tudo |
-| Par para dividir | "Mesmo valor (número ou letra)" | Mesmo valor de pontos: K com Q, 10 com J e qualquer outra dupla de cartas que valem 10 dividem, decisão do João Pedro. A dica da estratégia básica continua sugerindo não dividir 20 |
+| Par para dividir | "Mesmo valor (número ou letra)" | Mesmo valor de pontos: K com Q, 10 com J e qualquer outra dupla de cartas que valem 10 dividem, decisão realizada por mim. A dica da estratégia básica continua sugerindo não dividir 20 |
 | 21 na mão | Não diz se a mão para sozinha | Para, como o estouro: não há o que melhorar |
 | Banca sem adversário | "Se todos os jogadores estouraram, ela não compra" | Também não compra quando as mãos vivas são só blackjacks, que já ganham de qualquer outro 21 |
 | Ordem dos passos | "Uma carta de cada vez" | Cada carta da banca é um passo do servidor com pausa, como a mesa do Poker |

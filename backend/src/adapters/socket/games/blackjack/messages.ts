@@ -24,6 +24,9 @@ export const BLACKJACK_ERRORS: Readonly<Record<BlackjackErrorCode, string>> = {
   NOT_YOUR_TURN: "Não é a sua vez.",
   DEALER_PLAYING: "Agora é a vez da banca: espere o resultado.",
   TABLE_DEALING: "A banca está distribuindo as cartas: espere a sua vez.",
+  INSURANCE_NOT_AVAILABLE: "O seguro não está disponível agora.",
+  ALREADY_INSURED: "Você já escolheu o seguro nesta rodada.",
+  CANNOT_INSURE: "Você não tem fichas suficientes para o seguro.",
   CANNOT_DOUBLE:
     "Só dá para dobrar com as 2 primeiras cartas, sem ter dividido e com fichas para cobrir a aposta.",
   CANNOT_SPLIT:
@@ -87,6 +90,10 @@ type Describers = {
 const DESCRIBERS: Describers = {
   roundStarted: (event) => `Rodada ${event.round} de ${ROUNDS}: façam suas apostas`,
   bet: (event, nameOf) => `${nameOf(event.playerId)} apostou ${formatChips(event.amount)}`,
+  insurance: (event, nameOf) =>
+    event.accepted
+      ? `${nameOf(event.playerId)} fez seguro de ${formatChips(event.amount)}`
+      : `${nameOf(event.playerId)} recusou o seguro`,
   dealt: () => "As cartas foram distribuídas",
   hit: (event, nameOf) =>
     `${nameOf(event.playerId)} pediu ${cardName(event.card)} ${describeTotal(event.total)}`,

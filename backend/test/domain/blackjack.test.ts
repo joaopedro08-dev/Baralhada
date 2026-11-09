@@ -164,6 +164,56 @@ describe("BJ-RN-08 e BJ-RN-17 distribuição e visibilidade", () => {
 })
 
 describe("BJ-RN-09 blackjack da banca", () => {
+  it("oferece seguro com ás da banca e paga 2 para 1 quando aceito", () => {
+    const game = buildBlackjack({
+      phase: "insurance",
+      dealer: { cards: ["AS", "KD"] },
+      turn: { playerId: "ana" },
+      players: {
+        ana: { chips: 900, insurance: null, hands: [hand(["9H", "QC"], 100, { done: true })] },
+      },
+    })
+
+    const settled = act(game, "ana", { type: "insurance", accepted: true })
+
+    expect(settled.phase).toBe("settled")
+    expect(getSeat(settled, "ana")).toMatchObject({ chips: 1000, insurance: true })
+    expect(settled.lastRound?.hands[0]).toMatchObject({
+      insuranceBet: 50,
+      insuranceNet: 100,
+      outcome: "lose",
+    })
+  })
+
+  it("não cobra o seguro recusado e segue a rodada se a banca não tiver blackjack", () => {
+    const game = buildBlackjack({
+      phase: "insurance",
+      dealer: { cards: ["AS", "9D"] },
+      turn: { playerId: "ana" },
+      players: {
+        ana: { chips: 900, insurance: null, hands: [hand(["9H", "QC"], 100, { done: true })] },
+      },
+    })
+
+    const next = act(game, "ana", { type: "insurance", accepted: false })
+
+    expect(next.phase).toBe("dealer")
+    expect(getSeat(next, "ana")).toMatchObject({ chips: 900, insurance: false })
+  })
+
+  it("não oferece seguro quando o jogador não consegue pagar", () => {
+    const game = buildBlackjack({
+      phase: "insurance",
+      dealer: { cards: ["AS", "9D"] },
+      turn: { playerId: "ana" },
+      players: {
+        ana: { chips: 40, insurance: null, hands: [hand(["9H", "QC"], 100, { done: true })] },
+      },
+    })
+
+    expect(toBlackjackView(game, "ana").moves.insurance).toBeNull()
+  })
+
   it("revela na hora: quem não tem blackjack perde e quem tem empata", () => {
     const game = buildBlackjack({
       dealer: { cards: ["AS", "KD"] },

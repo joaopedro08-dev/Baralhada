@@ -25,7 +25,10 @@ const describeDealer = (result: RoundResult): string => {
 
 const headlineOf = (mine: readonly HandResult[]): string => {
   if (mine.length === 0) return "Rodada encerrada"
-  const net = mine.reduce((total, entry) => total + entry.net, 0)
+  const net = mine.reduce(
+    (total, entry) => total + entry.net + (entry.insuranceNet ?? 0),
+    0
+  )
   if (mine.some((entry) => entry.outcome === "blackjack")) return "Blackjack!"
   if (net > 0) return "Você ganhou!"
   if (net < 0)

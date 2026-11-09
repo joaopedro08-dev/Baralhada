@@ -41,6 +41,7 @@ export class StartMatch {
       lastStarterId: starterId,
       matchStartsAt: this.session.countdownEnd(),
       pausedUntil: null,
+      pausedAt: null,
       timedTurnNumber: null,
     })
     return ok(null)

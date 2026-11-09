@@ -33,11 +33,18 @@ export interface Seat {
   readonly id: PlayerId
   readonly chips: number
   readonly bet: number | null
+  readonly insurance: boolean | null
   readonly hands: readonly Hand[]
   readonly status: SeatStatus
 }
 
-export type Phase = "betting" | "dealing" | "playing" | "dealer" | "settled"
+export type Phase =
+  | "betting"
+  | "dealing"
+  | "insurance"
+  | "playing"
+  | "dealer"
+  | "settled"
 
 export interface Dealer {
   readonly cards: readonly Card[]
@@ -59,6 +66,8 @@ export interface HandResult {
   readonly bet: number
   readonly net: number
   readonly fromSplit: boolean
+  readonly insuranceBet?: number
+  readonly insuranceNet?: number
 }
 
 export interface RoundResult {
@@ -72,6 +81,12 @@ export interface RoundResult {
 export type BlackjackEvent =
   | { readonly type: "roundStarted"; readonly round: number }
   | { readonly type: "bet"; readonly playerId: PlayerId; readonly amount: number }
+  | {
+      readonly type: "insurance"
+      readonly playerId: PlayerId
+      readonly accepted: boolean
+      readonly amount: number
+    }
   | { readonly type: "dealt"; readonly round: number }
   | {
       readonly type: "hit"

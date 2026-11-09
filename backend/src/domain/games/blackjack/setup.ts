@@ -21,6 +21,7 @@ export const startGame = (
       id: seat.id,
       chips: STARTING_CHIPS,
       bet: null,
+      insurance: null,
       hands: [],
       status: "playing",
     })),

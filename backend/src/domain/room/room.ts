@@ -25,6 +25,7 @@ export interface Room<State = unknown> {
   readonly lastStarterId: PlayerId | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
+  readonly pausedAt: number | null
   readonly version: number
   readonly timedTurnNumber: number | null
   readonly turnDeadlineAt: number | null
@@ -81,6 +82,7 @@ export const createRoom = <State>(code: string, gameId: string, host: RoomPlayer
   lastStarterId: null,
   matchStartsAt: null,
   pausedUntil: null,
+  pausedAt: null,
   version: 0,
   timedTurnNumber: null,
   turnDeadlineAt: null,

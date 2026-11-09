@@ -7,6 +7,7 @@ import { LeaveMatchButton } from "@/components/game/room/leave-button"
 import { HintsToggle } from "@/components/game/table/hints-toggle"
 import { HistoryList } from "@/components/game/table/history-list"
 import { HowToPlay } from "@/components/game/table/how-to-play"
+import { PauseToggle } from "@/components/game/table/pause-toggle"
 import type { RuleSection } from "@/components/game/table/how-to-play"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -88,6 +89,10 @@ export function MatchMenu({
               </p>
             )}
           </section>
+
+          <Separator />
+
+          <PauseToggle room={room} />
 
           <Separator />
 

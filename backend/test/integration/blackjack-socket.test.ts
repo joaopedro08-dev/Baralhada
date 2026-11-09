@@ -176,7 +176,16 @@ describe("BJ-RF-01 a BJ-RF-04 partida pelo socket", () => {
       )
       if (betting.status === "finished") break
       await expectData(request(host, "game:action", { type: "bet", amount: 10 }))
-      const turn = await nextState(host, (state) => isDealt(state) || state.status === "finished")
+      let turn = await nextState(host, (state) => isDealt(state) || state.status === "finished")
+      if (turn.game?.moves.insurance) {
+        await expectData(request(host, "game:action", { type: "insurance", accepted: false }))
+        turn = await nextState(
+          host,
+          (state) =>
+            state.status === "finished" ||
+            (state.game?.phase !== "insurance" && state.game?.phase !== "dealing")
+        )
+      }
       if (turn.game?.moves.stand) {
         await expectData(request(host, "game:action", { type: "stand" }))
       }
@@ -185,13 +194,22 @@ describe("BJ-RF-01 a BJ-RF-04 partida pelo socket", () => {
     expect(final.game?.endReason).toBe("rounds")
     expect(final.game?.round).toBe(10)
     expect(final.game?.history[0]).toMatch(/venceu com mais fichas|terminou/)
-  })
+  }, 15_000)
 
   it("entrega a dica de estratégia a quem está na vez", async () => {
     const { host } = await startTable(1)
     await nextState(host, (state) => state.game?.moves.bet !== null)
     await expectData(request(host, "game:action", { type: "bet", amount: 10 }))
     const dealt = await nextState(host, (state) => isDealt(state))
+    if (dealt.game?.moves.insurance) {
+      await expectData(request(host, "game:action", { type: "insurance", accepted: false }))
+      await nextState(
+        host,
+        (state) =>
+          state.status === "finished" ||
+          (state.game?.phase !== "insurance" && state.game?.phase !== "dealing")
+      )
+    }
     const hints = await expectData(request<BlackjackHintsDto>(host, "game:hints"))
     expect(hints.kind).toBe(BLACKJACK)
     if (dealt.game?.phase === "playing" && dealt.game.moves.hit) {

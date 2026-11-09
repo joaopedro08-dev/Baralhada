@@ -51,6 +51,7 @@ export class RoomPresenter {
       turnDeadlineAt: room.turnDeadlineAt,
       matchStartsAt: room.matchStartsAt,
       pausedUntil: room.pausedUntil,
+      pausedAt: room.pausedAt,
     }
     return (viewerId) => ({ ...shared, viewerId, game: presentGame?.(viewerId) ?? null })
   }

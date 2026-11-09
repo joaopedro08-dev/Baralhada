@@ -58,6 +58,7 @@ export interface RoomStateDto {
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
+  readonly pausedAt: number | null
   readonly serverNow: number
   readonly game: GameStateDto | null
 }
@@ -75,6 +76,7 @@ export interface ClientCommands {
   "room:team": { input: { playerId: PlayerId; team: number }; output: null }
   "room:teams-draw": { input: undefined; output: null }
   "room:hints": { input: { allowed: boolean }; output: null }
+  "room:pause": { input: { paused: boolean }; output: null }
   "game:start": { input: undefined; output: null }
   "game:action": { input: unknown; output: null }
   "game:hints": { input: undefined; output: HintsDto }
