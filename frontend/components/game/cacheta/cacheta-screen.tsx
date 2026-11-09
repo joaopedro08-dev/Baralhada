@@ -40,7 +40,7 @@ export function CachetaScreen({
     "cacheta"
   )
   const commands = useActionCommands<CachetaAction>(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
   const mine = game.players.find((player) => player.id === room.viewerId)
   const actorId = result?.knockerId ?? game.currentPlayerId
   const [lastEvent] = game.history

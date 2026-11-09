@@ -56,7 +56,7 @@ export function GameHeader({
             </AnimatePresence>
           </div>
         </div>
-        <TurnClock deadlineAt={room.turnDeadlineAt} />
+        <TurnClock deadlineAt={room.turnDeadlineAt} pausedAt={room.pausedAt} />
         <GameMenu
           room={room}
           game={game}
@@ -67,6 +67,7 @@ export function GameHeader({
       </div>
       <TurnProgress
         deadlineAt={room.turnDeadlineAt}
+        pausedAt={room.pausedAt}
         durationMs={room.turnDurationMs}
       />
     </header>

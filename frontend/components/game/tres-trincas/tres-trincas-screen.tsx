@@ -34,7 +34,7 @@ export function TresTrincasScreen({
     "tres-trincas"
   )
   const commands = useActionCommands<TrincaAction>(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
   const notice = useStateNotice(game, (previous, next) =>
     trincaNotice(previous, next, room.viewerId)
   )

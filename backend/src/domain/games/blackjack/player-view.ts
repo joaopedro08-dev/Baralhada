@@ -27,6 +27,7 @@ export interface BlackjackSeatView {
   readonly nickname: string
   readonly chips: number
   readonly bet: number | null
+  readonly insurance: boolean | null
   readonly status: SeatStatus
   readonly hands: readonly BlackjackHandView[]
 }
@@ -46,6 +47,7 @@ export interface BetRange {
 
 export interface BlackjackMoves {
   readonly bet: BetRange | null
+  readonly insurance: { readonly cost: number } | null
   readonly hit: boolean
   readonly stand: boolean
   readonly double: boolean
@@ -71,10 +73,28 @@ export interface BlackjackView {
 
 const NO_MOVES: BlackjackMoves = {
   bet: null,
+  insurance: null,
   hit: false,
   stand: false,
   double: false,
   split: false,
+}
+
+const insuranceMovesOf = (
+  game: BlackjackGame,
+  seat: BlackjackGame["players"][number],
+  viewerId: PlayerId
+): BlackjackMoves | null => {
+  if (
+    game.phase !== "insurance" ||
+    game.turn.playerId !== viewerId ||
+    seat.insurance !== null
+  ) {
+    return null
+  }
+  const cost = Math.floor((seat.bet ?? 0) / 2)
+  if (seat.chips < cost) return null
+  return { ...NO_MOVES, insurance: { cost } }
 }
 
 export const blackjackMovesOf = (game: BlackjackGame, viewerId: PlayerId): BlackjackMoves => {
@@ -87,10 +107,13 @@ export const blackjackMovesOf = (game: BlackjackGame, viewerId: PlayerId): Black
       bet: { min: Math.min(MIN_BET, seat.chips), max: seat.chips, step: BET_STEP },
     }
   }
+  const insurance = insuranceMovesOf(game, seat, viewerId)
+  if (insurance) return insurance
   const hand = seat.hands[game.turn.handIndex]
   if (game.phase !== "playing" || game.turn.playerId !== viewerId || !hand) return NO_MOVES
   return {
     bet: null,
+    insurance: null,
     hit: true,
     stand: true,
     double: canDouble(seat, hand),
@@ -114,6 +137,7 @@ export const toBlackjackView = (game: BlackjackGame, viewerId: PlayerId): Blackj
     nickname: game.nicknames[seat.id] ?? "",
     chips: seat.chips,
     bet: seat.bet,
+    insurance: seat.insurance,
     status: seat.status,
     hands: seat.hands.map((hand) => ({ ...hand, ...scoreOf(hand.cards) })),
   })),
@@ -121,7 +145,10 @@ export const toBlackjackView = (game: BlackjackGame, viewerId: PlayerId): Blackj
   rounds: ROUNDS,
   phase: game.phase,
   dealer: dealerView(game),
-  currentPlayerId: game.phase === "playing" ? game.turn.playerId : null,
+  currentPlayerId:
+    game.phase === "playing" || game.phase === "insurance"
+      ? game.turn.playerId
+      : null,
   handIndex: game.turn.handIndex,
   turnNumber: game.turn.number,
   moves: blackjackMovesOf(game, viewerId),

@@ -1,4 +1,5 @@
 import { rankOf } from "../../cards/card.js"
+import type { Card } from "../../cards/card.js"
 import type { RandomSource } from "../../shared/random.js"
 import { err, ok } from "../../shared/result.js"
 import type { Result } from "../../shared/result.js"
@@ -15,11 +16,21 @@ import {
   withEvents,
 } from "./model.js"
 import type { BlackjackGame, Hand, PlayerId, Seat } from "./model.js"
-import { beginRound, dealerStep, dealStep, drawCard, finish, moveOn, startDeal } from "./round.js"
-import { cardValue, isBust, scoreOf, TWENTY_ONE } from "./scoring.js"
+import {
+  beginRound,
+  dealerStep,
+  dealStep,
+  drawCard,
+  finish,
+  moveOn,
+  settle,
+  startDeal,
+} from "./round.js"
+import { cardValue, isBust, isNatural, scoreOf, TWENTY_ONE } from "./scoring.js"
 
 export type BlackjackAction =
   | { readonly type: "bet"; readonly amount: number }
+  | { readonly type: "insurance"; readonly accepted: boolean }
   | { readonly type: "hit" }
   | { readonly type: "stand" }
   | { readonly type: "double" }
@@ -45,6 +56,8 @@ export const canSplit = (seat: Seat, hand: Hand): boolean => {
   )
 }
 
+export const insuranceBetOf = (seat: Seat): number => Math.floor((seat.bet ?? 0) / 2)
+
 const everyoneBet = (game: BlackjackGame): boolean =>
   activeSeats(game).every((seat) => seat.bet !== null)
 
@@ -65,6 +78,52 @@ const placeBet = (
     { type: "bet", playerId: seat.id, amount }
   )
   return ok(dealWhenReady(placed, random))
+}
+
+const allInsuranceChosen = (game: BlackjackGame): boolean =>
+  activeSeats(game).every((seat) => seat.insurance !== null)
+
+const chooseInsurance = (
+  game: BlackjackGame,
+  seat: Seat,
+  accepted: boolean
+): Outcome => {
+  if (game.phase !== "insurance") return err("INSURANCE_NOT_AVAILABLE")
+  if (seat.insurance !== null) return err("ALREADY_INSURED")
+  const cost = insuranceBetOf(seat)
+  if (accepted && seat.chips < cost) return err("CANNOT_INSURE")
+  const chosen = {
+    ...seat,
+    insurance: accepted,
+    chips: seat.chips - (accepted ? cost : 0),
+  }
+  const selected = withEvents(replaceSeat(game, chosen), {
+    type: "insurance",
+    playerId: seat.id,
+    accepted,
+    amount: accepted ? cost : 0,
+  })
+  if (!allInsuranceChosen(selected)) {
+    const next = activeSeats(selected).find((current) => current.insurance === null)
+    return ok({
+      ...selected,
+      turn: {
+        number: selected.turn.number + 1,
+        playerId: next?.id ?? null,
+        handIndex: 0,
+      },
+    })
+  }
+  if (isNatural(selected.dealer.cards)) {
+    return ok(
+      settle(withEvents({ ...selected, dealer: { ...selected.dealer, revealed: true } }, {
+        type: "dealerRevealed",
+        card: selected.dealer.cards[1] as Card,
+        total: scoreOf(selected.dealer.cards).total,
+      }))
+    )
+  }
+  return ok(moveOn(selected))
 }
 
 const closeIfFinal = (game: BlackjackGame, seat: Seat, index: number, hand: Hand) => {
@@ -152,9 +211,18 @@ const split = (game: BlackjackGame, seat: Seat, index: number, random: RandomSou
   return ok(moveOn(logged))
 }
 
-const refusalOf = (game: BlackjackGame, playerId: PlayerId, betting: boolean) => {
+const refusalOf = (
+  game: BlackjackGame,
+  playerId: PlayerId,
+  action: BlackjackAction
+) => {
   if (isFinished(game)) return "GAME_FINISHED"
-  if (betting) return game.phase === "betting" ? null : "NOT_BETTING"
+  if (action.type === "bet") return game.phase === "betting" ? null : "NOT_BETTING"
+  if (action.type === "insurance") {
+    return game.phase === "insurance" && game.turn.playerId === playerId
+      ? null
+      : "INSURANCE_NOT_AVAILABLE"
+  }
   if (game.phase === "dealing") return "TABLE_DEALING"
   if (game.phase === "dealer" || game.phase === "settled") return "DEALER_PLAYING"
   return game.phase === "playing" && game.turn.playerId === playerId ? null : "NOT_YOUR_TURN"
@@ -166,7 +234,7 @@ export const playBlackjack = (
   action: BlackjackAction,
   random: RandomSource
 ): Outcome => {
-  const refusal = refusalOf(game, playerId, action.type === "bet")
+  const refusal = refusalOf(game, playerId, action)
   if (refusal) return err(refusal)
   const seat = findSeat(game, playerId)
   if (!seat) return err("NOT_YOUR_TURN")
@@ -174,6 +242,8 @@ export const playBlackjack = (
   switch (action.type) {
     case "bet":
       return placeBet(game, seat, action.amount, random)
+    case "insurance":
+      return chooseInsurance(game, seat, action.accepted)
     case "hit":
       return ok(hit(game, seat, index, random))
     case "stand":
@@ -207,12 +277,21 @@ export const expireBlackjack = (game: BlackjackGame, random: RandomSource): Blac
       const timedOut = withEvents(game, { type: "timedOut", playerId })
       return stand(timedOut, getSeat(timedOut, playerId), game.turn.handIndex)
     }
+    case "insurance": {
+      const playerId = game.turn.playerId as PlayerId
+      return unwrapInsurance(playBlackjack(game, playerId, { type: "insurance", accepted: false }, random))
+    }
     case "dealing":
       return dealStep(game, random)
     case "dealer":
       return dealerStep(game, random)
     case "settled":
       return beginRound(game, game.round + 1)
+  }
+
+  function unwrapInsurance(result: Outcome): BlackjackGame {
+    if (!result.ok) throw new Error(result.error)
+    return result.value
   }
 }
 

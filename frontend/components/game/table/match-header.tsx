@@ -42,12 +42,14 @@ export function MatchHeader({
         </div>
         <TurnClock
           deadlineAt={room.turnDeadlineAt}
+          pausedAt={room.pausedAt}
           durationMs={room.turnDurationMs}
         />
         {menu}
       </div>
       <TurnProgress
         deadlineAt={room.turnDeadlineAt}
+        pausedAt={room.pausedAt}
         durationMs={room.turnDurationMs}
       />
     </header>

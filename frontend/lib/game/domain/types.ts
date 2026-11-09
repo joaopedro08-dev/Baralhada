@@ -120,6 +120,7 @@ export interface RoomState {
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
+  readonly pausedAt: number | null
   readonly serverNow: number
   readonly game:
     | GameState

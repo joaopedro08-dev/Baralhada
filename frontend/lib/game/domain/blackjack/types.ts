@@ -2,12 +2,19 @@ import type { Card, PlayerId } from "@/lib/game/domain/types"
 
 export type BlackjackAction =
   | { readonly type: "bet"; readonly amount: number }
+  | { readonly type: "insurance"; readonly accepted: boolean }
   | { readonly type: "hit" }
   | { readonly type: "stand" }
   | { readonly type: "double" }
   | { readonly type: "split" }
 
-export type Phase = "betting" | "dealing" | "playing" | "dealer" | "settled"
+export type Phase =
+  | "betting"
+  | "dealing"
+  | "insurance"
+  | "playing"
+  | "dealer"
+  | "settled"
 export type SeatStatus = "playing" | "broke"
 export type HandOutcome = "blackjack" | "win" | "push" | "lose" | "bust"
 export type BlackjackEndReason = "rounds" | "broke" | "abandoned"
@@ -28,6 +35,7 @@ export interface BlackjackSeat {
   readonly nickname: string
   readonly chips: number
   readonly bet: number | null
+  readonly insurance?: boolean | null
   readonly status: SeatStatus
   readonly hands: readonly BlackjackHand[]
 }
@@ -47,6 +55,7 @@ export interface BetRange {
 
 export interface BlackjackMoves {
   readonly bet: BetRange | null
+  readonly insurance?: { readonly cost: number } | null
   readonly hit: boolean
   readonly stand: boolean
   readonly double: boolean
@@ -60,6 +69,8 @@ export interface HandResult {
   readonly bet: number
   readonly net: number
   readonly fromSplit: boolean
+  readonly insuranceBet?: number
+  readonly insuranceNet?: number
 }
 
 export interface RoundResult {

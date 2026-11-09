@@ -35,7 +35,7 @@ export function TrucoScreen({
     "truco-paulista"
   )
   const commands = useTrucoCommands(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
   const [lastEvent] = game.history
   const call = useTrucoCall(game)
   const scoreNotice = useTrucoNotice(game)

@@ -64,7 +64,7 @@ export function PokerScreen({
     "poker-texas-holdem"
   )
   const commands = useActionCommands<PokerAction>(game.turnNumber)
-  const secondsToStart = useSecondsLeft(room.matchStartsAt) ?? 0
+  const secondsToStart = useSecondsLeft(room.matchStartsAt, room.pausedAt) ?? 0
   const showcase = held ? winnerShowcase(game, held, room.viewerId) : null
   const [lastEvent] = game.history
 
