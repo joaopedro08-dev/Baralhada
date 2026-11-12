@@ -9,6 +9,7 @@
   "packageManager": "pnpm@11.10.0",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/main/server.ts",
+    "prebuild": "pnpm --dir ../shared build",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main/server.js",
     "typecheck": "tsc --noEmit",
