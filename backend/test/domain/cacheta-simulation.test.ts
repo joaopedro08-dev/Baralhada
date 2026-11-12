@@ -14,9 +14,9 @@ import { startGame } from "../../src/domain/games/cacheta/setup.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
 import { seededRandom, unwrap } from "../support/game-builder.js"
 import { allCachetaCards } from "../support/cacheta-builder.js"
+import { SIMULATION_RUNS } from "../support/simulation-config.js"
 
 const MAX_STEPS = 6000
-const SEEDS = 8
 const SIMULATION_TIMEOUT_MS = 60_000
 const TOTAL_CARDS = 104
 
@@ -68,7 +68,7 @@ const playOut = (seed: number) => {
 }
 
 describe("simulação de partidas de Cacheta", () => {
-  it.each(Array.from({ length: SEEDS }, (_, seed) => seed + 1))(
+  it.each(Array.from({ length: SIMULATION_RUNS }, (_, seed) => seed + 1))(
     "a partida %i chega ao fim com um único vencedor",
     (seed) => {
       const { game, rounds } = playOut(seed)

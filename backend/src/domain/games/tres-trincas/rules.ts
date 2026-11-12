@@ -24,6 +24,7 @@ export const tresTrincasRules: GameRules<TrincaGame, TrincaAction, TrincaErrorCo
   play: playTrincas,
   expireTurn: expireTrincas,
   removePlayer: removeTrincasPlayer,
+  winnerIds: (game) => (game.winnerId === null ? [] : [game.winnerId]),
   turnOf: (game) => ({ number: game.turn.number, playerId: game.turn.playerId }),
   isFinished,
   pauseAfter: trincasPauseAfter,

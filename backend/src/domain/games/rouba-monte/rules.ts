@@ -22,6 +22,7 @@ export const roubaMonteRules: GameRules<Game, TurnAction, GameErrorCode> = {
   play: playTurn,
   expireTurn,
   removePlayer,
+  winnerIds: (game) => game.winnerIds,
   turnOf: (game) => ({ number: game.turn.number, playerId: game.turn.playerId }),
   isFinished,
 }

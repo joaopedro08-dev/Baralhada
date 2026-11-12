@@ -52,6 +52,7 @@ export const blackjackRules: GameRules<BlackjackGame, BlackjackAction, Blackjack
   play: playBlackjack,
   expireTurn: expireBlackjack,
   removePlayer: removeBlackjackPlayer,
+  winnerIds: (game) => game.winnerIds,
   turnOf: (game) => ({
     number: game.turn.number,
     playerId: turnOwner(game),

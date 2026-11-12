@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@naipe-real/contracts':
+        specifier: file:../shared
+        version: file:../shared
       pino:
         specifier: ^10.4.0
         version: 10.4.0
@@ -314,6 +317,9 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@naipe-real/contracts@file:../shared':
+    resolution: {directory: ../shared, type: directory}
 
   '@opentelemetry/api@1.10.0':
     resolution: {integrity: sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==}
@@ -1376,6 +1382,10 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@naipe-real/contracts@file:../shared':
+    dependencies:
+      zod: 4.6.7
 
   '@opentelemetry/api@1.10.0': {}
 

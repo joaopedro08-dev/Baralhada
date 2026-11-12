@@ -190,7 +190,7 @@ export function TrincaHand({
     <section
       aria-label="Sua mão e ações"
       className={cn(
-        "flex flex-col gap-2 border-t border-felt-line bg-felt-deep p-3 lg:col-start-1 lg:row-start-2",
+        "flex min-w-0 flex-col gap-2 overflow-hidden border-t border-felt-line bg-felt-deep p-3 lg:col-start-1 lg:row-start-2",
         myTurn && "border-t-2 border-t-gold"
       )}
     >
@@ -209,7 +209,7 @@ export function TrincaHand({
 
       <ul
         aria-label="Sua mão"
-        className="flex min-h-[4.75rem] flex-wrap items-end justify-center pt-3"
+        className="flex min-h-[4.75rem] max-w-full flex-wrap items-end justify-start overflow-x-auto px-2 pt-3 sm:justify-center"
       >
         {layout.order.map((card, position) => (
           <m.li

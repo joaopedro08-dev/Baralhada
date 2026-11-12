@@ -27,24 +27,29 @@ import {
   ROOM_CODE_LENGTH,
 } from "@/lib/game/domain/room-entry"
 
-const LONG_WAIT_MS = 8000
+export const LONG_WAIT_MS = 8000
 
 const ROOM_CODE_SLOTS = Array.from(
   { length: ROOM_CODE_LENGTH },
   (_, slot) => slot
 )
 
-const describeConnection = (
+export const describeConnection = (
   connection: string,
   waitedLong: boolean
 ): string => {
   if (waitedLong) {
-    return "Ainda conectando. Se o servidor estava parado, isso pode levar cerca de 1 minuto."
+    return "Servidor acordando. A primeira conexão pode levar cerca de 1 minuto."
   }
-  return connection === "connecting"
-    ? "Conectando ao servidor..."
-    : "Sem conexão com o servidor. Tentando de novo..."
+return connection === "connecting"
+  ? "Conectando ao servidor..."
+  : "Sem conexão com o servidor. Tentando de novo..."
 }
+
+export const shouldShowWakeNotice = (
+connection: string,
+elapsedMs: number
+): boolean => connection !== "online" && elapsedMs >= LONG_WAIT_MS
 
 function ConnectionHint({ connection }: { connection: string }) {
   const online = connection === "online"
@@ -166,6 +171,7 @@ export function EntryPanel({
     inviteCode,
     code,
     gameId,
+    nickname,
     busy,
     blocked,
     message,
@@ -227,6 +233,8 @@ export function EntryPanel({
               <Input
                 id="apelido"
                 ref={nicknameInput}
+                value={nickname}
+                onChange={(event) => entry.setNickname(event.target.value)}
                 maxLength={NICKNAME_MAX_LENGTH}
                 autoComplete="nickname"
                 enterKeyHint="go"

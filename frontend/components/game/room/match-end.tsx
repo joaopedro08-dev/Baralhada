@@ -14,6 +14,7 @@ import { useVictoryShow } from "@/components/game/room/use-victory-show"
 import { Card, CardContent } from "@/components/ui/card"
 import { describeStartProblem } from "@/lib/game/domain/catalog"
 import type { RoomState } from "@/lib/game/domain/types"
+import { useGame } from "@/hooks/use-game"
 
 type RoomCommands = ReturnType<typeof useRoomCommands>
 
@@ -29,6 +30,16 @@ export function MatchEnd({
   children: React.ReactNode
 }) {
   const { stage, title: titleRef } = useVictoryShow(won)
+  const { room } = useGame()
+  const roomWins = room
+    ? room.players
+        .map((player) => ({
+          ...player,
+          wins: room.matchWins?.[player.id] ?? 0,
+        }))
+        .filter((player) => player.wins > 0)
+        .sort((first, second) => second.wins - first.wins)
+    : []
   return (
     <div ref={stage} className="relative overflow-hidden">
       <main className="relative mx-auto flex min-h-svh w-full max-w-lg flex-col justify-center gap-5 px-4 py-6">
@@ -50,7 +61,26 @@ export function MatchEnd({
         </header>
 
         <Card className="shadow-xl">
-          <CardContent className="flex flex-col gap-4">{children}</CardContent>
+          <CardContent className="flex flex-col gap-4">
+            {roomWins.length > 0 && (
+              <section aria-labelledby="placar-sala">
+                <h2 id="placar-sala" className="font-heading text-lg font-semibold">
+                  Placar da sala
+                </h2>
+                <ol className="divide-y">
+                  {roomWins.map((player) => (
+                    <li key={player.id} className="flex items-center justify-between py-2">
+                      <span className="truncate">{player.nickname}</span>
+                      <span className="font-semibold tabular-nums">
+                        {player.wins} {player.wins === 1 ? "vitória" : "vitórias"}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            {children}
+          </CardContent>
         </Card>
       </main>
     </div>

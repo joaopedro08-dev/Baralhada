@@ -1,4 +1,8 @@
 import { io, type Socket } from "socket.io-client"
+import {
+  clientCommandPayloadSchemas,
+  roomRemovedSchema,
+} from "@naipe-real/contracts"
 
 import type {
   Ack,
@@ -19,7 +23,7 @@ const SOCKET_OPTIONS = {
 
 interface ServerEvents {
   "room:state": (state: RoomState) => void
-  "room:removed": () => void
+  "room:removed": (payload: unknown) => void
 }
 
 interface AckEmitter {
@@ -41,7 +45,9 @@ const openSocket = (listeners: GatewayListeners): Socket<ServerEvents> => {
     )
   )
   socket.on("room:state", listeners.onRoomState)
-  socket.on("room:removed", listeners.onRemoved)
+  socket.on("room:removed", (payload) => {
+    if (roomRemovedSchema.safeParse(payload).success) listeners.onRemoved()
+  })
   socket.connect()
   return socket
 }
@@ -71,6 +77,11 @@ export const createSocketGateway = (): GameGateway => {
           "OFFLINE",
           "Sem conexão com o servidor. Tentando voltar..."
         )
+      }
+      const payload = args[0]
+      const schema = clientCommandPayloadSchemas[command]
+      if (!schema.safeParse(payload).success) {
+        return failure("INVALID_PAYLOAD", "Dados inválidos.")
       }
       try {
         const emitter = socket.timeout(ACK_TIMEOUT_MS) as unknown as AckEmitter

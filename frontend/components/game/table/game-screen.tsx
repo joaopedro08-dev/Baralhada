@@ -64,11 +64,11 @@ export function GameScreen({
         onHintsChange={setEnabled}
       />
 
-      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_20rem] short:grid-cols-[minmax(0,1fr)_22rem] short:grid-rows-1">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_20rem] short:grid-cols-[minmax(0,1fr)_22rem] short:grid-rows-1">
         <m.main
           layoutScroll
           tabIndex={0}
-          className="flex min-h-0 flex-col gap-3 overflow-y-auto p-3 lg:col-start-1 lg:row-start-1"
+          className="flex min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden overflow-y-auto p-3 lg:col-start-1 lg:row-start-1"
         >
           <OpponentPanels
             room={room}

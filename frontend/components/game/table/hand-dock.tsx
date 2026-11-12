@@ -54,7 +54,7 @@ export function HandDock({
     <section
       aria-label="Sua mão e ações"
       className={cn(
-        "flex flex-col gap-2 border-t border-felt-line bg-felt-deep p-3 transition-colors lg:col-start-1 lg:row-start-2 short:col-start-2 short:row-start-1 short:overflow-y-auto short:border-t-0 short:border-l",
+        "flex min-w-0 flex-col gap-2 overflow-hidden border-t border-felt-line bg-felt-deep p-3 transition-colors lg:col-start-1 lg:row-start-2 short:col-start-2 short:row-start-1 short:overflow-y-auto short:border-t-0 short:border-l",
         isMyTurn &&
           "border-t-2 border-t-gold short:border-t-0 short:border-l-2 short:border-l-gold"
       )}
@@ -88,7 +88,7 @@ export function HandDock({
       <ul
         aria-label="Sua mão"
         data-anchor={HAND_ANCHOR}
-        className="flex min-h-[4.75rem] flex-wrap items-end justify-center gap-1.5 pt-1 sm:gap-2"
+        className="flex min-h-[4.75rem] max-w-full flex-wrap items-end justify-center gap-1.5 overflow-x-auto px-1 pt-1 sm:gap-2"
       >
         {cards.map((card, position) => (
           <m.li key={card} layout="position">

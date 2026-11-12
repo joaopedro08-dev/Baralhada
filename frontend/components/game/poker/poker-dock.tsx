@@ -106,7 +106,7 @@ export function PokerDock({
     <section
       aria-label="Suas cartas e ações"
       className={cn(
-        "flex flex-col gap-2 border-t border-felt-line bg-felt-deep px-3 pt-2 pb-3 lg:col-start-1 lg:row-start-2",
+        "flex min-w-0 flex-col gap-2 overflow-hidden border-t border-felt-line bg-felt-deep px-3 pt-2 pb-3 lg:col-start-1 lg:row-start-2",
         myTurn && "border-t-2 border-t-gold"
       )}
     >

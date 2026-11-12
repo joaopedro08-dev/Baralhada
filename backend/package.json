@@ -15,12 +15,15 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.ts\"",
     "test": "vitest run",
+    "test:simulation": "vitest run --config vitest.simulation.config.ts",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:engines": "vitest run --config vitest.coverage.config.ts",
     "perf:engine": "tsx perf/engine-benchmark.ts",
     "perf:load": "tsx perf/load-test.ts",
     "perf:frontend": "tsx perf/frontend-weight.ts"
   },
   "dependencies": {
+    "@naipe-real/contracts": "file:../shared",
     "pino": "^10.4.0",
     "prom-client": "^15.1.3",
     "socket.io": "^4.8.4",

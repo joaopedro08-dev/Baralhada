@@ -18,12 +18,10 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
 
 export const metadata: Metadata = {
-  metadataBase: productionHost
-    ? new URL(`https://${productionHost}`)
-    : undefined,
+  metadataBase: new URL(siteUrl),
   title: "Naipe Real",
   description:
     "Jogue Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack online com os amigos, no PC ou no celular.",

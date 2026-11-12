@@ -8,6 +8,7 @@ import { startGame } from "../../src/domain/games/rouba-monte/setup.js"
 import { expireTurn, playTurn } from "../../src/domain/games/rouba-monte/turn-flow.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
 import { allCardsOf, seededRandom, unwrap } from "../support/game-builder.js"
+import { SIMULATION_RUNS } from "../support/simulation-config.js"
 
 const MAX_TURNS = 500
 
@@ -47,7 +48,7 @@ const playGame = (
 
 describe("simulação de partidas inteiras", () => {
   it.each([2, 3, 4, 5, 6])("com %i jogadores sempre chega ao fim", (playerCount) => {
-    for (let seed = 1; seed <= 20; seed++) {
+    for (let seed = 1; seed <= SIMULATION_RUNS; seed++) {
       const { game } = playGame(playerCount, seed * playerCount, playBestHint)
       const best = Math.max(...game.players.map((player) => player.pile.length))
 

@@ -1,4 +1,3 @@
-import type { Room } from "../../domain/room/room.js"
 import type { Clock, GameSettings, RoomRepository } from "../ports.js"
 import type { RoomSession } from "../room-session.js"
 
@@ -12,24 +11,16 @@ export class SweepRooms {
 
   execute(): void {
     const now = this.clock.now()
+    this.session.removeExpiredPlayers(now)
     for (const room of [...this.rooms.all()]) {
-      const remaining = this.removeExpiredPlayers(room, now)
+      const current = this.rooms.find(room.code)
       if (
-        remaining.emptySince !== null &&
-        now - remaining.emptySince >= this.settings.emptyRoomTtlMs
+        current !== undefined &&
+        current.emptySince !== null &&
+        now - current.emptySince >= this.settings.emptyRoomTtlMs
       ) {
         this.session.discard(room.code)
       }
     }
-  }
-
-  private removeExpiredPlayers(room: Room, now: number): Room {
-    return room.players
-      .filter(
-        (player) =>
-          player.disconnectedAt !== null &&
-          now - player.disconnectedAt >= this.settings.reconnectGraceMs
-      )
-      .reduce((current, player) => this.session.remove(current, player.id), room)
   }
 }

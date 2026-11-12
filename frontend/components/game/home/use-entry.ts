@@ -8,6 +8,10 @@ import { DEFAULT_GAME_ID } from "@/lib/game/domain/catalog"
 import { nicknameProblem, roomCodeProblem } from "@/lib/game/domain/room-entry"
 import type { GameId } from "@/lib/game/domain/types"
 import { gameSession } from "@/lib/game/session"
+import {
+  loadPlayerPreferences,
+  savePlayerPreferences,
+} from "@/lib/game/infrastructure/player-preferences"
 
 export type EntryMode = "criar" | "entrar"
 
@@ -26,6 +30,7 @@ export const useEntry = () => {
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [gameId, setGameId] = useState<GameId>(DEFAULT_GAME_ID)
+  const [nickname, setNickname] = useState(() => loadPlayerPreferences().nickname)
 
   const code = typedCode ?? inviteCode ?? ""
   const mode = chosenMode ?? (inviteCode ? "entrar" : "criar")
@@ -36,6 +41,8 @@ export const useEntry = () => {
     setProblem(invalid)
     gameSession.dismissNotice()
     if (invalid) return
+    setNickname(name)
+    savePlayerPreferences({ nickname: name })
     setBusy(true)
     setProblem(await run(name))
     setBusy(false)
@@ -60,12 +67,14 @@ export const useEntry = () => {
     code,
     mode,
     gameId,
+    nickname,
     busy,
     blocked: busy || connection !== "online",
     invited: mode === "entrar" && inviteCode !== null && code === inviteCode,
     message: problem ?? notice,
     setCode: setTypedCode,
     setGameId,
+    setNickname,
     changeMode: (next: EntryMode) => {
       setChosenMode(next)
       setProblem(null)

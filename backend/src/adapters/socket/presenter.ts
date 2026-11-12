@@ -18,7 +18,8 @@ export class RoomPresenter {
   constructor(
     private readonly catalog: GameCatalog,
     private readonly adapters: GameAdapters,
-    private readonly turnDurationOverrideMs: number | null
+    private readonly turnDurationOverrideMs: number | null,
+    private readonly reconnectGraceMs = 120_000
   ) {}
 
   resolve(gameId: string): ResolvedGame {
@@ -44,9 +45,16 @@ export class RoomPresenter {
       hostId: hostIdOf(room),
       canStart: problem === null,
       startProblem: problem,
-      players: room.players.map(({ id, nickname, connected }) => ({ id, nickname, connected })),
+      players: room.players.map(({ id, nickname, connected, disconnectedAt }) => ({
+        id,
+        nickname,
+        connected,
+        reconnectDeadlineAt:
+          disconnectedAt === null ? null : disconnectedAt + this.reconnectGraceMs,
+      })),
       teams: rules.teamCount === null ? null : teamsOf(room, rules.teamCount),
       hintsAllowed: room.hintsAllowed,
+      matchWins: room.matchWins,
       turnDurationMs: this.turnDurationOverrideMs ?? rules.turnDurationMs,
       turnDeadlineAt: room.turnDeadlineAt,
       matchStartsAt: room.matchStartsAt,

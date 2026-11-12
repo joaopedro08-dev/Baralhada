@@ -23,6 +23,10 @@ export const trucoRules: GameRules<TrucoGame, TrucoAction, TrucoErrorCode> = {
   play: playTruco,
   expireTurn: expireTruco,
   removePlayer: removeTrucoPlayer,
+  winnerIds: (game) =>
+    game.winnerTeam === null
+      ? []
+      : game.players.filter((player) => player.team === game.winnerTeam).map((player) => player.id),
   turnOf: (game) => ({ number: game.step, playerId: actorOf(game.hand) }),
   isFinished,
   pauseAfter: trucoPauseAfter,

@@ -36,6 +36,7 @@ export const pokerRules: GameRules<PokerGame, PokerAction, PokerErrorCode> = {
   play: playPoker,
   expireTurn: expirePoker,
   removePlayer: removePokerPlayer,
+  winnerIds: (game) => (game.winnerId === null ? [] : [game.winnerId]),
   turnOf: (game) => ({
     number: game.step,
     playerId: game.deal.actorId,

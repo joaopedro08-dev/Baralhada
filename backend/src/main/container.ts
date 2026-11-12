@@ -70,7 +70,12 @@ export interface Container {
 
 export const buildContainer = (config: AppConfig, logger: Logger): Container => {
   const rooms = new InMemoryRoomRepository()
-  const presenter = new RoomPresenter(gameCatalog, gameAdapters, config.game.turnDurationOverrideMs)
+  const presenter = new RoomPresenter(
+    gameCatalog,
+    gameAdapters,
+    config.game.turnDurationOverrideMs,
+    config.game.reconnectGraceMs
+  )
   const registry = new SessionRegistry()
   const random = cryptoRandomSource
   const scheduler = new NodeTurnScheduler((input) => {

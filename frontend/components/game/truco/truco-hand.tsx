@@ -278,7 +278,7 @@ export function TrucoHand({
       ) : (
         <ul
           aria-label="Sua mão"
-          className="flex min-h-[4.75rem] items-end justify-center gap-2"
+          className="flex min-h-[4.75rem] max-w-full items-end justify-start gap-2 overflow-x-auto px-2 sm:justify-center"
         >
           {pace.dealing
             ? null

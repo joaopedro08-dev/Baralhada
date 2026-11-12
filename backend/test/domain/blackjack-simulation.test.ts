@@ -13,9 +13,9 @@ import { computeBlackjackHints } from "../../src/domain/games/blackjack/strategy
 import type { RandomSource } from "../../src/domain/shared/random.js"
 import { seededRandom, unwrap } from "../support/game-builder.js"
 import { cardsInPlay } from "../support/blackjack-builder.js"
+import { SIMULATION_RUNS } from "../support/simulation-config.js"
 
 const MAX_STEPS = 3000
-const SEEDS = 30
 const SIMULATION_TIMEOUT_MS = 60_000
 
 const assertInvariants = (game: BlackjackGame) => {
@@ -74,7 +74,7 @@ const playOut = (seed: number) => {
 }
 
 describe("simulação de partidas de Blackjack", () => {
-  it.each(Array.from({ length: SEEDS }, (_, seed) => seed + 1))(
+  it.each(Array.from({ length: SIMULATION_RUNS }, (_, seed) => seed + 1))(
     "a partida %i termina em até 10 rodadas com vencedores coerentes",
     (seed) => {
       const game = playOut(seed)

@@ -2,8 +2,15 @@ FROM node:24-alpine AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true NEXT_TELEMETRY_DISABLED=1 npm_config_store_dir=/pnpm/store npm_config_fetch_retries=5 npm_config_network_concurrency=8
 RUN npm install --global pnpm@11.10.0
 
+FROM base AS shared-build
+WORKDIR /app/shared
+COPY shared/package.json shared/pnpm-lock.yaml shared/tsconfig.json ./
+COPY shared/src ./src
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile && pnpm build
+
 FROM base AS frontend-dev-deps
 WORKDIR /app/frontend
+COPY --from=shared-build /app/shared /app/shared
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 
@@ -16,6 +23,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm prune --prod
 
 FROM base AS backend-dev-deps
 WORKDIR /app/backend
+COPY --from=shared-build /app/shared /app/shared
 COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile
 
@@ -39,6 +47,7 @@ WORKDIR /app
 COPY --from=backend-prod-deps /app/backend/node_modules ./backend/node_modules
 COPY --from=backend-build /app/backend/dist ./backend/dist
 COPY backend/package.json ./backend/package.json
+COPY --from=shared-build /app/shared ./shared
 COPY --from=frontend-prod-deps /app/frontend/node_modules ./frontend/node_modules
 COPY --from=frontend-build /app/frontend/.next ./frontend/.next
 COPY --from=frontend-build /app/frontend/public ./frontend/public

@@ -31,7 +31,7 @@ const ALLOWED_LAYERS: Readonly<Record<string, readonly string[]>> = {
 const ALLOWED_PACKAGES: Readonly<Record<string, readonly string[]>> = {
   domain: [],
   application: [],
-  adapters: ["zod"],
+  adapters: ["zod", "@naipe-real/contracts"],
   infrastructure: ["node:", "pino", "prom-client", "socket.io"],
   main: ["zod"],
 }

@@ -111,7 +111,7 @@ export function ActionBar({
   }
 
   return (
-    <div className="grid grid-cols-5 gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
+    <div className="grid min-w-0 grid-cols-5 gap-1 sm:gap-2 lg:mx-auto lg:w-full lg:max-w-2xl">
       {ACTIONS.map(renderAction)}
     </div>
   )

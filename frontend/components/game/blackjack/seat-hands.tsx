@@ -62,7 +62,7 @@ export function SeatHands({
   size: CardSize
 }) {
   return (
-    <ul className="flex flex-wrap items-end justify-center gap-4">
+    <ul className="flex max-w-full flex-wrap items-end justify-center gap-4 overflow-x-auto px-1">
       {hands.map((hand, handIndex) => {
         const result = results.find((entry) => entry.handIndex === handIndex)
         const active = activeIndex === handIndex

@@ -27,6 +27,7 @@ export const cachetaRules: GameRules<CachetaGame, CachetaAction, CachetaErrorCod
   play: playCacheta,
   expireTurn: expireCacheta,
   removePlayer: removeCachetaPlayer,
+  winnerIds: (game) => (game.winnerId === null ? [] : [game.winnerId]),
   turnOf: (game) => ({
     number: game.turn.number,
     playerId: game.turn.playerId,

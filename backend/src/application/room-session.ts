@@ -127,9 +127,27 @@ export class RoomSession {
 
   advance(room: Room, game: unknown): Room {
     const rules = this.rulesOf(room)
+    const finished = rules.isFinished(game)
+    const wasFinished = room.game !== null && rules.isFinished(room.game)
+    const matchWins =
+      finished && !wasFinished
+        ? this.addMatchWins(room.matchWins, rules.winnerIds?.(game) ?? [])
+        : room.matchWins
     const ruled = room.game === null ? 0 : (rules.pauseAfter?.(room.game, game) ?? 0)
     const pause = ruled > 0 ? (this.settings.pauseOverrideMs ?? ruled) : 0
-    return pause > 0 ? { ...room, game, pausedUntil: this.clock.now() + pause } : { ...room, game }
+    return pause > 0
+      ? { ...room, game, matchWins, pausedUntil: this.clock.now() + pause }
+      : { ...room, game, matchWins }
+  }
+
+  private addMatchWins(
+    current: Readonly<Record<PlayerId, number>>,
+    winners: readonly PlayerId[]
+  ): Readonly<Record<PlayerId, number>> {
+    return winners.reduce(
+      (wins, playerId) => ({ ...wins, [playerId]: (wins[playerId] ?? 0) + 1 }),
+      current
+    )
   }
 
   countdownEnd(): number {
@@ -146,6 +164,24 @@ export class RoomSession {
   discard(code: string): void {
     this.scheduler.cancel(code)
     this.rooms.remove(code)
+  }
+
+  removeExpiredPlayers(now: number): void {
+    for (const room of [...this.rooms.all()]) {
+      const expiredIds = room.players
+        .filter(
+          (player) =>
+            player.disconnectedAt !== null &&
+            now - player.disconnectedAt >= this.settings.reconnectGraceMs
+        )
+        .map((player) => player.id)
+      expiredIds.forEach((playerId) => this.removeIfPresent(room.code, playerId))
+    }
+  }
+
+  private removeIfPresent(roomCode: string, playerId: PlayerId): void {
+    const current = this.rooms.find(roomCode)
+    if (current) this.remove(current, playerId)
   }
 
   remove(room: Room, playerId: PlayerId): Room {

@@ -60,18 +60,45 @@ pnpm --dir frontend dev
 
 ## Verificação
 
-Cada pasta tem os mesmos comandos. Troque `backend` por `frontend` para verificar a outra:
+Os comandos do backend abaixo verificam os seis motores. Troque `backend` por
+`frontend` para verificar o typecheck, lint e testes do frontend:
 
 ```bash
-pnpm --dir backend typecheck
+npm --prefix backend run typecheck
 ```
 
 ```bash
-pnpm --dir backend lint
+npm --prefix backend run lint
 ```
 
 ```bash
-pnpm --dir backend test
+npm --prefix backend test
+```
+
+O teste normal usa 10 sementes por simulação. Antes de publicar, rode a suíte
+ampliada com 100 sementes por motor:
+
+```bash
+npm --prefix backend run test:simulation
+```
+
+Para medir a cobertura somente dos motores:
+
+```bash
+npm --prefix backend run test:coverage:engines
+```
+
+Para validar os builds:
+
+```bash
+npm --prefix backend run build
+npm --prefix frontend run build
+```
+
+Para validar o serviço completo no Docker:
+
+```bash
+docker compose up --build app
 ```
 
 ## Implantação

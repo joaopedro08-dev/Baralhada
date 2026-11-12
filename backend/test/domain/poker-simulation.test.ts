@@ -9,10 +9,9 @@ import { startGame } from "../../src/domain/games/poker/setup.js"
 import type { RandomSource } from "../../src/domain/shared/random.js"
 import { seededRandom, unwrap } from "../support/game-builder.js"
 import { cardsInPlay, chipsInPlay } from "../support/poker-builder.js"
+import { SIMULATION_RUNS } from "../support/simulation-config.js"
 
 const MAX_DECISIONS = 20_000
-const SEEDS = 40
-
 const choose = (moves: PokerMoves, random: RandomSource): PokerAction => {
   const options: PokerAction[] = []
   if (moves.check) options.push({ type: "check" }, { type: "check" })
@@ -66,7 +65,7 @@ const playOut = (seed: number) => {
 }
 
 describe("simulação de partidas completas", () => {
-  it.each(Array.from({ length: SEEDS }, (_, seed) => seed))(
+  it.each(Array.from({ length: SIMULATION_RUNS }, (_, seed) => seed))(
     "semente %i termina com um vencedor e todas as fichas com ele",
     (seed) => {
       const game = playOut(seed)

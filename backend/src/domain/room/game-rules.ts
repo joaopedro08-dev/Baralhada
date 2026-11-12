@@ -25,6 +25,7 @@ export interface GameRules<State, Action, ErrorCode extends string> extends Game
   ): Result<State, ErrorCode>
   expireTurn(state: State, random: RandomSource): State
   removePlayer(state: State, playerId: PlayerId, random: RandomSource): State
+  winnerIds?(state: State): readonly PlayerId[]
   turnOf(state: State): TurnInfo
   isFinished(state: State): boolean
   pauseAfter?(previous: State, next: State): number

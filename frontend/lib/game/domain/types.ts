@@ -77,6 +77,7 @@ export interface RoomPlayer {
   readonly id: PlayerId
   readonly nickname: string
   readonly connected: boolean
+  readonly reconnectDeadlineAt?: number | null
 }
 
 export interface GamePlayer {
@@ -116,6 +117,7 @@ export interface RoomState {
   readonly players: readonly RoomPlayer[]
   readonly teams: readonly (readonly PlayerId[])[] | null
   readonly hintsAllowed: boolean
+  readonly matchWins?: Readonly<Record<PlayerId, number>>
   readonly turnDurationMs: number
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null

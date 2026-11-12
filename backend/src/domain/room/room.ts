@@ -21,6 +21,7 @@ export interface Room<State = unknown> {
   readonly players: readonly RoomPlayer[]
   readonly teamAssignments: TeamAssignments | null
   readonly hintsAllowed: boolean
+  readonly matchWins: Readonly<Record<PlayerId, number>>
   readonly game: State | null
   readonly lastStarterId: PlayerId | null
   readonly matchStartsAt: number | null
@@ -78,6 +79,7 @@ export const createRoom = <State>(code: string, gameId: string, host: RoomPlayer
   players: [host],
   teamAssignments: null,
   hintsAllowed: true,
+  matchWins: {},
   game: null,
   lastStarterId: null,
   matchStartsAt: null,
@@ -109,7 +111,7 @@ export const addPlayer = <State>(
 export const switchGame = <State>(room: Room<State>, gameId: string): Room<State> =>
   room.gameId === gameId
     ? room
-    : { ...room, gameId, game: null, teamAssignments: null, lastStarterId: null }
+    : { ...room, gameId, game: null, teamAssignments: null, lastStarterId: null, matchWins: {} }
 
 export const allowHints = <State>(room: Room<State>, allowed: boolean): Room<State> =>
   room.hintsAllowed === allowed ? room : { ...room, hintsAllowed: allowed }
@@ -156,7 +158,13 @@ export const dropPlayer = <State>(
   now: number
 ): Room<State> =>
   updateConnectedState(
-    { ...leaveTeam(room, playerId), game },
+    {
+      ...leaveTeam(room, playerId),
+      game,
+      matchWins: Object.fromEntries(
+        Object.entries(room.matchWins).filter(([id]) => id !== playerId)
+      ),
+    },
     room.players.filter((player) => player.id !== playerId),
     now
   )

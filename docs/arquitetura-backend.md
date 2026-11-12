@@ -64,7 +64,7 @@ A regra de dependência é verificada em `test/architecture.test.ts`. O mesmo te
 | Regras do Poker Texas Hold'em | `src/domain/games/poker` | Sim |
 | Regras da Cacheta | `src/domain/games/cacheta` | Sim |
 | Regras do Blackjack | `src/domain/games/blackjack` | Sim |
-| Contrato comum do Socket.io | `src/adapters/socket` | Não. Despacha para o adaptador do jogo da sala |
+| Contrato comum do Socket.io | `shared/src/index.ts` e `src/adapters/socket` | Não. Despacha para o adaptador do jogo da sala |
 | Adaptador de cada jogo | `src/adapters/socket/games/<jogo>` | Sim: esquema Zod das ações, visão, dicas e frases em pt-BR |
 | Catálogo de jogos | `src/main/container.ts` | Sim, é onde regras e adaptadores são registrados |
 
@@ -102,7 +102,7 @@ As regras dos jogos continuam isoladas da sala e dos casos de uso; o estado e os
 
 ## Contrato
 
-Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { code, message } }`. Os tipos estão em `src/adapters/socket/contract.ts` e a validação em `schemas.ts`.
+Todo comando recebe um `ack`: `{ ok: true, data }` ou `{ ok: false, error: { code, message } }`. Os schemas de payload comuns ficam em `shared/src/index.ts`, são reexportados por `schemas.ts` e usados também pelo gateway do frontend. Os tipos de estado específico continuam em `src/adapters/socket/contract.ts`.
 
 | Comando | Entrada | Resposta | Requisito |
 | --- | --- | --- | --- |
