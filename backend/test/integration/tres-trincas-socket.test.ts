@@ -98,7 +98,7 @@ beforeAll(async () => {
     METRICS_PORT: "0",
     LOG_LEVEL: "silent",
     NODE_ENV: "test",
-    PUBLIC_URL: "https://baralhada.test",
+    PUBLIC_URL: "https://naipe-real.test",
     ROOM_CREATIONS_PER_MINUTE: "100000",
     ROOM_JOINS_PER_MINUTE: "100000",
     MAX_CONNECTIONS_PER_IP: "100000",

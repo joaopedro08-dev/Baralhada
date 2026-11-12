@@ -1,4 +1,4 @@
-# Baralhada: arquitetura do backend
+# Naipe Real: arquitetura do backend
 
 O backend é um único processo Node.js 24 que mantém todo o estado em memória e fala com o navegador por Socket.io. Ele segue a Arquitetura Limpa: as regras do jogo não conhecem rede, tela, relógio nem aleatoriedade.
 
@@ -259,7 +259,7 @@ Seguem o documento de requisitos da Cacheta (CA-RN-01 a CA-RN-17), com os pontos
 
 | Regra | Como funciona |
 | --- | --- |
-| Preparação (CA-RN-01 a CA-RN-06) | 2 a 4 jogadores, 104 cartas embaralhadas a cada rodada, 9 cartas para cada um e 1 vira. 10 pontos por jogador. Quem começa a primeira rodada é sorteado pela plataforma; nas seguintes, começa o próximo com pontos na ordem da sala |
+| Preparação (CA-RN-01 a CA-RN-06) | 2 a 4 jogadores, 104 cartas emnaipe-reals a cada rodada, 9 cartas para cada um e 1 vira. 10 pontos por jogador. Quem começa a primeira rodada é sorteado pela plataforma; nas seguintes, começa o próximo com pontos na ordem da sala |
 | Coringa (CA-RN-04, CA-RN-09) | O valor seguinte ao vira, de K para A. As 8 cartas desse valor são coringa, com no máximo 2 por jogo. Um coringa no próprio lugar (o 6 numa sequência 5, 6, 7) conta como carta natural |
 | Jogos (CA-RN-07, CA-RN-08) | Trinca de 3 ou 4 cartas do mesmo valor e naipes diferentes. Sequência de 3 a 13 cartas do mesmo naipe; o ás vale antes do 2 e depois do K, sem dar a volta |
 | Vez (CA-RN-10) | Compra do monte ou pega a última do descarte, sempre que quiser, e descarta 1 |

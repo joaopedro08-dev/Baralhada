@@ -45,7 +45,7 @@ const QUESTIONS = [
       "Não. As salas existem só na memória do servidor, sem banco de dados, e desaparecem quando todos saem ou o servidor reinicia.",
   },
   {
-    question: "O Baralhada é gratuito? O código é aberto?",
+    question: "O Naipe Real é gratuito? O código é aberto?",
     answer: `É gratuito e o código é aberto, sob licença MIT. Você pode ver, sugerir melhorias ou reportar problemas no repositório: ${REPOSITORY_URL.replace("https://", "")}.`,
   },
 ] as const

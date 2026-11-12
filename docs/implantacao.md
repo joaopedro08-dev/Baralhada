@@ -12,7 +12,7 @@ O backend roda no Render e o frontend na Vercel. Os dois leem o repositório no 
 Cada lado precisa do endereço do outro. Por isso o backend sobe primeiro e recebe o endereço da Vercel depois.
 
 1. **Render:** crie um Blueprint a partir do repositório. Ele lê o `render.yaml` e pede `PUBLIC_URL` e `CORS_ORIGIN`. Se ainda não souber o endereço da Vercel, use `https://exemplo.vercel.app` nos dois por enquanto.
-2. Copie o endereço do serviço, como `https://baralhada-backend.onrender.com`, e confira que `/readyz` responde `ready`.
+2. Copie o endereço do serviço, como `https://naipe-real-backend.onrender.com`, e confira que `/readyz` responde `ready`.
 3. **Vercel:** importe o repositório e defina **Root Directory** como `frontend`. Em **Environment Variables**, crie `NEXT_PUBLIC_SERVER_URL` com o endereço do Render, sem barra no final.
 4. Publique e copie o endereço final da Vercel.
 5. **Render:** troque `PUBLIC_URL` e `CORS_ORIGIN` pelo endereço da Vercel e salve. O serviço reinicia sozinho.
@@ -20,32 +20,32 @@ Cada lado precisa do endereço do outro. Por isso o backend sobe primeiro e rece
 
 Sem `NEXT_PUBLIC_SERVER_URL`, a publicação na Vercel falha de propósito, para não entrar no ar uma tela sem servidor. A variável é lida na compilação: ao mudar o endereço, publique o frontend de novo.
 
-## Troca do nome Rouba Monte para Baralhada
+## Troca do nome Rouba Monte para Naipe Real
 
 Quem já tinha o Rouba Monte publicado precisa repetir a troca de nome fora do código. O endereço `.onrender.com` é fixado na criação do serviço e o `.vercel.app` vem do domínio cadastrado no projeto: renomear no painel não muda nenhum dos dois.
 
 | Onde | Antes | Depois |
 | --- | --- | --- |
-| GitHub | `joaopedro08-dev/RoubaMonte` | `joaopedro08-dev/Baralhada` |
-| Serviço no Render | `rouba-monte-backend` | `baralhada-backend` |
-| Projeto na Vercel | `rouba-monte.vercel.app` | `baralhada`, com o domínio `baralhada.vercel.app` |
-| Imagens Docker locais | `rouba-monte:local`, `rouba-monte-perf:local` | `baralhada:local`, `baralhada-perf:local` |
-| Painel do Grafana e job do Prometheus | `rouba-monte` | `baralhada` |
-| Métricas | `roubamonte_*` | `baralhada_*` |
-| Chaves no navegador | `rouba-monte:assento`, `rouba-monte:dicas` | `baralhada:assento`, `baralhada:dicas` |
+| GitHub | `joaopedro08-dev/RoubaMonte` | `joaopedro08-dev/NaipeReal` |
+| Serviço no Render | `rouba-monte-backend` | `naipe-real-backend` |
+| Projeto na Vercel | `rouba-monte.vercel.app` | `naipe-real`, com o domínio `naipe-real.vercel.app` |
+| Imagens Docker locais | `rouba-monte:local`, `rouba-monte-perf:local` | `naipe-real:local`, `naipe-real-perf:local` |
+| Painel do Grafana e job do Prometheus | `rouba-monte` | `naipe-real` |
+| Métricas | `roubamonte_*` | `naipe_real_*` |
+| Chaves no navegador | `rouba-monte:assento`, `rouba-monte:dicas` | `naipe-real:assento`, `naipe-real:dicas` |
 
-1. **GitHub:** em **Settings > General**, renomeie o repositório para `Baralhada`. O endereço antigo redireciona, e Render e Vercel continuam ligados ao repositório. No seu computador, aponte o Git para o novo nome:
+1. **GitHub:** em **Settings > General**, renomeie o repositório para `NaipeReal`. O endereço antigo redireciona, e Render e Vercel continuam ligados ao repositório. No seu computador, aponte o Git para o novo nome:
 
    ```bash
-   git remote set-url origin https://github.com/joaopedro08-dev/Baralhada.git
+   git remote set-url origin https://github.com/joaopedro08-dev/NaipeReal.git
    ```
 
-2. **Render:** depois do merge na `main`, abra o Blueprint e clique em **Manual Sync**. Como o nome no `render.yaml` mudou, o Render cria o serviço `baralhada-backend` e pede `PUBLIC_URL` e `CORS_ORIGIN`: use `https://baralhada.vercel.app` nos dois. Confira que `https://baralhada-backend.onrender.com/readyz` responde `ready`.
-3. **Vercel:** em **Settings > General**, troque o nome do projeto para `baralhada`. Em **Settings > Domains**, adicione `baralhada.vercel.app` e marque como produção. Em **Settings > Environment Variables**, troque `NEXT_PUBLIC_SERVER_URL` para `https://baralhada-backend.onrender.com` e publique de novo, porque a variável é lida na compilação.
-4. Abra `https://baralhada.vercel.app`, crie uma sala de cada jogo e jogue uma mão.
-5. **Render:** apague o serviço antigo `rouba-monte-backend` só depois do passo 4. Para não quebrar links antigos, deixe `rouba-monte.vercel.app` em **Domains** com redirecionamento para `baralhada.vercel.app`.
+2. **Render:** depois do merge na `main`, abra o Blueprint e clique em **Manual Sync**. Como o nome no `render.yaml` mudou, o Render cria o serviço `naipe-real-backend` e pede `PUBLIC_URL` e `CORS_ORIGIN`: use `https://naipe-real.vercel.app` nos dois. Confira que `https://naipe-real-backend.onrender.com/readyz` responde `ready`.
+3. **Vercel:** em **Settings > General**, troque o nome do projeto para `naipe-real`. Em **Settings > Domains**, adicione `naipe-real.vercel.app` e marque como produção. Em **Settings > Environment Variables**, troque `NEXT_PUBLIC_SERVER_URL` para `https://naipe-real-backend.onrender.com` e publique de novo, porque a variável é lida na compilação.
+4. Abra `https://naipe-real.vercel.app`, crie uma sala de cada jogo e jogue uma mão.
+5. **Render:** apague o serviço antigo `rouba-monte-backend` só depois do passo 4. Para não quebrar links antigos, deixe `rouba-monte.vercel.app` em **Domains** com redirecionamento para `naipe-real.vercel.app`.
 
-Se você usa dashboards ou alertas próprios com as métricas antigas, troque o prefixo `roubamonte_` por `baralhada_`. As salas ficam na memória, então a troca das chaves do navegador não derruba ninguém: a nova publicação já reinicia as partidas. Quem tinha as dicas desligadas precisa desligar de novo.
+Se você usa dashboards ou alertas próprios com as métricas antigas, troque o prefixo `roubamonte_` por `naipe_real_`. As salas ficam na memória, então a troca das chaves do navegador não derruba ninguém: a nova publicação já reinicia as partidas. Quem tinha as dicas desligadas precisa desligar de novo.
 
 ## Variáveis de produção
 

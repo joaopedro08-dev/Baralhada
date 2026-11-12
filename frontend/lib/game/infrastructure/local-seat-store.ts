@@ -1,7 +1,7 @@
 import type { SeatStore } from "@/lib/game/application/ports"
 import type { Seat } from "@/lib/game/domain/types"
 
-const STORAGE_KEY = "baralhada:assento"
+const STORAGE_KEY = "naipe-real:assento"
 
 export const SEAT_BOOT_SCRIPT = `try{if(localStorage.getItem("${STORAGE_KEY}"))document.documentElement.dataset.seat=""}catch(e){}`
 

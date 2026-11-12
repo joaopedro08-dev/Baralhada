@@ -47,7 +47,7 @@ export function InviteLink({ url }: { url: string }) {
 
   const share = async () => {
     try {
-      await navigator.share({ title: "Baralhada", url })
+      await navigator.share({ title: "Naipe Real", url })
     } catch {
       return
     }

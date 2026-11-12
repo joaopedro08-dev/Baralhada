@@ -37,7 +37,7 @@ function LobbyHeader() {
         >
           <Spade fill="currentColor" className="size-3 text-suit-black" />
         </span>
-        Baralhada
+        Naipe Real
       </p>
       <Badge
         variant="outline"

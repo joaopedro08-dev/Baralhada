@@ -46,7 +46,7 @@ import type { GameId } from "@/lib/game/domain/types"
 import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = {
-  title: "Regras e informações · Baralhada",
+  title: "Regras e informações · Naipe Real",
   description:
     "Como jogar Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack, o que você precisa para começar e como o sistema funciona.",
 }
@@ -317,7 +317,7 @@ export default function InformationPage() {
               </h1>
               <p className="max-w-2xl text-base/relaxed text-felt-muted sm:text-lg">
                 Tudo o que você precisa para sentar à mesa: como começar, as
-                regras de cada jogo em blocos curtos e como o Baralhada funciona
+                regras de cada jogo em blocos curtos e como o Naipe Real funciona
                 por trás.
               </p>
             </div>
@@ -348,7 +348,7 @@ export default function InformationPage() {
                   Para começar
                 </SectionHeading>
                 <p className="max-w-2xl text-felt-muted">
-                  Baralhada é um site para jogar baralho online com os amigos:
+                  Naipe Real é um site para jogar baralho online com os amigos:
                   Rouba Monte, Truco Paulista, Três Trincas, Cacheta, Poker
                   Texas Hold&apos;em e Blackjack, os dois últimos com fichas de
                   mentira.

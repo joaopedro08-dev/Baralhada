@@ -1,4 +1,4 @@
-# Baralhada: backend
+# Naipe Real: backend
 
 Servidor de jogo em Node.js 24, Socket.io e TypeScript. A arquitetura está em [docs/arquitetura-backend.md](../docs/arquitetura-backend.md) e as medições em [docs/performance.md](../docs/performance.md).
 

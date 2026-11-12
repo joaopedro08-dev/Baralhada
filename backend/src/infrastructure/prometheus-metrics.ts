@@ -18,36 +18,36 @@ export class PrometheusMetrics implements CommandMetrics {
     const registers = [this.registry]
 
     this.commandDuration = new Histogram({
-      name: "baralhada_command_duration_seconds",
+      name: "naipe_real_command_duration_seconds",
       help: "Tempo de processamento de um comando no servidor",
       labelNames: ["command", "outcome"],
       buckets: LATENCY_BUCKETS,
       registers,
     })
     this.commands = new Counter({
-      name: "baralhada_commands_total",
+      name: "naipe_real_commands_total",
       help: "Comandos recebidos por resultado",
       labelNames: ["command", "outcome"],
       registers,
     })
     this.broadcastDuration = new Histogram({
-      name: "baralhada_broadcast_duration_seconds",
+      name: "naipe_real_broadcast_duration_seconds",
       help: "Tempo para montar e enviar o estado de uma sala",
       buckets: LATENCY_BUCKETS,
       registers,
     })
     this.stateMessages = new Counter({
-      name: "baralhada_state_messages_total",
+      name: "naipe_real_state_messages_total",
       help: "Mensagens de estado enviadas aos jogadores",
       registers,
     })
     this.connections = new Gauge({
-      name: "baralhada_connections",
+      name: "naipe_real_connections",
       help: "Conexões abertas",
       registers,
     })
     new Gauge({
-      name: "baralhada_rooms",
+      name: "naipe_real_rooms",
       help: "Salas em memória por estado",
       labelNames: ["game", "status"],
       registers,

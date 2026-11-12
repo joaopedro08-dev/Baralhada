@@ -42,7 +42,7 @@ export function BrandMark({ className }: { className?: string }) {
       >
         <Spade fill="currentColor" className="size-3.5 text-suit-black" />
       </span>
-      Baralhada
+      Naipe Real
     </Link>
   )
 }
@@ -71,7 +71,7 @@ function MobileMenu({
             Menu
           </SheetTitle>
           <SheetDescription className="sr-only">
-            Navegação do Baralhada
+            Navegação do Naipe Real
           </SheetDescription>
           <SheetClose asChild>
             <GameButton aria-label="Fechar menu" className="px-0">

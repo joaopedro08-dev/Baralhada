@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: baralhada-backend
+    name: naipe-real-backend
     runtime: node
     plan: free
     region: virginia

@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: baralhada
+  - name: naipe-real
     type: file
     options:
       path: /var/lib/grafana/dashboards

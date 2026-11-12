@@ -1,4 +1,4 @@
-# Baralhada: performance e capacidade
+# Naipe Real: performance e capacidade
 
 Medido em 2026-11-03. Um servidor de 0,5 CPU e 512 MB segura 200 salas com 6 jogadores (20 vezes a meta da RNF-06), com cada ação chegando a todos em 711 ms no p95. A meta de 1 s estoura entre 200 e 400 salas.
 

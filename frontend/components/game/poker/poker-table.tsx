@@ -59,7 +59,7 @@ export function PokerTable({
           aria-hidden
           className="absolute inset-x-0 top-[16%] text-center font-heading text-[0.65rem] font-bold tracking-[0.4em] text-white/15 uppercase sm:text-xs"
         >
-          Baralhada
+          Naipe Real
         </span>
       </div>
 

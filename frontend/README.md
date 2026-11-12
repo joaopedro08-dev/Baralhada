@@ -1,4 +1,4 @@
-# Baralhada: frontend
+# Naipe Real: frontend
 
 Interface do jogo em Next.js, shadcn/ui, framer-motion e GSAP. O servidor decide tudo: a tela só mostra o estado que chega em `room:state` e envia comandos.
 

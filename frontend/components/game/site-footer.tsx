@@ -60,7 +60,7 @@ export function SiteFooter() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="flex flex-col gap-3">
           <p className="font-heading text-2xl font-extrabold text-gold">
-            Baralhada
+            Naipe Real
           </p>
           <p className="max-w-xs text-felt-muted">
             Jogos de baralho online para jogar com os amigos, no PC ou no

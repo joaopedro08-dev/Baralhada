@@ -1,6 +1,6 @@
-# Baralhada
+# Naipe Real
 
-Site para jogar baralho online com os amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala, escolhe o jogo e manda o código ou o link para os outros. Jogue em [baralhada-psi.vercel.app](https://baralhada-psi.vercel.app).
+Site para jogar baralho online com os amigos, no PC ou no celular. Não há cadastro: uma pessoa cria a sala, escolhe o jogo e manda o código ou o link para os outros. Jogue em [naipe-real.vercel.app](https://naipe-real.vercel.app).
 
 | Jogo | Jogadores | Resumo |
 | --- | --- | --- |

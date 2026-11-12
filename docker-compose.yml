@@ -3,7 +3,7 @@ services:
     build:
       context: .
       target: runtime
-    image: baralhada:local
+    image: naipe-real:local
     init: true
     restart: unless-stopped
     ports:
@@ -61,7 +61,7 @@ services:
     build:
       context: .
       target: perf
-    image: baralhada-perf:local
+    image: naipe-real-perf:local
     profiles: [perf]
     cpus: ${LOAD_CPUS:-1.5}
     environment:

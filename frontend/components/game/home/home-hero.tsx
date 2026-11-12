@@ -159,7 +159,7 @@ export function HomeHero({
       </Badge>
 
       <h1 className="font-heading text-[2.75rem] leading-[0.95] font-extrabold tracking-tight sm:text-6xl xl:text-7xl short:text-4xl">
-        <span className="sr-only">Baralhada: </span>
+        <span className="sr-only">Naipe Real: </span>
         Hoje tem
         <span className="relative grid overflow-hidden">
           {Object.values(GAME_IDENTITY).map((identity) => (

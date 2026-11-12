@@ -78,7 +78,7 @@ beforeAll(async () => {
     METRICS_PORT: "0",
     LOG_LEVEL: "silent",
     NODE_ENV: "test",
-    PUBLIC_URL: "https://baralhada.test",
+    PUBLIC_URL: "https://naipe-real.test",
     ROOM_CREATIONS_PER_MINUTE: "100000",
     ROOM_JOINS_PER_MINUTE: "100000",
     MAX_CONNECTIONS_PER_IP: "100000",
@@ -109,7 +109,7 @@ describe("HTTP", () => {
     await createLobby()
     const metrics = await (await fetch(`http://127.0.0.1:${app.metricsPort}/metrics`)).text()
 
-    expect(metrics).toContain("baralhada_commands_total")
+    expect(metrics).toContain("naipe_real_commands_total")
     expect(metrics).toContain("nodejs_eventloop_lag_p99_seconds")
     expect((await fetch(`${url}/metrics`)).status).toBe(404)
   })
@@ -121,7 +121,7 @@ describe("RF-01 a RF-03 sala", () => {
     const seat = await expectData(request<SeatDto>(socket, "room:create", { nickname: "Ana" }))
 
     expect(seat.code).toMatch(/^[2-9A-HJ-NP-Z]{6}$/)
-    expect(seat.inviteUrl).toBe(`https://baralhada.test/?sala=${seat.code}`)
+    expect(seat.inviteUrl).toBe(`https://naipe-real.test/?sala=${seat.code}`)
   })
 
   it("avisa todos quando alguém entra e sai", async () => {

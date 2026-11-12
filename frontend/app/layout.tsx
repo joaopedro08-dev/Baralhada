@@ -24,11 +24,11 @@ export const metadata: Metadata = {
   metadataBase: productionHost
     ? new URL(`https://${productionHost}`)
     : undefined,
-  title: "Baralhada",
+  title: "Naipe Real",
   description:
     "Jogue Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack online com os amigos, no PC ou no celular.",
   openGraph: {
-    title: "Baralhada",
+    title: "Naipe Real",
     description:
       "Salas privadas para jogar baralho com os amigos: Rouba Monte, Truco Paulista, Três Trincas, Poker, Cacheta e Blackjack.",
     type: "website",
