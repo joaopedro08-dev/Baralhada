@@ -25,6 +25,10 @@ jobs:
           node-version: 24
       - run: npm install --global pnpm@11.10.0
       - run: pnpm install --frozen-lockfile
+        working-directory: shared
+      - run: pnpm build
+        working-directory: shared
+      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
