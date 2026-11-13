@@ -4,8 +4,12 @@ O backend roda no Render e o frontend na Vercel. Os dois leem o repositório no 
 
 | Lado | Serviço | Configuração | Pasta |
 | --- | --- | --- | --- |
-| Backend | Render | `render.yaml` | `backend` |
+| Backend | Render | `render.yaml` | raiz do repositório |
 | Frontend | Vercel | `frontend/vercel.json` | `frontend` |
+
+Os comandos de implantação compilam `shared` antes de instalar o backend ou o
+frontend. Isso é necessário porque `shared/dist` não é versionado e os dois
+consumidores importam `@naipe-real/contracts` a partir dessa saída compilada.
 
 ## Ordem
 

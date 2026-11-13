@@ -4,13 +4,14 @@ services:
     runtime: node
     plan: free
     region: virginia
-    rootDir: backend
-    buildCommand: npx --yes pnpm@11.10.0 install --frozen-lockfile --prod=false && npx --yes pnpm@11.10.0 build
-    startCommand: node dist/main/server.js
+    rootDir: .
+    buildCommand: npx --yes pnpm@11.10.0 --dir shared install --frozen-lockfile --prod=false && npx --yes pnpm@11.10.0 --dir shared build && npx --yes pnpm@11.10.0 --dir backend install --frozen-lockfile --prod=false && npx --yes pnpm@11.10.0 --dir backend build
+    startCommand: node backend/dist/main/server.js
     healthCheckPath: /readyz
     buildFilter:
       paths:
         - backend/**
+        - shared/**
         - render.yaml
     envVars:
       - key: NODE_VERSION
