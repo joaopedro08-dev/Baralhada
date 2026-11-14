@@ -6,6 +6,7 @@ import { Check, Copy, Share2 } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
 import { Input } from "@/components/ui/input"
+import { HIDDEN_ROOM_LINK } from "@/components/game/room/room-code-visibility"
 
 const FEEDBACK_MS = 2600
 
@@ -20,7 +21,13 @@ const FEEDBACK_TEXT: Readonly<Record<Exclude<CopyFeedback, null>, string>> = {
   selected: "Link selecionado. Copie e mande para os amigos.",
 }
 
-export function InviteLink({ url }: { url: string }) {
+export function InviteLink({
+  url,
+  visible = true,
+}: {
+  url: string
+  visible?: boolean
+}) {
   const field = useRef<HTMLInputElement>(null)
   const [feedback, setFeedback] = useState<CopyFeedback>(null)
   const canShare = useSyncExternalStore(
@@ -61,9 +68,9 @@ export function InviteLink({ url }: { url: string }) {
         <Input
           ref={field}
           readOnly
-          value={url}
-          aria-label="Link de convite"
-          onFocus={(event) => event.target.select()}
+          value={visible ? url : HIDDEN_ROOM_LINK}
+          aria-label={visible ? "Link de convite" : "Link de convite oculto"}
+          onFocus={(event) => visible && event.target.select()}
           className="h-11 min-w-0 flex-1 px-3 text-sm md:text-sm"
         />
         <GameButton

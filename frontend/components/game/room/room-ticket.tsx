@@ -5,7 +5,11 @@ import { Check, Copy } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
 import { InviteLink } from "@/components/game/room/invite-link"
-import { RoomCodeVisibility } from "@/components/game/room/room-code-visibility"
+import {
+  RoomCodeVisibility,
+  useRoomVisibility,
+} from "@/components/game/room/room-code-visibility"
+import { loadPlayerPreferences } from "@/lib/game/infrastructure/player-preferences"
 
 const FEEDBACK_MS = 2200
 
@@ -47,6 +51,9 @@ export function RoomTicket({
   code: string
   inviteUrl: string | null
 }) {
+  const [visible, setVisible] = useRoomVisibility(
+    loadPlayerPreferences().showRoomCodeByDefault
+  )
   return (
     <section
       aria-label="Convite da sala"
@@ -57,7 +64,12 @@ export function RoomTicket({
           Código da sala
         </p>
         <h1>
-          <RoomCodeVisibility code={code} variant="tiles" />
+          <RoomCodeVisibility
+            code={code}
+            variant="tiles"
+            visible={visible}
+            onVisibleChange={setVisible}
+          />
         </h1>
         <CopyCodeButton code={code} />
       </div>
@@ -77,7 +89,7 @@ export function RoomTicket({
         </p>
         {inviteUrl && (
           <div className="mt-1 [&_[role=status]]:text-felt-muted [&_input]:bg-felt [&_input]:text-felt-foreground">
-            <InviteLink url={inviteUrl} />
+            <InviteLink url={inviteUrl} visible={visible} />
           </div>
         )}
       </div>

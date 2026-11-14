@@ -9,28 +9,41 @@ import { cn } from "@/lib/utils"
 
 const HIDE_AFTER_MS = 10_000
 export const HIDDEN_ROOM_CODE = "••••••"
+export const HIDDEN_ROOM_LINK = "••••••••••••••••"
 
 export const roomCodeAccessibleLabel = (
   code: string,
   visible: boolean
 ): string => (visible ? `Código da sala ${code}` : "Código da sala oculto")
 
-export function RoomCodeVisibility({
-  code,
-  variant = "inline",
-}: {
-  code: string
-  variant?: "inline" | "tiles"
-}) {
-  const [visible, setVisible] = useState(
-    () => loadPlayerPreferences().showRoomCodeByDefault
-  )
+export const useRoomVisibility = (defaultVisible: boolean) => {
+  const [visible, setVisible] = useState(defaultVisible)
 
   useEffect(() => {
     if (!visible) return
     const timer = setTimeout(() => setVisible(false), HIDE_AFTER_MS)
     return () => clearTimeout(timer)
   }, [visible])
+
+  return [visible, setVisible] as const
+}
+
+export function RoomCodeVisibility({
+  code,
+  variant = "inline",
+  visible: controlledVisible,
+  onVisibleChange,
+}: {
+  code: string
+  variant?: "inline" | "tiles"
+  visible?: boolean
+  onVisibleChange?: (visible: boolean) => void
+}) {
+  const [internalVisible, setInternalVisible] = useRoomVisibility(
+    loadPlayerPreferences().showRoomCodeByDefault
+  )
+  const visible = controlledVisible ?? internalVisible
+  const setVisible = onVisibleChange ?? setInternalVisible
 
   const label = visible ? "Esconder código da sala" : "Mostrar código da sala"
   const value = visible ? code : HIDDEN_ROOM_CODE
@@ -62,7 +75,7 @@ export function RoomCodeVisibility({
         variant="outline"
         aria-label={label}
         aria-pressed={visible}
-        onClick={() => setVisible((current) => !current)}
+        onClick={() => setVisible(!visible)}
         className="size-11 shrink-0 px-0"
       >
         {visible ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
