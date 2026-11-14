@@ -15,6 +15,7 @@ import { SiteFooter } from "@/components/game/site-footer"
 import { SiteHeader } from "@/components/game/site-header"
 import type { HeaderLink } from "@/components/game/site-header"
 import { cn } from "@/lib/utils"
+import { useReducedMotionPreference } from "@/lib/game/infrastructure/visual-preferences"
 
 const ClosingCall = dynamic(() =>
   import("@/components/game/home/closing-call").then((mod) => mod.ClosingCall)
@@ -34,10 +35,11 @@ const HEADER_CTA: HeaderLink = {
 
 export function HomeScreen() {
   const [entry, nicknameInput] = useEntry()
+  const reducedMotion = useReducedMotionPreference()
 
   return (
     <LazyMotion features={domAnimation} strict>
-      <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
         <div className="flex min-h-svh flex-col overflow-x-clip">
           <SiteHeader links={HEADER_LINKS} cta={HEADER_CTA} />
           <main className="hero-glow flex-1">

@@ -14,6 +14,7 @@ import type {
   RoomState,
   Seat,
 } from "@/lib/game/domain/types"
+import { playGameSound } from "@/lib/game/infrastructure/game-sounds"
 
 export const RESTORE_RETRY_MS = 2000
 
@@ -214,6 +215,12 @@ export const createGameSession = ({
     chooseGame: async (gameId: GameId): Promise<Refusal> =>
       refusalOf(await gateway.send("room:game", { gameId })),
 
+    randomGame: async (): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:random-game")),
+
+    setTurnDuration: async (seconds: 15 | 30 | 60): Promise<Refusal> =>
+      refusalOf(await gateway.send("room:turn-duration", { seconds })),
+
     moveToTeam: async (playerId: PlayerId, team: number): Promise<Refusal> =>
       refusalOf(await gateway.send("room:team", { playerId, team })),
 
@@ -226,8 +233,11 @@ export const createGameSession = ({
     changePause: async (paused: boolean): Promise<Refusal> =>
       refusalOf(await gateway.send("room:pause", { paused })),
 
-    playAction: async (action: AnyAction): Promise<Refusal> =>
-      refusalOf(await gateway.send("game:action", action)),
+    playAction: async (action: AnyAction): Promise<Refusal> => {
+      const refusal = refusalOf(await gateway.send("game:action", action))
+      if (refusal === null) playGameSound("card")
+      return refusal
+    },
 
     async fetchHints(): Promise<AnyHints | null> {
       const result = await gateway.send("game:hints")

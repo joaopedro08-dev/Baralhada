@@ -41,6 +41,9 @@ export const moveTeamSchema = z.strictObject({
 })
 export const hintsSettingSchema = z.strictObject({ allowed: z.boolean() })
 export const pauseSettingSchema = z.strictObject({ paused: z.boolean() })
+export const turnDurationSchema = z.strictObject({
+  seconds: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+})
 export const emptySchema = z.undefined()
 export const anyPayloadSchema = z.unknown()
 
@@ -51,10 +54,12 @@ export const clientCommandPayloadSchemas = {
   "room:leave": emptySchema,
   "room:kick": kickSchema,
   "room:game": chooseGameSchema,
+  "room:random-game": emptySchema,
   "room:team": moveTeamSchema,
   "room:teams-draw": emptySchema,
   "room:hints": hintsSettingSchema,
   "room:pause": pauseSettingSchema,
+  "room:turn-duration": turnDurationSchema,
   "game:start": emptySchema,
   "game:action": anyPayloadSchema,
   "game:hints": emptySchema,

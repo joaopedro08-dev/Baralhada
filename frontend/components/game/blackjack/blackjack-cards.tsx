@@ -8,6 +8,7 @@ import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap"
 import { cardName } from "@/lib/game/domain/cards"
 import type { Card } from "@/lib/game/domain/types"
 import { cn } from "@/lib/utils"
+import { useLargeCardsPreference } from "@/lib/game/infrastructure/visual-preferences"
 
 export const CARD_SIZES = {
   small:
@@ -37,6 +38,7 @@ export function DealtCard({
   size: CardSize
   sideways?: boolean
 }) {
+  const largeCards = useLargeCardsPreference()
   return (
     <m.li
       initial={{ y: -90, x: 60, rotate: -25, opacity: 0 }}
@@ -53,6 +55,7 @@ export function DealtCard({
       }}
       className={cn(
         "relative",
+        largeCards && "scale-110",
         sideways ? "mx-3 self-center" : index > 0 && OVERLAPS[size]
       )}
     >
@@ -67,6 +70,7 @@ export function DealtCard({
 }
 
 export function FlipCard({ card, size }: { card: Card; size: CardSize }) {
+  const largeCards = useLargeCardsPreference()
   const flipper = useRef<HTMLDivElement>(null)
   useGSAP(() => {
     if (!flipper.current || prefersReducedMotion()) return
@@ -83,11 +87,16 @@ export function FlipCard({ card, size }: { card: Card; size: CardSize }) {
           card={card}
           size="pile"
           aria-label={cardName(card)}
-          className={cn(CARD_SIZES[size], "[backface-visibility:hidden]")}
+          className={cn(
+            CARD_SIZES[size],
+            largeCards && "scale-110",
+            "[backface-visibility:hidden]"
+          )}
         />
         <CardBack
           className={cn(
             CARD_SIZES[size],
+            largeCards && "scale-110",
             "absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden]"
           )}
         />
@@ -97,6 +106,7 @@ export function FlipCard({ card, size }: { card: Card; size: CardSize }) {
 }
 
 export function HiddenCard({ size }: { size: CardSize }) {
+  const largeCards = useLargeCardsPreference()
   return (
     <m.span
       role="img"
@@ -106,7 +116,7 @@ export function HiddenCard({ size }: { size: CardSize }) {
       transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.24 }}
       className="block"
     >
-      <CardBack className={CARD_SIZES[size]} />
+      <CardBack className={cn(CARD_SIZES[size], largeCards && "scale-110")} />
     </m.span>
   )
 }

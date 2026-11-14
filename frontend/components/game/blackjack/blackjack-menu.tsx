@@ -28,6 +28,8 @@ export function BlackjackMenu({
   return (
     <MatchMenu
       room={room}
+      gameId="blackjack"
+      gameName="Blackjack"
       subtitle={roundLabel(game).toLowerCase()}
       hintsEnabled={hintsEnabled}
       onHintsChange={onHintsChange}

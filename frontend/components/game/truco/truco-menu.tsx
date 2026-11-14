@@ -67,6 +67,8 @@ export function TrucoMenu({
   return (
     <MatchMenu
       room={room}
+      gameId="truco-paulista"
+      gameName="Truco Paulista"
       subtitle={`mão ${game.handNumber}`}
       hintsEnabled={hintsEnabled}
       onHintsChange={onHintsChange}

@@ -1,4 +1,7 @@
+"use client"
+
 import { Club, Diamond, Heart, Spade } from "lucide-react"
+import { useLargeCardsPreference } from "@/lib/game/infrastructure/visual-preferences"
 
 import { cardName, isRedSuit, rankOf, suitOf } from "@/lib/game/domain/cards"
 import type { Card, Suit } from "@/lib/game/domain/types"
@@ -55,6 +58,19 @@ export const CARD_SIZES = {
   },
 } as const
 
+const LARGE_CARD_SIZES = {
+  hand: {
+    box: "h-24 w-16 sm:h-28 sm:w-20 lg:h-32 lg:w-24",
+    rank: "text-2xl lg:text-3xl",
+    suit: "size-9 lg:size-11",
+  },
+  table: {
+    box: "aspect-[5/7] w-full",
+    rank: "text-xl lg:text-2xl",
+    suit: "size-8 lg:size-10",
+  },
+} as const
+
 export function CardFace({
   card,
   size,
@@ -65,7 +81,10 @@ export function CardFace({
   size: keyof typeof CARD_SIZES
 }) {
   const suit = suitOf(card)
-  const style = CARD_SIZES[size]
+  const large = useLargeCardsPreference()
+  const style = large && size in LARGE_CARD_SIZES
+    ? LARGE_CARD_SIZES[size as keyof typeof LARGE_CARD_SIZES]
+    : CARD_SIZES[size]
   return (
     <div
       role="img"

@@ -57,6 +57,7 @@ export interface RoomStateDto {
   readonly hintsAllowed: boolean
   readonly matchWins: Readonly<Record<PlayerId, number>>
   readonly turnDurationMs: number
+  readonly turnDurationSeconds: 15 | 30 | 60 | null
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null
@@ -75,10 +76,12 @@ export interface ClientCommands {
   "room:leave": { input: undefined; output: null }
   "room:kick": { input: { playerId: PlayerId }; output: null }
   "room:game": { input: { gameId: string }; output: null }
+  "room:random-game": { input: undefined; output: null }
   "room:team": { input: { playerId: PlayerId; team: number }; output: null }
   "room:teams-draw": { input: undefined; output: null }
   "room:hints": { input: { allowed: boolean }; output: null }
   "room:pause": { input: { paused: boolean }; output: null }
+  "room:turn-duration": { input: { seconds: 15 | 30 | 60 }; output: null }
   "game:start": { input: undefined; output: null }
   "game:action": { input: unknown; output: null }
   "game:hints": { input: undefined; output: HintsDto }

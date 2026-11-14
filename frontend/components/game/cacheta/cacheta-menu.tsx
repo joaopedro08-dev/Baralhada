@@ -27,6 +27,8 @@ export function CachetaMenu({
   return (
     <MatchMenu
       room={room}
+      gameId="cacheta"
+      gameName="Cacheta"
       subtitle={`rodada ${game.round}`}
       hintsEnabled={hintsEnabled}
       onHintsChange={onHintsChange}

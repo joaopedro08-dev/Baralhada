@@ -30,6 +30,7 @@ export interface Room<State = unknown> {
   readonly version: number
   readonly timedTurnNumber: number | null
   readonly turnDeadlineAt: number | null
+  readonly turnDurationSeconds: 15 | 30 | 60 | null
   readonly emptySince: number | null
 }
 
@@ -88,6 +89,7 @@ export const createRoom = <State>(code: string, gameId: string, host: RoomPlayer
   version: 0,
   timedTurnNumber: null,
   turnDeadlineAt: null,
+  turnDurationSeconds: null,
   emptySince: null,
 })
 

@@ -25,6 +25,8 @@ export function PokerMenu({
   return (
     <MatchMenu
       room={room}
+      gameId="poker-texas-holdem"
+      gameName="Poker Texas Hold'em"
       subtitle={`mão ${game.handNumber} · ${describeBlinds(game)}`}
       hintsEnabled={hintsEnabled}
       onHintsChange={onHintsChange}

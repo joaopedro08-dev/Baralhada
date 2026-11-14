@@ -7,7 +7,10 @@ import { LeaveMatchButton } from "@/components/game/room/leave-button"
 import { HintsToggle } from "@/components/game/table/hints-toggle"
 import { HistoryList } from "@/components/game/table/history-list"
 import { HowToPlay } from "@/components/game/table/how-to-play"
+import { TutorialDialog } from "@/components/game/table/tutorial-dialog"
 import { PauseToggle } from "@/components/game/table/pause-toggle"
+import { PreferencesPanel } from "@/components/game/table/preferences-panel"
+import { RoomCodeVisibility } from "@/components/game/room/room-code-visibility"
 import type { RuleSection } from "@/components/game/table/how-to-play"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -21,9 +24,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import type { RoomState } from "@/lib/game/domain/types"
+import type { GameId } from "@/lib/game/domain/types"
 
 export function MatchMenu({
   room,
+  gameId,
+  gameName,
   subtitle,
   hintsEnabled,
   onHintsChange,
@@ -35,6 +41,8 @@ export function MatchMenu({
   leaveNotice,
 }: {
   room: RoomState
+  gameId: GameId
+  gameName: string
   subtitle: string
   hintsEnabled: boolean
   onHintsChange: (enabled: boolean) => void
@@ -46,7 +54,15 @@ export function MatchMenu({
   leaveNotice: string
 }) {
   return (
-    <Sheet>
+    <>
+      <TutorialDialog
+        gameId={gameId}
+        gameName={gameName}
+        sections={rules}
+        autoOpen
+        showTrigger={false}
+      />
+      <Sheet>
       <SheetTrigger asChild>
         <GameButton aria-label="Abrir menu" className="px-0">
           <Menu aria-hidden />
@@ -60,7 +76,7 @@ export function MatchMenu({
           <div>
             <SheetTitle className="text-lg">Menu</SheetTitle>
             <SheetDescription className="text-sm">
-              Sala <span className="font-mono">{room.code}</span> · {subtitle}
+              Sala <RoomCodeVisibility code={room.code} /> · {subtitle}
             </SheetDescription>
           </div>
           <SheetClose asChild>
@@ -96,8 +112,13 @@ export function MatchMenu({
 
           <Separator />
 
+          <PreferencesPanel />
+
+          <Separator />
+
           <section className="flex flex-col gap-2">
             <h3 className="font-heading text-sm font-semibold">Como jogar</h3>
+            <TutorialDialog gameId={gameId} gameName={gameName} sections={rules} />
             <HowToPlay sections={rules} />
           </section>
 
@@ -115,6 +136,7 @@ export function MatchMenu({
           <LeaveMatchButton className="w-full" notice={leaveNotice} />
         </div>
       </SheetContent>
-    </Sheet>
+      </Sheet>
+    </>
   )
 }

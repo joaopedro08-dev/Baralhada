@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { domMax, LazyMotion, MotionConfig } from "framer-motion"
 
@@ -13,6 +13,8 @@ import { Spinner } from "@/components/ui/spinner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useGame } from "@/hooks/use-game"
 import type { GameId, RoomStatus } from "@/lib/game/domain/types"
+import { playGameSound } from "@/lib/game/infrastructure/game-sounds"
+import { useReducedMotionPreference } from "@/lib/game/infrastructure/visual-preferences"
 
 function LoadingTable() {
   return (
@@ -157,6 +159,9 @@ function CurrentScreen({ status }: { status: RoomStatus | null }) {
 
 export default function RoomScreens() {
   const { room } = useGame()
+  const reducedMotion = useReducedMotionPreference()
+  const previousTurn = useRef<number | null>(null)
+  const previousStatus = useRef<RoomStatus | null>(null)
   const gameId = room?.gameId ?? null
   const settling = useWaiting(room?.pausedUntil ?? null)
   const status =
@@ -167,9 +172,25 @@ export default function RoomScreens() {
     for (const load of PRELOADS[gameId] ?? []) void load()
   }, [gameId])
 
+  useEffect(() => {
+    if (!room) return
+    if (
+      previousTurn.current !== null &&
+      room.game?.turnNumber !== previousTurn.current &&
+      room.game?.currentPlayerId === room.viewerId
+    ) {
+      playGameSound("turn")
+    }
+    if (previousStatus.current !== "finished" && room.status === "finished") {
+      playGameSound("finish")
+    }
+    previousTurn.current = room.game?.turnNumber ?? null
+    previousStatus.current = room.status
+  }, [room])
+
   return (
     <LazyMotion features={domMax} strict>
-      <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
         <TooltipProvider delayDuration={300}>
           <ConnectionBanner />
           <div key={status} className="animate-in duration-200 fade-in">

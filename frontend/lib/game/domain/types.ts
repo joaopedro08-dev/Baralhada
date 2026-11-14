@@ -119,6 +119,7 @@ export interface RoomState {
   readonly hintsAllowed: boolean
   readonly matchWins?: Readonly<Record<PlayerId, number>>
   readonly turnDurationMs: number
+  readonly turnDurationSeconds: 15 | 30 | 60 | null
   readonly turnDeadlineAt: number | null
   readonly matchStartsAt: number | null
   readonly pausedUntil: number | null

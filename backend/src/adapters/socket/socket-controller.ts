@@ -5,6 +5,7 @@ import type { ArrangeTeams } from "../../application/use-cases/arrange-teams.js"
 import type { ChooseGame } from "../../application/use-cases/choose-game.js"
 import type { ChangeHints } from "../../application/use-cases/change-hints.js"
 import type { ChangePause } from "../../application/use-cases/change-pause.js"
+import type { ChangeTurnDuration } from "../../application/use-cases/change-turn-duration.js"
 import type { CreateRoom, SeatGrant } from "../../application/use-cases/create-room.js"
 import type { DisconnectPlayer } from "../../application/use-cases/disconnect-player.js"
 import type { JoinRoom } from "../../application/use-cases/join-room.js"
@@ -14,6 +15,7 @@ import type { PlayTurn } from "../../application/use-cases/play-turn.js"
 import type { ReadGame } from "../../application/use-cases/read-game.js"
 import type { ReconnectPlayer } from "../../application/use-cases/reconnect-player.js"
 import type { StartMatch } from "../../application/use-cases/start-match.js"
+import type { RandomGame } from "../../application/use-cases/random-game.js"
 import { err, ok } from "../../domain/shared/result.js"
 import type { Result } from "../../domain/shared/result.js"
 import { AddressRoomQuota } from "./address-room-quota.js"
@@ -29,6 +31,7 @@ import {
   emptySchema,
   hintsSettingSchema,
   pauseSettingSchema,
+  turnDurationSchema,
   joinRoomSchema,
   kickSchema,
   moveTeamSchema,
@@ -46,9 +49,11 @@ export interface SocketUseCases {
   readonly leaveRoom: LeaveRoom
   readonly kickPlayer: KickPlayer
   readonly chooseGame: ChooseGame
+  readonly randomGame: RandomGame
   readonly arrangeTeams: ArrangeTeams
   readonly changeHints: ChangeHints
   readonly changePause: ChangePause
+  readonly changeTurnDuration: ChangeTurnDuration
   readonly disconnectPlayer: DisconnectPlayer
   readonly startMatch: StartMatch
   readonly playTurn: PlayTurn
@@ -151,7 +156,16 @@ export class SocketController {
   }
 
   private registerRoomCommands(session: ClientSession, member: MemberRegistrar): void {
-    const { leaveRoom, kickPlayer, chooseGame, arrangeTeams, changeHints, changePause } =
+    const {
+      leaveRoom,
+      kickPlayer,
+      chooseGame,
+      randomGame,
+      arrangeTeams,
+      changeHints,
+      changePause,
+      changeTurnDuration,
+    } =
       this.useCases
     member("room:leave", emptySchema, (actor) => {
       const left = leaveRoom.execute(actor)
@@ -164,6 +178,7 @@ export class SocketController {
     member("room:game", chooseGameSchema, (actor, input: ClientCommands["room:game"]["input"]) =>
       chooseGame.execute(actor, input.gameId)
     )
+    member("room:random-game", emptySchema, (actor) => randomGame.execute(actor))
     member("room:team", moveTeamSchema, (actor, input: ClientCommands["room:team"]["input"]) =>
       arrangeTeams.move(actor, input.playerId, input.team)
     )
@@ -179,6 +194,12 @@ export class SocketController {
       pauseSettingSchema,
       (actor, input: ClientCommands["room:pause"]["input"]) =>
         changePause.execute(actor, input.paused)
+    )
+    member(
+      "room:turn-duration",
+      turnDurationSchema,
+      (actor, input: ClientCommands["room:turn-duration"]["input"]) =>
+        changeTurnDuration.execute(actor, input.seconds)
     )
   }
 

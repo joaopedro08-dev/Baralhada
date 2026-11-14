@@ -8,6 +8,7 @@ import { cardName } from "@/lib/game/domain/cards"
 import type { HintLevel } from "@/lib/game/domain/hint-focus"
 import type { Card } from "@/lib/game/domain/types"
 import { cn } from "@/lib/utils"
+import { useLargeCardsPreference } from "@/lib/game/infrastructure/visual-preferences"
 
 const CARD_SPRING = { type: "spring", stiffness: 420, damping: 26 } as const
 
@@ -26,6 +27,7 @@ export function SelectableCard({
   tilt?: number
   onToggle?: () => void
 }) {
+  const largeCards = useLargeCardsPreference()
   const faceStyle = cn(
     selected && "ring-[3px] ring-gold",
     !selected && hint === "best" && "hint-best",
@@ -62,7 +64,11 @@ export function SelectableCard({
       transition={CARD_SPRING}
       className={cn(
         "relative block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-sky-400",
-        size === "table" ? "w-full" : CARD_SIZES.hand.box
+        size === "table"
+          ? "w-full"
+          : largeCards
+            ? "h-24 w-16 sm:h-28 sm:w-20 lg:h-32 lg:w-24"
+            : CARD_SIZES.hand.box
       )}
     >
       <CardFace card={card} size={size} className={faceStyle} />

@@ -42,6 +42,7 @@ export const buildRoom = (changes: Partial<RoomState> = {}): RoomState => ({
   pausedUntil: null,
   pausedAt: null,
   turnDurationMs: 60_000,
+  turnDurationSeconds: null,
   turnDeadlineAt: null,
   matchStartsAt: null,
   serverNow: 0,

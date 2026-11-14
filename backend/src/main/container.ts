@@ -15,7 +15,9 @@ import { RoomSession } from "../application/room-session.js"
 import { ArrangeTeams } from "../application/use-cases/arrange-teams.js"
 import { ChangeHints } from "../application/use-cases/change-hints.js"
 import { ChangePause } from "../application/use-cases/change-pause.js"
+import { ChangeTurnDuration } from "../application/use-cases/change-turn-duration.js"
 import { ChooseGame } from "../application/use-cases/choose-game.js"
+import { RandomGame } from "../application/use-cases/random-game.js"
 import { CreateRoom } from "../application/use-cases/create-room.js"
 import { DisconnectPlayer } from "../application/use-cases/disconnect-player.js"
 import { ExpireTurn } from "../application/use-cases/expire-turn.js"
@@ -103,9 +105,11 @@ export const buildContainer = (config: AppConfig, logger: Logger): Container => 
       leaveRoom: new LeaveRoom(session),
       kickPlayer: new KickPlayer(session, notifier),
       chooseGame: new ChooseGame(session),
+      randomGame: new RandomGame(session),
       arrangeTeams: new ArrangeTeams(session, random),
       changeHints: new ChangeHints(session),
       changePause: new ChangePause(session),
+      changeTurnDuration: new ChangeTurnDuration(session),
       disconnectPlayer: new DisconnectPlayer(session, systemClock),
       startMatch: new StartMatch(session, random),
       playTurn: new PlayTurn(session, random),

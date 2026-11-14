@@ -32,6 +32,8 @@ export interface ClientCommands {
   "room:leave": { input: undefined; output: null }
   "room:kick": { input: { playerId: PlayerId }; output: null }
   "room:game": { input: { gameId: GameId }; output: null }
+  "room:random-game": { input: undefined; output: null }
+  "room:turn-duration": { input: { seconds: 15 | 30 | 60 }; output: null }
   "room:team": { input: { playerId: PlayerId; team: number }; output: null }
   "room:teams-draw": { input: undefined; output: null }
   "room:hints": { input: { allowed: boolean }; output: null }

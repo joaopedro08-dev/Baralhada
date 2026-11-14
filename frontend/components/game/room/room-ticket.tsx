@@ -1,37 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { m } from "framer-motion"
 import { Check, Copy } from "lucide-react"
 
 import { GameButton } from "@/components/game/game-button"
 import { InviteLink } from "@/components/game/room/invite-link"
+import { RoomCodeVisibility } from "@/components/game/room/room-code-visibility"
 
 const FEEDBACK_MS = 2200
-
-function CodeTiles({ code }: { code: string }) {
-  return (
-    <h1 className="flex justify-center gap-1.5 sm:justify-start">
-      <span className="sr-only">Sala {code}</span>
-      {[...code].map((letter, position) => (
-        <m.span
-          key={position}
-          aria-hidden
-          initial={{ y: 16, opacity: 0, rotate: -8 }}
-          animate={{ y: 0, opacity: 1, rotate: 0 }}
-          transition={{
-            delay: position * 0.05,
-            type: "spring",
-            stiffness: 300,
-          }}
-          className="flex h-14 w-11 items-center justify-center rounded-lg bg-playing-card font-mono text-3xl font-bold text-suit-black shadow-md ring-1 ring-black/20 sm:h-16 sm:w-12"
-        >
-          {letter}
-        </m.span>
-      ))}
-    </h1>
-  )
-}
 
 function CopyCodeButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
@@ -80,7 +56,9 @@ export function RoomTicket({
         <p className="text-sm font-semibold tracking-widest text-gold uppercase">
           Código da sala
         </p>
-        <CodeTiles code={code} />
+        <h1>
+          <RoomCodeVisibility code={code} variant="tiles" />
+        </h1>
         <CopyCodeButton code={code} />
       </div>
       <div className="relative flex flex-col justify-center gap-2 border-t-2 border-dashed border-felt-line/70 p-5 md:border-t-0 md:border-l-2">

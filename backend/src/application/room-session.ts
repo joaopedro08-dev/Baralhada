@@ -13,6 +13,7 @@ import { err, ok } from "../domain/shared/result.js"
 import type { Result } from "../domain/shared/result.js"
 import type { PlayerId } from "../domain/shared/seat.js"
 import type { ApplicationErrorCode } from "./errors.js"
+import { acceptsPlayerCount } from "../domain/room/game-rules.js"
 import type { Clock, GameSettings, RoomNotifier, RoomRepository, TurnScheduler } from "./ports.js"
 
 export interface Actor {
@@ -57,6 +58,14 @@ export class RoomSession {
     const rules = this.catalog.find(room.gameId)
     if (!rules) throw new Error(`Jogo desconhecido: ${room.gameId}`)
     return rules
+  }
+
+  randomGame(room: Room): Result<string, ApplicationErrorCode> {
+    const compatible = this.catalog.games.filter((game) =>
+      acceptsPlayerCount(game, room.players.length)
+    )
+    const selected = compatible[this.random.nextInt(compatible.length)]
+    return selected ? ok(selected.id) : err("NOT_ENOUGH_PLAYERS")
   }
 
   statusOf(room: Room): RoomStatus {
@@ -109,6 +118,11 @@ export class RoomSession {
   pause(room: Room): Result<Room, ApplicationErrorCode> {
     if (room.pausedAt !== null) return err("TABLE_ALREADY_PAUSED")
     return ok({ ...room, pausedAt: this.clock.now() })
+  }
+
+  setTurnDuration(room: Room, seconds: 15 | 30 | 60): Result<Room, ApplicationErrorCode> {
+    if (this.statusOf(room) !== "lobby") return err("GAME_ALREADY_STARTED")
+    return ok({ ...room, turnDurationSeconds: seconds })
   }
 
   resume(room: Room): Result<Room, ApplicationErrorCode> {
@@ -190,8 +204,10 @@ export class RoomSession {
     return this.commit(dropPlayer(room, playerId, game, this.clock.now()))
   }
 
-  private turnDurationOf(rules: AnyGameRules): number {
-    return this.settings.turnDurationOverrideMs ?? rules.turnDurationMs
+  private turnDurationOf(room: Room, rules: AnyGameRules): number {
+    return room.turnDurationSeconds === null
+      ? this.settings.turnDurationOverrideMs ?? rules.turnDurationMs
+      : room.turnDurationSeconds * 1000
   }
 
   private turnDelayOf(room: Room, automatic: boolean, rules: AnyGameRules, now: number): number {
@@ -199,7 +215,7 @@ export class RoomSession {
     if (room.timedTurnNumber === null && room.turnDeadlineAt !== null) {
       return Math.max(0, room.turnDeadlineAt - now)
     }
-    return this.turnDurationOf(rules)
+    return this.turnDurationOf(room, rules)
   }
 
   private syncTurnTimer(room: Room): Room {

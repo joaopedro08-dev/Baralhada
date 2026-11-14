@@ -55,7 +55,11 @@ export class RoomPresenter {
       teams: rules.teamCount === null ? null : teamsOf(room, rules.teamCount),
       hintsAllowed: room.hintsAllowed,
       matchWins: room.matchWins,
-      turnDurationMs: this.turnDurationOverrideMs ?? rules.turnDurationMs,
+      turnDurationMs:
+        room.turnDurationSeconds === null
+          ? this.turnDurationOverrideMs ?? rules.turnDurationMs
+          : room.turnDurationSeconds * 1000,
+      turnDurationSeconds: room.turnDurationSeconds,
       turnDeadlineAt: room.turnDeadlineAt,
       matchStartsAt: room.matchStartsAt,
       pausedUntil: room.pausedUntil,

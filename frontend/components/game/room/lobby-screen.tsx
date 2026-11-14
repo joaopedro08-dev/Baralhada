@@ -1,6 +1,13 @@
 "use client"
 
-import { BookOpen, CheckCircle2, Hourglass, Play, Spade } from "lucide-react"
+import {
+  BookOpen,
+  CheckCircle2,
+  Dices,
+  Hourglass,
+  Play,
+  Spade,
+} from "lucide-react"
 
 import { SuitIcon } from "@/components/game/cards/card-face"
 import { GAME_IDENTITY } from "@/components/game/game-identity"
@@ -59,11 +66,13 @@ function GameSection({
   editable,
   busy,
   onChoose,
+  onRandom,
 }: {
   room: RoomState
   editable: boolean
   busy: boolean
   onChoose: (gameId: RoomState["gameId"]) => void
+  onRandom: () => void
 }) {
   const game = gameInfo(room.gameId)
   const { suit, accent } = GAME_IDENTITY[room.gameId]
@@ -85,12 +94,23 @@ function GameSection({
         </a>
       </div>
       {editable ? (
-        <GamePicker
-          value={room.gameId}
-          onChange={onChoose}
-          disabled={busy}
-          label="Jogo da sala"
-        />
+        <>
+          <GamePicker
+            value={room.gameId}
+            onChange={onChoose}
+            disabled={busy}
+            label="Jogo da sala"
+          />
+          <GameButton
+            variant="outline"
+            disabled={busy}
+            onClick={onRandom}
+            className="min-h-11 w-full"
+          >
+            <Dices aria-hidden />
+            Sortear jogo
+          </GameButton>
+        </>
       ) : (
         <div className="flex items-center gap-3 rounded-xl bg-felt-deep p-3 text-felt-foreground">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-playing-card shadow">
@@ -199,6 +219,7 @@ export function LobbyScreen({
                 editable={viewerIsHost}
                 busy={busy}
                 onChoose={commands.chooseGame}
+                onRandom={commands.randomGame}
               />
               <Separator />
               <HintsSetting
@@ -207,6 +228,32 @@ export function LobbyScreen({
                 busy={busy}
                 onChange={commands.allowHints}
               />
+              {viewerIsHost && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="font-heading text-sm font-semibold">
+                    Tempo da vez
+                  </h2>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[15, 30, 60].map((seconds) => (
+                      <GameButton
+                        key={seconds}
+                        variant={
+                          room.turnDurationSeconds === seconds
+                            ? "default"
+                            : "outline"
+                        }
+                        disabled={busy}
+                        onClick={() =>
+                          commands.setTurnDuration(seconds as 15 | 30 | 60)
+                        }
+                        className="min-h-11"
+                      >
+                        {seconds}s
+                      </GameButton>
+                    ))}
+                  </div>
+                </section>
+              )}
               {room.teams && (
                 <>
                   <Separator />

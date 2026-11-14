@@ -27,6 +27,8 @@ export function TrincaMenu({
   return (
     <MatchMenu
       room={room}
+      gameId="tres-trincas"
+      gameName="Três Trincas"
       subtitle={`vez ${game.turnNumber}`}
       hintsEnabled={hintsEnabled}
       onHintsChange={onHintsChange}

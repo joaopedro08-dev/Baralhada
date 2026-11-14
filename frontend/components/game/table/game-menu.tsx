@@ -7,7 +7,11 @@ import { LeaveMatchButton } from "@/components/game/room/leave-button"
 import { HistoryList } from "@/components/game/table/history-list"
 import { HintsToggle } from "@/components/game/table/hints-toggle"
 import { HowToPlay } from "@/components/game/table/how-to-play"
+import { TutorialDialog } from "@/components/game/table/tutorial-dialog"
+import { RULE_SECTIONS } from "@/lib/game/domain/how-to-play"
 import { PauseToggle } from "@/components/game/table/pause-toggle"
+import { PreferencesPanel } from "@/components/game/table/preferences-panel"
+import { RoomCodeVisibility } from "@/components/game/room/room-code-visibility"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -63,7 +67,15 @@ export function GameMenu({
   onHintsChange: (enabled: boolean) => void
 }) {
   return (
-    <Sheet>
+    <>
+      <TutorialDialog
+        gameId="rouba-monte"
+        gameName="Rouba Monte"
+        sections={RULE_SECTIONS}
+        autoOpen
+        showTrigger={false}
+      />
+      <Sheet>
       <SheetTrigger asChild>
         <GameButton aria-label="Abrir menu" className="px-0">
           <Menu aria-hidden />
@@ -77,7 +89,7 @@ export function GameMenu({
           <div>
             <SheetTitle className="text-lg">Menu</SheetTitle>
             <SheetDescription className="text-sm">
-              Sala <span className="font-mono">{room.code}</span> · turno{" "}
+              Sala <RoomCodeVisibility code={room.code} /> · turno{" "}
               {game.turnNumber}
             </SheetDescription>
           </div>
@@ -115,7 +127,16 @@ export function GameMenu({
 
           <Separator />
 
+          <PreferencesPanel />
+
+          <Separator />
+
           <MenuSection title="Como jogar">
+            <TutorialDialog
+              gameId="rouba-monte"
+              gameName="Rouba Monte"
+              sections={RULE_SECTIONS}
+            />
             <HowToPlay />
           </MenuSection>
 
@@ -130,6 +151,7 @@ export function GameMenu({
           <LeaveMatchButton className="w-full" />
         </div>
       </SheetContent>
-    </Sheet>
+      </Sheet>
+    </>
   )
 }

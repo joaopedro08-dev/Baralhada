@@ -24,6 +24,9 @@ export const useRoomCommands = () => {
       void run(() => gameSession.kickPlayer(playerId)),
     chooseGame: (gameId: GameId) =>
       void run(() => gameSession.chooseGame(gameId)),
+    randomGame: () => void run(gameSession.randomGame),
+    setTurnDuration: (seconds: 15 | 30 | 60) =>
+      void run(() => gameSession.setTurnDuration(seconds)),
     moveToTeam: (playerId: PlayerId, team: number) =>
       void run(() => gameSession.moveToTeam(playerId, team)),
     drawTeams: () => void run(gameSession.drawTeams),
